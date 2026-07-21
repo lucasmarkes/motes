@@ -3,6 +3,7 @@ import { Motes } from '@motes/react'
 import { CATALOG, type CatalogEntry } from './effects'
 import { Link } from './router'
 import { POINTER_HINT } from './hint'
+import { Swap } from './Swap'
 
 export function Index() {
   return (
@@ -105,7 +106,7 @@ function Install() {
     >
       <span className="prompt" aria-hidden="true">$</span>
       <code>{command}</code>
-      <span className="install-state">{copied ? 'copied' : 'copy'}</span>
+      <Swap className="install-state" on="copied" off="copy" active={copied} />
     </button>
   )
 }

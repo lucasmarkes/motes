@@ -133,6 +133,37 @@ input {
   outline-offset: 3px;
 }
 
+/* Label cross-fade --------------------------------------------------------
+   Both labels stack in one grid cell: the box sizes to the longer word, so
+   the control cannot resize as the label changes. */
+
+.swap {
+  display: inline-grid;
+  /* The box is sized to the longer word, so the shorter one needs to align
+     to whichever edge its control is anchored against. */
+  justify-items: start;
+}
+
+.swap > span {
+  grid-area: 1 / 1;
+  transition:
+    opacity 0.18s var(--ease),
+    scale 0.18s var(--ease),
+    filter 0.18s var(--ease);
+}
+
+.swap .is-in {
+  opacity: 1;
+  scale: 1;
+  filter: blur(0);
+}
+
+.swap .is-out {
+  opacity: 0;
+  scale: 0.25;
+  filter: blur(4px);
+}
+
 /* Voices ------------------------------------------------------------------ */
 
 .u-display {
@@ -552,6 +583,9 @@ input {
   position: absolute;
   left: 50%;
   bottom: var(--s3);
+  /* Centring lives on `translate`, so the enter/exit motion rides `bottom`.
+     Sharing one property would let the keyframe's fill state outrank the
+     transition and the exit would never play. */
   translate: -50% 0;
   z-index: 5;
   font-family: var(--mono);
@@ -565,7 +599,16 @@ input {
   padding: var(--s1) var(--s2);
   white-space: nowrap;
   pointer-events: none;
-  animation: rise 0.5s var(--ease) both;
+  animation: rise 0.5s var(--ease) backwards;
+  transition:
+    opacity 0.3s var(--ease),
+    bottom 0.3s var(--ease);
+}
+
+/* Softer than the enter: it fades and settles 6px, it does not slide away. */
+.hint.is-out {
+  opacity: 0;
+  bottom: calc(var(--s3) - 6px);
 }
 
 .hint-off {
@@ -576,11 +619,11 @@ input {
 @keyframes rise {
   from {
     opacity: 0;
-    translate: -50% 6px;
+    bottom: calc(var(--s3) - 6px);
   }
   to {
     opacity: 1;
-    translate: -50% 0;
+    bottom: var(--s3);
   }
 }
 
@@ -803,17 +846,24 @@ input {
   margin-bottom: 0;
 }
 
+/* The 40px input already carries ~19px of air either side of its 2px track,
+   so an extra block margin between sliders only pushes controls off the fold. */
+.panel-block.slider {
+  margin-bottom: 0;
+}
+
 .slider.is-disabled {
   opacity: 0.4;
 }
 
-/* The visible track is 2px. The control is 32px, so it can actually be
-   grabbed — the input was previously only as tall as its own track. */
+/* The visible track is 2px. The control is 40px, so it can actually be
+   grabbed — the input was previously only as tall as its own track, and a
+   click anywhere in the band now jumps the thumb. */
 input[type='range'] {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
-  height: 32px;
+  height: 40px;
   background: none;
   cursor: pointer;
 }
@@ -912,6 +962,8 @@ select {
 
 .code .tabs button {
   min-height: 40px;
+  /* "core" is only 33px of text; the target has to hold 40 regardless. */
+  min-width: 40px;
   padding: 0;
   font-family: var(--mono);
   font-size: var(--fs-micro);
@@ -947,6 +999,11 @@ select {
   margin-inline-start: auto;
   padding-inline: var(--s2);
   color: var(--ink-2);
+}
+
+/* Right-anchored against the panel edge, so the shorter label ends flush. */
+.code .tabs button.copy .swap {
+  justify-items: end;
 }
 
 .code pre {

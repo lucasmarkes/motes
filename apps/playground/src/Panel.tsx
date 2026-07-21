@@ -3,6 +3,7 @@ import type { MotesOptions } from 'motes'
 import { CATALOG } from './effects'
 import { highlight, snippetFor, type Tab } from './snippet'
 import { navigate } from './router'
+import { Swap } from './Swap'
 
 const CHARSETS = [
   { value: ' .:-=+*#%@', label: 'classic' },
@@ -152,7 +153,7 @@ export function Panel({ config, onChange }: PanelProps) {
             </button>
           ))}
           <button type="button" className="copy" onClick={copy}>
-            {copied ? 'copied' : 'copy'}
+            <Swap on="copied" off="copy" active={copied} />
           </button>
         </div>
         <pre>

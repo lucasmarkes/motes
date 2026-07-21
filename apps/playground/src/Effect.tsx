@@ -36,13 +36,15 @@ export function Effect({ entry, config, onChange }: EffectProps) {
         <p>{entry.detail}</p>
       </header>
 
-      {config.pointer && !touched ? (
-        <p className="hint">{POINTER_HINT}</p>
-      ) : null}
-
-      {!config.pointer ? (
+      {/* Kept mounted so it can animate out. Unmounting on first move made it
+          vanish mid-gesture, which is the one moment the eye is on it. */}
+      {config.pointer ? (
+        <p className={`hint ${touched ? 'is-out' : ''}`} aria-hidden={touched}>
+          {POINTER_HINT}
+        </p>
+      ) : (
         <p className="hint hint-off">interaction off — time is the only input</p>
-      ) : null}
+      )}
 
       <Panel config={config} onChange={onChange} />
     </div>
