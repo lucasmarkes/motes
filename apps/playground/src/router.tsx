@@ -16,20 +16,59 @@ export function usePath(): string {
   return path
 }
 
+/**
+ * Shared by the tile you click and the stage you land on, so the preview
+ * grows into the full field instead of being replaced by it.
+ */
+const MORPH = 'motes-field'
+
+let morphSource: HTMLElement | null = null
+
+/** Tag the element the next navigation should morph out of. */
+export function morphFrom(el: HTMLElement | null): void {
+  morphSource = el
+}
+
 export function navigate(to: string): void {
   if (to === window.location.pathname) return
-  window.history.pushState({}, '', to)
-  window.dispatchEvent(new PopStateEvent('popstate'))
+
+  const commit = (): void => {
+    window.history.pushState({}, '', to)
+    window.dispatchEvent(new PopStateEvent('popstate'))
+  }
+
+  const source = morphSource
+  morphSource = null
+
+  // Reduced motion gets the plain cut, which is what this always did.
+  if (
+    typeof document.startViewTransition !== 'function' ||
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  ) {
+    commit()
+    return
+  }
+
+  if (source) source.style.viewTransitionName = MORPH
+  const transition = document.startViewTransition(commit)
+
+  // The name must not outlive the transition: two elements carrying the same
+  // view-transition-name at once aborts the following one.
+  void transition.finished.finally(() => {
+    if (source) source.style.viewTransitionName = ''
+  })
 }
 
 interface LinkProps {
   to: string
   className?: string
+  /** Runs just before navigating — used to nominate a morph source. */
+  onActivate?: () => void
   children: ReactNode
 }
 
 /** A real anchor, so middle-click, copy-link and keyboard focus all work. */
-export function Link({ to, className, children }: LinkProps) {
+export function Link({ to, className, onActivate, children }: LinkProps) {
   return (
     <a
       href={to}
@@ -37,6 +76,7 @@ export function Link({ to, className, children }: LinkProps) {
       onClick={(e) => {
         if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return
         e.preventDefault()
+        onActivate?.()
         navigate(to)
         window.scrollTo(0, 0)
       }}

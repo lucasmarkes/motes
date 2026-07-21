@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Motes } from '@motes/react'
 import { CATALOG, type CatalogEntry } from './effects'
-import { Link } from './router'
+import { Link, morphFrom } from './router'
 import { POINTER_HINT } from './hint'
 import { Swap } from './Swap'
 
@@ -61,9 +61,17 @@ export function Index() {
 }
 
 function Tile({ entry }: { entry: CatalogEntry }) {
+  const field = useRef<HTMLSpanElement>(null)
+
   return (
-    <Link to={`/${entry.id}`} className="tile">
-      <span className="tile-field">
+    <Link
+      to={`/${entry.id}`}
+      className="tile"
+      // This preview is a small-scale render of the very stage being opened,
+      // so it grows into it rather than being cut away.
+      onActivate={() => morphFrom(field.current)}
+    >
+      <span className="tile-field" ref={field}>
         <Motes
           effect={entry.id}
           density={10}

@@ -501,6 +501,32 @@ input {
   height: 100%;
   cursor: crosshair;
   touch-action: none;
+  /* Paired with the tile preview the visitor clicked (see router.tsx), so
+     the small field grows into the full one. Switching effects from the
+     panel matches this name on both sides and cross-fades in place. */
+  view-transition-name: motes-field;
+}
+
+::view-transition-group(motes-field),
+::view-transition-group(root),
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 260ms;
+  animation-timing-function: var(--ease);
+}
+
+/* The group carries the geometry for the full beat, but the outgoing
+   snapshot is a 180px preview being magnified about five times — so clear it
+   early and let the crisp field take over rather than hold a blown-up frame
+   on screen for the whole transition. */
+::view-transition-old(motes-field) {
+  animation-duration: 120ms;
+  animation-timing-function: var(--ease);
+}
+
+::view-transition-new(motes-field) {
+  animation-duration: 200ms;
+  animation-timing-function: var(--ease);
 }
 
 /* The title sits on the live field; give it ground to stand on, as in the hero. */
@@ -850,6 +876,9 @@ input {
    so an extra block margin between sliders only pushes controls off the fold. */
 .panel-block.slider {
   margin-bottom: 0;
+  /* Turning interaction off makes radius and force irrelevant; fading rather
+     than snapping shows the toggle causing it. */
+  transition: opacity 160ms var(--ease);
 }
 
 .slider.is-disabled {
