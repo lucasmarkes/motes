@@ -23,8 +23,23 @@ function cellSize(density: number): { w: number; h: number } {
   return { w: Math.max(5, density * 0.6), h: density }
 }
 
+/**
+ * Drop keys whose value is `undefined`.
+ *
+ * Spreading a patch would otherwise let an explicit `undefined` clobber a
+ * resolved value — `radius: cond ? 200 : undefined` is ordinary React, and
+ * without this it lands as `Math.max(1, undefined)` → NaN in a uniform.
+ */
+function compact(patch: MotesConfig): MotesConfig {
+  const out: MotesConfig = {}
+  for (const key of Object.keys(patch) as (keyof MotesConfig)[]) {
+    if (patch[key] !== undefined) Object.assign(out, { [key]: patch[key] })
+  }
+  return out
+}
+
 function resolveOptions(base: MotesOptions, patch: MotesConfig): MotesOptions {
-  const next: MotesOptions = { ...base, ...patch }
+  const next: MotesOptions = { ...base, ...compact(patch) }
 
   if (patch.charset !== undefined) validateCharset(next.charset)
   if (patch.effect !== undefined && !getEffect(next.effect)) {
@@ -96,6 +111,29 @@ export function createMotes(
     if (measure()) rebuildAtlas()
   })
 
+  /**
+   * Dragging a window between monitors of different density changes
+   * devicePixelRatio without changing the element's CSS size, so
+   * ResizeObserver never fires and the atlas would stay at the old device
+   * resolution. Watch the ratio itself and re-arm after every change.
+   */
+  let dprQuery: MediaQueryList | null = null
+
+  function onDprChange(): void {
+    if (measure()) rebuildAtlas()
+    watchDpr()
+  }
+
+  function watchDpr(): void {
+    dprQuery?.removeEventListener('change', onDprChange)
+    // Track the true ratio, not the capped one: it can move above MAX_DPR and
+    // back down again, and we still need to notice the return trip.
+    dprQuery = window.matchMedia(
+      `(resolution: ${window.devicePixelRatio || 1}dppx)`,
+    )
+    dprQuery.addEventListener('change', onDprChange)
+  }
+
   function render(now: number): void {
     if (startTime === 0) {
       startTime = now
@@ -145,6 +183,7 @@ export function createMotes(
   measure()
   rebuildAtlas()
   observer.observe(canvas)
+  watchDpr()
   pointer.attach()
 
   return {
@@ -203,6 +242,8 @@ export function createMotes(
       cancelAnimationFrame(raf)
       raf = 0
       observer.disconnect()
+      dprQuery?.removeEventListener('change', onDprChange)
+      dprQuery = null
       pointer.detach()
       renderer.destroy()
     },

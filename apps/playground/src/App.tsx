@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { createMotes, type MotesInstance } from 'motes'
+import type { MotesInstance } from 'motes'
+import { Motes } from '@motes/react'
 
 const EFFECTS = ['flow', 'waves', 'pulse'] as const
 
@@ -8,8 +9,7 @@ const EFFECTS = ['flow', 'waves', 'pulse'] as const
  * pages, code tabs — lands in Phase 4.
  */
 export function App() {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const instanceRef = useRef<MotesInstance | null>(null)
+  const instanceRef = useRef<MotesInstance>(null)
 
   const [effect, setEffect] = useState<string>('flow')
   const [pointer, setPointer] = useState(true)
@@ -21,14 +21,8 @@ export function App() {
   const [fps, setFps] = useState(0)
   const [touched, setTouched] = useState(false)
 
+  // Props flow straight to <Motes>; only the FPS readout needs a loop.
   useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-
-    const instance = createMotes(canvas, { effect: 'flow' })
-    instanceRef.current = instance
-    instance.start()
-
     let frames = 0
     let last = performance.now()
     let raf = 0
@@ -43,23 +37,21 @@ export function App() {
       raf = requestAnimationFrame(tick)
     }
     raf = requestAnimationFrame(tick)
-
-    return () => {
-      cancelAnimationFrame(raf)
-      instance.destroy()
-      instanceRef.current = null
-    }
+    return () => cancelAnimationFrame(raf)
   }, [])
-
-  useEffect(() => {
-    instanceRef.current?.set({ effect, pointer, radius, force, density, speed, trail })
-  }, [effect, pointer, radius, force, density, speed, trail])
 
   return (
     <div className="root">
-      <canvas
-        ref={canvasRef}
+      <Motes
+        ref={instanceRef}
         className="stage"
+        effect={effect}
+        pointer={pointer}
+        radius={radius}
+        force={force}
+        density={density}
+        speed={speed}
+        trail={trail}
         onPointerDown={() => setTouched(true)}
         onPointerMove={() => setTouched(true)}
       />

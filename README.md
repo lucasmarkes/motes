@@ -66,10 +66,13 @@ pnpm dev
 
 ## Status
 
-Phase 2 — effect architecture and phosphor feedback. All three effects ship as
-pluggable GLSL, `defineEffect` registers new ones, `trail` is live via a
-ping-pong feedback pass, and pointer smoothing is frame-rate independent
-(60Hz remains the calibration reference).
+Phase 3 — React wrapper. `<Motes>` diffs props down to changed keys only,
+forwards a ref, forwards unknown props to the canvas, and tears down cleanly.
+Sizing comes from CSS: give the canvas a box and the instance follows it,
+across resizes and monitor-to-monitor DPI changes.
+
+Core is complete: WebGL2 renderer, glyph atlas, shared pointer layer, three
+pluggable effects, `defineEffect`, and phosphor persistence.
 
 ## License
 
