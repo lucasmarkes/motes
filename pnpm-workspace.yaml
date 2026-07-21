@@ -1,0 +1,7 @@
+packages:
+  - 'packages/*'
+  - 'apps/*'
+
+# esbuild ships a platform binary via postinstall; tsup and vite both need it.
+onlyBuiltDependencies:
+  - esbuild

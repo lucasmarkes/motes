@@ -1,0 +1,76 @@
+:root {
+  --canvas: #050403;
+  --panel: #f2efe6;
+  --ink: #14110c;
+  --accent: #d8531f;
+  --rule: rgba(20, 17, 12, 0.18);
+
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--canvas);
+  color: var(--panel);
+  font-family: var(--mono);
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.shell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.plate {
+  border: 1px solid var(--rule);
+  padding: 28px 32px;
+  max-width: 46ch;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 10px;
+  color: var(--accent);
+  margin: 0 0 14px;
+}
+
+.title {
+  font-size: 15px;
+  font-weight: 500;
+  margin: 0 0 10px;
+  letter-spacing: -0.01em;
+}
+
+.body {
+  margin: 0;
+  line-height: 1.6;
+  color: rgba(242, 239, 230, 0.62);
+}
+
+.rule {
+  border: 0;
+  border-top: 1px solid var(--rule);
+  margin: 18px 0;
+}
+
+.status {
+  display: flex;
+  justify-content: space-between;
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  color: rgba(242, 239, 230, 0.42);
+}

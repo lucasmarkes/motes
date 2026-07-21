@@ -1,0 +1,21 @@
+{
+  "name": "motes-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Procedural, pointer-reactive ASCII backgrounds for the web",
+  "packageManager": "pnpm@10.20.0",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "clean": "turbo run clean"
+  },
+  "devDependencies": {
+    "turbo": "^2.10.5",
+    "typescript": "5.9.3"
+  }
+}
