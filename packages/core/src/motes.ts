@@ -12,6 +12,12 @@ import {
 
 const MAX_DPR = 2
 
+/**
+ * Floor on the per-frame fade. Without it `trail: 1` would never converge and
+ * the field would smear into a solid wash. Ported from the prototype.
+ */
+const MIN_FADE = 0.08
+
 /** Monospace advance is roughly 0.6em, so cells are taller than they are wide. */
 function cellSize(density: number): { w: number; h: number } {
   return { w: Math.max(5, density * 0.6), h: density }
@@ -59,6 +65,7 @@ export function createMotes(
   let running = false
   let destroyed = false
   let startTime = 0
+  let lastTime = 0
 
   function rebuildAtlas(): void {
     const { w, h } = cellSize(options.density)
@@ -90,10 +97,15 @@ export function createMotes(
   })
 
   function render(now: number): void {
-    if (startTime === 0) startTime = now
+    if (startTime === 0) {
+      startTime = now
+      lastTime = now
+    }
     const time = (now - startTime) / 1000
+    const dt = (now - lastTime) / 1000
+    lastTime = now
 
-    pointer.update()
+    pointer.update(dt)
 
     const { w, h } = cellSize(options.density)
     const p = pointer.state
@@ -116,6 +128,9 @@ export function createMotes(
       pointerOn: options.pointer && pointer.isLive(),
       radius: options.radius,
       force: options.force,
+      // The prototype's phosphor clear: fade the previous frame toward the
+      // background by (1 - trail), floored so persistence always terminates.
+      fade: Math.max(MIN_FADE, 1 - options.trail),
     })
   }
 

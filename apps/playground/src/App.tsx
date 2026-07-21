@@ -17,6 +17,7 @@ export function App() {
   const [force, setForce] = useState(1.4)
   const [density, setDensity] = useState(13)
   const [speed, setSpeed] = useState(1)
+  const [trail, setTrail] = useState(0.3)
   const [fps, setFps] = useState(0)
   const [touched, setTouched] = useState(false)
 
@@ -51,8 +52,8 @@ export function App() {
   }, [])
 
   useEffect(() => {
-    instanceRef.current?.set({ effect, pointer, radius, force, density, speed })
-  }, [effect, pointer, radius, force, density, speed])
+    instanceRef.current?.set({ effect, pointer, radius, force, density, speed, trail })
+  }, [effect, pointer, radius, force, density, speed, trail])
 
   return (
     <div className="root">
@@ -118,6 +119,8 @@ export function App() {
                 onChange={setDensity} format={(v) => v.toFixed(0)} />
         <Slider label="speed" value={speed} min={0} max={3} step={0.1}
                 onChange={setSpeed} format={(v) => v.toFixed(1)} />
+        <Slider label="persistence" value={trail} min={0} max={1} step={0.01}
+                onChange={setTrail} format={(v) => v.toFixed(2)} />
 
         <div className="hr" />
 

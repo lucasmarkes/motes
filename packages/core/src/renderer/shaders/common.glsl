@@ -11,6 +11,10 @@ uniform vec3  u_accent;
 uniform sampler2D u_glyphAtlas;
 uniform int   u_charCount;
 
+// --- phosphor feedback ---
+uniform sampler2D u_prev;  // previous frame
+uniform float u_fade;      // how far to pull it toward the background, 0..1
+
 // --- pointer block: written only by the shared pass, see pointer.glsl ---
 uniform vec2  u_pointer;       // CSS px, top-left origin
 uniform vec2  u_pointerVel;    // CSS px per frame

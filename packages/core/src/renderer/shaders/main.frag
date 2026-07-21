@@ -10,6 +10,11 @@ void main() {
   vec2 cell = floor(g);
   vec2 sub  = fract(g);
 
+  // Phosphor: last frame, decayed toward the background. At trail = 0 the
+  // fade is total and this reduces exactly to drawing on a clean canvas.
+  vec3 prev  = texelFetch(u_prev, ivec2(gl_FragCoord.xy), 0).rgb;
+  vec3 faded = mix(prev, MOTES_BG, u_fade);
+
   // 1. The effect. Time-only, pointer-blind, by construction.
   float v = field(cell, u_time * u_speed);
 
@@ -18,9 +23,10 @@ void main() {
 
   float val = v + boost;
 
-  // Near-empty cells stay background: sparser field, and a cheap early out.
+  // Near-empty cells leave the decaying frame untouched: sparser field, and a
+  // cheap early out.
   if (val < 0.14) {
-    fragColor = vec4(MOTES_BG, 1.0);
+    fragColor = vec4(faded, 1.0);
     return;
   }
   val = min(val, 1.0);
@@ -36,5 +42,6 @@ void main() {
   vec3  dim  = vec3(base, base * 0.92, base * 0.78);
   vec3  col  = mix(dim, u_accent, m);
 
-  fragColor = vec4(mix(MOTES_BG, col, cov), 1.0);
+  // 5. Composite the glyph over the decaying frame.
+  fragColor = vec4(mix(faded, col, cov), 1.0);
 }

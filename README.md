@@ -66,11 +66,10 @@ pnpm dev
 
 ## Status
 
-Phase 1 — core MVP. The WebGL2 renderer, glyph atlas, shared pointer layer and
-full lifecycle are in. All three effects render and react to the cursor.
-
-Not yet wired: `trail` is accepted and validated but has no visual effect until
-the ping-pong feedback pass lands in Phase 2.
+Phase 2 — effect architecture and phosphor feedback. All three effects ship as
+pluggable GLSL, `defineEffect` registers new ones, `trail` is live via a
+ping-pong feedback pass, and pointer smoothing is frame-rate independent
+(60Hz remains the calibration reference).
 
 ## License
 

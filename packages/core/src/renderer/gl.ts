@@ -5,6 +5,7 @@ import quadVert from './shaders/quad.vert'
 import commonGlsl from './shaders/common.glsl'
 import pointerGlsl from './shaders/pointer.glsl'
 import mainFrag from './shaders/main.frag'
+import blitFrag from './shaders/blit.frag'
 
 export const VERTEX_SHADER = quadVert
 
@@ -31,6 +32,9 @@ export function assembleFragmentShader(effect: EffectDef): string {
   ].join('\n')
 }
 
+/** The background the phosphor decays toward; matches MOTES_BG in common.glsl. */
+const BG: readonly [number, number, number] = [5 / 255, 4 / 255, 3 / 255]
+
 const UNIFORM_NAMES = [
   'u_time',
   'u_resolution',
@@ -41,6 +45,8 @@ const UNIFORM_NAMES = [
   'u_accent',
   'u_glyphAtlas',
   'u_charCount',
+  'u_prev',
+  'u_fade',
   'u_pointer',
   'u_pointerVel',
   'u_pointerEnergy',
@@ -70,6 +76,8 @@ export interface FrameState {
   pointerOn: boolean
   radius: number
   force: number
+  /** How far to pull the previous frame toward the background, 0..1. */
+  fade: number
 }
 
 export interface Renderer {
@@ -150,9 +158,64 @@ export function createRenderer(canvas: HTMLCanvasElement): Renderer {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
 
+  // Half-float accumulation avoids an 8-bit quantisation floor: at long
+  // persistence the per-frame decay of a near-background pixel can round to
+  // zero change, stalling the fade and leaving a permanent haze.
+  const canRenderFloat = Boolean(gl.getExtension('EXT_color_buffer_float'))
+
+  const blitProgram = linkProgram(gl, VERTEX_SHADER, FRAGMENT_HEADER + blitFrag)
+  const blitSrc = gl.getUniformLocation(blitProgram, 'u_src')
+
+  interface Target {
+    fb: WebGLFramebuffer
+    tex: WebGLTexture
+  }
+
+  let targets: [Target, Target] | null = null
+  // Typed as the tuple's own indices so reads are known-defined.
+  let readIndex: 0 | 1 = 0
+
   let program: WebGLProgram | null = null
   let uniforms: UniformMap = {}
   let destroyed = false
+
+  function createTarget(width: number, height: number): Target {
+    const tex = gl!.createTexture()
+    gl!.bindTexture(gl!.TEXTURE_2D, tex)
+    if (canRenderFloat) {
+      gl!.texImage2D(gl!.TEXTURE_2D, 0, gl!.RGBA16F, width, height, 0,
+        gl!.RGBA, gl!.HALF_FLOAT, null)
+    } else {
+      gl!.texImage2D(gl!.TEXTURE_2D, 0, gl!.RGBA8, width, height, 0,
+        gl!.RGBA, gl!.UNSIGNED_BYTE, null)
+    }
+    // NEAREST: the blit is 1:1, so filtering could only soften it.
+    gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_MIN_FILTER, gl!.NEAREST)
+    gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_MAG_FILTER, gl!.NEAREST)
+    gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_WRAP_S, gl!.CLAMP_TO_EDGE)
+    gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_WRAP_T, gl!.CLAMP_TO_EDGE)
+
+    const fb = gl!.createFramebuffer()
+    gl!.bindFramebuffer(gl!.FRAMEBUFFER, fb)
+    gl!.framebufferTexture2D(gl!.FRAMEBUFFER, gl!.COLOR_ATTACHMENT0,
+      gl!.TEXTURE_2D, tex, 0)
+
+    // Start at the background so the first frames fade from black, not noise.
+    gl!.clearColor(BG[0], BG[1], BG[2], 1)
+    gl!.clear(gl!.COLOR_BUFFER_BIT)
+    gl!.bindFramebuffer(gl!.FRAMEBUFFER, null)
+
+    return { fb, tex }
+  }
+
+  function releaseTargets(): void {
+    if (!targets) return
+    for (const t of targets) {
+      gl!.deleteFramebuffer(t.fb)
+      gl!.deleteTexture(t.tex)
+    }
+    targets = null
+  }
 
   function cacheUniforms(target: WebGLProgram): void {
     uniforms = {}
@@ -192,18 +255,31 @@ export function createRenderer(canvas: HTMLCanvasElement): Renderer {
       canvas.width = width
       canvas.height = height
       gl.viewport(0, 0, width, height)
+      // The accumulation buffers hold screen-sized history; reallocate them.
+      releaseTargets()
+      targets = [createTarget(width, height), createTarget(width, height)]
+      readIndex = 0
     },
 
     draw(frame) {
-      if (destroyed || !program) return
+      if (destroyed || !program || !targets) return
 
+      const read = targets[readIndex]
+      const write = targets[readIndex === 0 ? 1 : 0]
+
+      // Pass 1: field + pointer, composited over the decaying previous frame.
+      gl.bindFramebuffer(gl.FRAMEBUFFER, write.fb)
       gl.useProgram(program)
       gl.bindVertexArray(vao)
 
       gl.activeTexture(gl.TEXTURE0)
       gl.bindTexture(gl.TEXTURE_2D, texture)
+      gl.activeTexture(gl.TEXTURE1)
+      gl.bindTexture(gl.TEXTURE_2D, read.tex)
 
       const u = uniforms
+      if (u.u_prev) gl.uniform1i(u.u_prev, 1)
+      if (u.u_fade) gl.uniform1f(u.u_fade, frame.fade)
       if (u.u_glyphAtlas) gl.uniform1i(u.u_glyphAtlas, 0)
       if (u.u_time) gl.uniform1f(u.u_time, frame.time)
       if (u.u_resolution) {
@@ -229,13 +305,25 @@ export function createRenderer(canvas: HTMLCanvasElement): Renderer {
       if (u.u_force) gl.uniform1f(u.u_force, frame.force)
 
       gl.drawArrays(gl.TRIANGLES, 0, 3)
+
+      // Pass 2: present the accumulation target 1:1.
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+      gl.useProgram(blitProgram)
+      gl.activeTexture(gl.TEXTURE0)
+      gl.bindTexture(gl.TEXTURE_2D, write.tex)
+      if (blitSrc) gl.uniform1i(blitSrc, 0)
+      gl.drawArrays(gl.TRIANGLES, 0, 3)
+
       gl.bindVertexArray(null)
+      readIndex = readIndex === 0 ? 1 : 0
     },
 
     destroy() {
       if (destroyed) return
       destroyed = true
       if (program) gl.deleteProgram(program)
+      gl.deleteProgram(blitProgram)
+      releaseTargets()
       gl.deleteTexture(texture)
       gl.deleteVertexArray(vao)
       program = null
