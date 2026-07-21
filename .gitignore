@@ -13,3 +13,4 @@ docs/superpowers/
 
 # Canvas2D prototype — behavioural reference for the port, kept local
 ascii-flux.html
+.env*
