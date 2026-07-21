@@ -104,6 +104,8 @@ export function createMotes(
     rows = Math.ceil(cssH / h) + 1
 
     renderer.resize(Math.floor(cssW * dpr), Math.floor(cssH * dpr))
+    // The box just moved or changed size; the pointer hit-test depends on it.
+    pointer.refreshRect()
     return dprChanged
   }
 

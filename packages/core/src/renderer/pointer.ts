@@ -93,39 +93,89 @@ export function createPointerState(): PointerState {
   }
 }
 
+export interface PointerRect {
+  left: number
+  top: number
+  width: number
+  height: number
+}
+
+export interface PointerHit {
+  x: number
+  y: number
+  inside: boolean
+}
+
+/** Canvas-relative position of a client point, and whether it landed inside. */
+export function hitTest(
+  rect: PointerRect,
+  clientX: number,
+  clientY: number,
+): PointerHit {
+  const x = clientX - rect.left
+  const y = clientY - rect.top
+  return {
+    x,
+    y,
+    inside: x >= 0 && y >= 0 && x <= rect.width && y <= rect.height,
+  }
+}
+
 export interface PointerController {
   readonly state: PointerState
   /** Advance smoothing by `dt` seconds. */
   update(dt: number): void
   /** Whether the shared GLSL pass should contribute this frame. */
   isLive(): boolean
+  /** Re-read the canvas box. Call after anything that can move it. */
+  refreshRect(): void
   attach(): void
   detach(): void
 }
 
+/**
+ * Pointer events are taken from the window and hit-tested against the canvas
+ * box, rather than listened for on the canvas itself.
+ *
+ * This is what lets a field sit behind page content: the canvas can carry
+ * `pointer-events: none` and never swallow a click, while the field still
+ * reacts as the cursor crosses whatever is stacked on top of it. Listening on
+ * the canvas would mean the effect died under every heading and button.
+ */
 export function createPointer(canvas: HTMLCanvasElement): PointerController {
   const state = createPointerState()
 
-  function track(clientX: number, clientY: number): void {
-    const rect = canvas.getBoundingClientRect()
-    state.tx = clientX - rect.left
-    state.ty = clientY - rect.top
-    // First contact snaps, so the field does not sweep in from off-screen.
-    if (!state.active) {
-      state.x = state.tx
-      state.y = state.ty
-    }
-    state.active = true
+  // Cached: reading layout on every pointermove would force a reflow.
+  let rect: PointerRect = { left: 0, top: 0, width: 0, height: 0 }
+
+  function refreshRect(): void {
+    const r = canvas.getBoundingClientRect()
+    rect = { left: r.left, top: r.top, width: r.width, height: r.height }
   }
 
-  const onMove = (e: PointerEvent): void => track(e.clientX, e.clientY)
-  const onDown = (e: PointerEvent): void => {
-    track(e.clientX, e.clientY)
-    state.energy = 1
+  function track(clientX: number, clientY: number, press: boolean): void {
+    const hit = hitTest(rect, clientX, clientY)
+    if (!hit.inside) {
+      state.active = false
+      return
+    }
+    state.tx = hit.x
+    state.ty = hit.y
+    // First contact snaps, so the field does not sweep in from off-screen.
+    if (!state.active) {
+      state.x = hit.x
+      state.y = hit.y
+    }
+    state.active = true
+    if (press) state.energy = 1
   }
-  const onLeave = (): void => {
+
+  const onMove = (e: PointerEvent): void => track(e.clientX, e.clientY, false)
+  const onDown = (e: PointerEvent): void => track(e.clientX, e.clientY, true)
+  const onOut = (): void => {
     state.active = false
   }
+  const onScroll = (): void => refreshRect()
 
   let attached = false
 
@@ -140,20 +190,31 @@ export function createPointer(canvas: HTMLCanvasElement): PointerController {
       return state.active || state.energy > 0.02
     },
 
+    refreshRect,
+
     attach() {
       if (attached) return
       attached = true
-      canvas.addEventListener('pointermove', onMove)
-      canvas.addEventListener('pointerdown', onDown)
-      canvas.addEventListener('pointerleave', onLeave)
+      refreshRect()
+      window.addEventListener('pointermove', onMove, { passive: true })
+      window.addEventListener('pointerdown', onDown, { passive: true })
+      window.addEventListener('blur', onOut)
+      document.addEventListener('pointerleave', onOut)
+      // Capture: scrolling any ancestor moves the box, not just the window.
+      window.addEventListener('scroll', onScroll, {
+        passive: true,
+        capture: true,
+      })
     },
 
     detach() {
       if (!attached) return
       attached = false
-      canvas.removeEventListener('pointermove', onMove)
-      canvas.removeEventListener('pointerdown', onDown)
-      canvas.removeEventListener('pointerleave', onLeave)
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerdown', onDown)
+      window.removeEventListener('blur', onOut)
+      document.removeEventListener('pointerleave', onOut)
+      window.removeEventListener('scroll', onScroll, { capture: true })
     },
   }
 }

@@ -3,6 +3,7 @@ import {
   createPointerState,
   REFERENCE_DT,
   stepPointer,
+  hitTest,
   type PointerState,
 } from '../renderer/pointer'
 
@@ -199,5 +200,30 @@ describe('robustness', () => {
       stepPointer(s, REFERENCE_DT)
     }
     expect(s.energy).toBeLessThanOrEqual(1)
+  })
+})
+
+describe('hit testing', () => {
+  const rect = { left: 100, top: 50, width: 400, height: 300 }
+
+  it('maps a client point into canvas space', () => {
+    expect(hitTest(rect, 150, 90)).toEqual({ x: 50, y: 40, inside: true })
+  })
+
+  it('accepts the edges', () => {
+    expect(hitTest(rect, 100, 50).inside).toBe(true)
+    expect(hitTest(rect, 500, 350).inside).toBe(true)
+  })
+
+  it('rejects points outside the box on every side', () => {
+    expect(hitTest(rect, 99, 200).inside).toBe(false)
+    expect(hitTest(rect, 501, 200).inside).toBe(false)
+    expect(hitTest(rect, 300, 49).inside).toBe(false)
+    expect(hitTest(rect, 300, 351).inside).toBe(false)
+  })
+
+  it('still reports coordinates for outside points, for callers that want them', () => {
+    const hit = hitTest(rect, 80, 40)
+    expect(hit).toMatchObject({ x: -20, y: -10, inside: false })
   })
 })

@@ -46,6 +46,16 @@ import { Motes } from '@motes/react'
 <Motes effect="flow" pointer className="fixed inset-0 -z-10" />
 ```
 
+## Copy-paste install
+
+Prefer owning the code? The shadcn registry ships drop-in background components.
+
+```sh
+npx shadcn@latest add <registry-url>/r/motes-flow-background.json
+```
+
+See [`registry/README.md`](registry/README.md).
+
 ## Packages
 
 | Path                 | Package         | What it is                          |
@@ -66,13 +76,10 @@ pnpm dev
 
 ## Status
 
-Phase 3 — React wrapper. `<Motes>` diffs props down to changed keys only,
-forwards a ref, forwards unknown props to the canvas, and tears down cleanly.
-Sizing comes from CSS: give the canvas a box and the instance follows it,
-across resizes and monitor-to-monitor DPI changes.
+Phase 5 — both distribution channels are in place. Core, the React wrapper, the
+playground, and a shadcn registry of drop-in background components.
 
-Core is complete: WebGL2 renderer, glyph atlas, shared pointer layer, three
-pluggable effects, `defineEffect`, and phosphor persistence.
+Not yet published to npm; that is Phase 6.
 
 ## License
 
