@@ -7,3 +7,6 @@ dist/
 .env.local
 .vercel
 coverage/
+
+# Internal positioning memo — kept local, never pushed
+docs/superpowers/
