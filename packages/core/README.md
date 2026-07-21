@@ -1,0 +1,99 @@
+# motes
+
+Procedural, pointer-reactive ASCII backgrounds for the web.
+
+A grid of monospace characters, generated in a single WebGL2 fragment shader,
+that reacts to the cursor in real time. Zero runtime dependencies.
+
+```sh
+npm i motes
+```
+
+## Usage
+
+```ts
+import { createMotes } from 'motes'
+
+const field = createMotes(canvas, {
+  effect: 'flow',   // 'flow' | 'waves' | 'pulse' | your own
+  pointer: true,    // the cursor is a first-class input
+})
+
+field.start()
+```
+
+Sizing comes from CSS. Give the canvas a box and the field follows it, across
+resizes and monitor-to-monitor DPI changes.
+
+## Options
+
+| Option | Default | What it does |
+| --- | --- | --- |
+| `effect` | `'flow'` | Which field function drives the animation. |
+| `pointer` | `true` | Whether the field reacts to the cursor. |
+| `radius` | `150` | Pointer influence radius, in CSS pixels. |
+| `force` | `1.4` | Pointer force strength. |
+| `speed` | `1.0` | Ambient animation speed multiplier. |
+| `density` | `13` | Cell size in CSS pixels. Smaller is denser. |
+| `charset` | `' .:-=+*#%@'` | Dark-to-bright glyph ramp. Index 0 must be a space. |
+| `accent` | `'#d8531f'` | Colour the field intensifies toward. |
+| `trail` | `0.3` | Phosphor persistence, 0 to 1. |
+
+## Instance
+
+```ts
+field.start()
+field.stop()
+field.set({ force: 2, effect: 'waves' })  // live-update any subset
+field.getOptions()
+field.destroy()                            // GL resources, listeners, RAF
+```
+
+## Custom effects
+
+An effect is one GLSL function returning 0 to 1. Write it, and the cursor works
+automatically — you never write pointer code.
+
+```ts
+import { defineEffect } from 'motes'
+
+defineEffect('rain', {
+  glsl: `
+    float field(vec2 cell, float t) {
+      float lane  = fract(sin(cell.x * 91.7) * 4321.0);
+      float speed = 0.5 + lane * 1.1;
+      float drop  = fract(cell.y * 0.05 - t * speed + lane * 7.0);
+      float head  = smoothstep(0.0, 0.05, drop) * pow(1.0 - drop, 5.0);
+      return head * (0.55 + lane * 0.45);
+    }
+  `,
+})
+
+createMotes(canvas, { effect: 'rain', pointer: true }).start()
+```
+
+The renderer assembles the fragment shader as `common → your field() → shared
+pointer pass → main`, and the pointer contribution is added after `field()`
+returns. An effect cannot see or override it, which is why the cursor works
+without you asking.
+
+## React
+
+```sh
+npm i @motes/react
+```
+
+```tsx
+import { Motes } from '@motes/react'
+
+<Motes effect="flow" pointer className="fixed inset-0 -z-10" />
+```
+
+## Notes
+
+Requires WebGL2. Pointer events are read from the window and hit-tested against
+the canvas box, so a field placed behind your content can carry
+`pointer-events: none` — it never swallows a click, and still reacts as the
+cursor crosses whatever is stacked on top.
+
+MIT.

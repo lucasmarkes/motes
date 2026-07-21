@@ -61,7 +61,7 @@ importers:
   packages/react:
     dependencies:
       motes:
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
     devDependencies:
       '@testing-library/dom':

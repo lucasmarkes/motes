@@ -1,6 +1,6 @@
 {
   "name": "motes",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Procedural, pointer-reactive ASCII fields for the web",
   "license": "MIT",
   "type": "module",
@@ -39,5 +39,8 @@
     "tsup": "^8.5.1",
     "typescript": "5.9.3",
     "vitest": "^4.1.10"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
