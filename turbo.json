@@ -5,7 +5,8 @@
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["src/**", "tsup.config.ts", "tsconfig.json", "package.json"],
-      "outputs": ["dist/**"]
+      "outputs": ["dist/**"],
+      "env": ["MOTES_REGISTRY_URL"]
     },
     "typecheck": {
       "dependsOn": ["^build"],
