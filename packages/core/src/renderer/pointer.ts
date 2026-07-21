@@ -1,30 +1,110 @@
 /**
- * JS-side pointer state fed to the shared GLSL pointer layer as uniforms.
+ * JS-side pointer state feeding the shared GLSL pointer layer.
  *
- * Phase 1 implements the smoothing model ported from the prototype:
- * lerp an internal position toward the raw target each frame, derive velocity
- * from the per-frame delta, and decay `active` when the pointer is idle or has
- * left the canvas so the wake fades instead of snapping.
+ * Ported from the ascii-flux prototype. The smoothing constants are the
+ * interaction feel: a 0.25 lerp toward the raw target, velocity taken as the
+ * per-frame delta, and an energy term that accumulates with speed and bleeds
+ * off when the cursor idles or leaves — so the wake fades instead of snapping.
  */
 export interface PointerState {
-  /** Smoothed position, in device pixels, y-up to match gl_FragCoord. */
+  /** Smoothed position, CSS px, top-left origin. */
   x: number
   y: number
-  /** Per-frame delta, driving the velocity wake. */
+  /** Raw target position. */
+  tx: number
+  ty: number
+  /** Per-frame delta, driving the directional wake. */
   vx: number
   vy: number
-  /** Energy, 0..1. Decays toward 0 when idle or off-canvas. */
-  active: number
+  /** Whether the cursor is currently over the canvas. */
+  active: boolean
+  /** 0..1, accumulates with movement, decays when idle. */
+  energy: number
 }
 
-export function createPointerState(): PointerState {
-  return { x: 0, y: 0, vx: 0, vy: 0, active: 0 }
+const OFFSCREEN = -9999
+
+export interface PointerController {
+  readonly state: PointerState
+  /** Advance smoothing by one frame. */
+  update(): void
+  /** Whether the shared GLSL pass should contribute this frame. */
+  isLive(): boolean
+  attach(): void
+  detach(): void
 }
 
-/** Energy and velocity bleed off over time so the wake fades rather than snaps. */
-export function decayPointer(state: PointerState, dt: number): void {
-  const k = Math.exp(-dt * 3.2)
-  state.vx *= k
-  state.vy *= k
-  state.active *= k
+export function createPointer(canvas: HTMLCanvasElement): PointerController {
+  const state: PointerState = {
+    x: OFFSCREEN,
+    y: OFFSCREEN,
+    tx: OFFSCREEN,
+    ty: OFFSCREEN,
+    vx: 0,
+    vy: 0,
+    active: false,
+    energy: 0,
+  }
+
+  function track(clientX: number, clientY: number): void {
+    const rect = canvas.getBoundingClientRect()
+    state.tx = clientX - rect.left
+    state.ty = clientY - rect.top
+    // First contact snaps, so the field does not sweep in from off-screen.
+    if (!state.active) {
+      state.x = state.tx
+      state.y = state.ty
+    }
+    state.active = true
+  }
+
+  const onMove = (e: PointerEvent): void => track(e.clientX, e.clientY)
+  const onDown = (e: PointerEvent): void => {
+    track(e.clientX, e.clientY)
+    state.energy = 1
+  }
+  const onLeave = (): void => {
+    state.active = false
+  }
+
+  let attached = false
+
+  return {
+    state,
+
+    update() {
+      if (state.active) {
+        const px = state.x
+        const py = state.y
+        state.x += (state.tx - state.x) * 0.25
+        state.y += (state.ty - state.y) * 0.25
+        state.vx = state.x - px
+        state.vy = state.y - py
+        const speed = Math.hypot(state.vx, state.vy)
+        state.energy = Math.min(1, state.energy * 0.9 + speed * 0.03)
+      } else {
+        state.energy *= 0.92
+      }
+    },
+
+    isLive() {
+      return state.active || state.energy > 0.02
+    },
+
+    attach() {
+      if (attached) return
+      attached = true
+      canvas.addEventListener('pointermove', onMove)
+      canvas.addEventListener('pointerdown', onDown)
+      canvas.addEventListener('pointerleave', onLeave)
+    },
+
+    detach() {
+      if (!attached) return
+      attached = false
+      canvas.removeEventListener('pointermove', onMove)
+      canvas.removeEventListener('pointerdown', onDown)
+      canvas.removeEventListener('pointerleave', onLeave)
+    },
+  }
 }

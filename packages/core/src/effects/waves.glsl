@@ -1,8 +1,13 @@
-// 02 — waves. Interfering sine bands on three axes.
+// 02 — waves. Layered sine bands, phase-shifted by a travelling warp.
 // No pointer math. The cursor arrives via the shared pass in main().
 float field(vec2 cell, float t) {
-  float w = sin(cell.x * 0.115 + t * 0.85) * 0.50
-          + sin(cell.y * 0.165 - t * 0.60) * 0.30
-          + sin((cell.x + cell.y) * 0.075 + t * 1.25) * 0.20;
-  return smoothstep(-0.55, 0.85, w);
+  float cx = cell.x;
+  float cy = cell.y;
+
+  float w = sin(cx * 0.12 + t * 1.1) * 0.5
+          + sin(cx * 0.05 - cy * 0.09 + t * 0.7) * 0.5;
+
+  float band = sin(cy * 0.22 + w * 1.6 + t * 0.5);
+
+  return band * 0.5 + 0.5;
 }

@@ -8,7 +8,8 @@ const BUILTINS = ['flow', 'waves', 'pulse'] as const
 const POINTER_UNIFORMS = [
   'u_pointer',
   'u_pointerVel',
-  'u_pointerActive',
+  'u_pointerEnergy',
+  'u_pointerOn',
   'u_radius',
   'u_force',
 ]
@@ -35,8 +36,8 @@ describe('the golden rule: pointer is orthogonal to every effect', () => {
 
   it.each(BUILTINS)('%s still gets the shared pointer pass', (name) => {
     const src = assembleFragmentShader(getEffect(name)!)
-    expect(src).toContain('float pointerForce(vec2 frag)')
-    expect(src).toContain('v += pointerForce(frag);')
+    expect(src).toContain('float pointerForce(vec2 px)')
+    expect(src).toContain('float boost = pointerForce(px);')
   })
 
   it('a brand-new effect becomes pointer-reactive with zero pointer code', () => {
@@ -51,7 +52,7 @@ describe('the golden rule: pointer is orthogonal to every effect', () => {
     })
 
     const src = assembleFragmentShader(getEffect('rain')!)
-    expect(src).toContain('v += pointerForce(frag);')
+    expect(src).toContain('float boost = pointerForce(px);')
   })
 
   it('assembles in the load-bearing order: common, field, pointer, main', () => {

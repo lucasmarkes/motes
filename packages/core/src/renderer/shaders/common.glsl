@@ -1,35 +1,35 @@
 // Shared uniforms and helpers available to every effect's field() and to main.
 
-uniform float u_time;
-uniform vec2  u_resolution;
-uniform float u_cellSize;
+uniform float u_time;        // seconds since start, unscaled by speed
+uniform vec2  u_resolution;  // drawing buffer size, device px
+uniform float u_dpr;
+uniform vec2  u_cell;        // cell size in CSS px: (dens * 0.6, dens)
+uniform vec2  u_grid;        // cols, rows
 uniform float u_speed;
 uniform vec3  u_accent;
-uniform float u_trail;
 
 uniform sampler2D u_glyphAtlas;
 uniform int   u_charCount;
 
-// --- pointer block (see pointer.glsl) ---
-uniform vec2  u_pointer;
-uniform vec2  u_pointerVel;
-uniform float u_pointerActive;
+// --- pointer block: written only by the shared pass, see pointer.glsl ---
+uniform vec2  u_pointer;       // CSS px, top-left origin
+uniform vec2  u_pointerVel;    // CSS px per frame
+uniform float u_pointerEnergy; // 0..1
+uniform float u_pointerOn;     // 0 or 1
 uniform float u_radius;
 uniform float u_force;
 
-// The atlas is a horizontal strip of u_charCount monospace glyphs.
-// Coverage lives in the red channel.
+const vec3 MOTES_BG = vec3(5.0 / 255.0, 4.0 / 255.0, 3.0 / 255.0);
+
+// The atlas is a horizontal strip of u_charCount monospace glyphs, drawn
+// white on transparent. Coverage is the alpha channel.
 float sampleGlyph(int index, vec2 sub) {
   float u = (float(index) + sub.x) / float(u_charCount);
-  return texture(u_glyphAtlas, vec2(u, 1.0 - sub.y)).r;
+  return texture(u_glyphAtlas, vec2(u, sub.y)).a;
 }
 
-float hash11(float p) {
-  p = fract(p * 0.1031);
-  p *= p + 33.33;
-  p *= p + p;
-  return fract(p);
-}
+// ── Convenience noise for custom effects. Unused functions are stripped by
+// the GLSL compiler, so these cost nothing unless a field() calls them.
 
 float hash21(vec2 p) {
   vec3 p3 = fract(vec3(p.xyx) * 0.1031);

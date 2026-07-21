@@ -66,7 +66,11 @@ pnpm dev
 
 ## Status
 
-Phase 0 — scaffold. The WebGL2 renderer lands in Phase 1.
+Phase 1 — core MVP. The WebGL2 renderer, glyph atlas, shared pointer layer and
+full lifecycle are in. All three effects render and react to the cursor.
+
+Not yet wired: `trail` is accepted and validated but has no visual effect until
+the ping-pong feedback pass lands in Phase 2.
 
 ## License
 
