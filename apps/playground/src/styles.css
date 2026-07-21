@@ -22,20 +22,21 @@
 
 :root {
   /* Colour ---------------------------------------------------------------
-     Neutrals sit on a cool axis (hue 258) so the warm accent reads as an
-     event rather than the ambient temperature. The previous palette put
-     every neutral at hue 84–97 and the accent at 39 — one warm wedge, no
-     contrast, which is what made it read as a template. */
+     This file has no accent, on purpose.
+
+     Every neutral sits on one cool axis (hue 258) at chroma 0.003–0.014,
+     which is below where a hue reads as a colour — it reads as temperature.
+     The one chromatic value in the project is POINTER_ACCENT in accent.ts,
+     and it only ever appears where the cursor is: colour is feedback here,
+     not decoration. Anywhere a rule below wants to shout, it uses contrast.
+
+     The old palette was the Firecrawl prototype's — hue 39 on warm hue 84–97
+     neutrals, another company's orange sitting on the page as if it meant
+     something. */
 
   /* Locked: matches MOTES_BG in the renderer's common.glsl. */
   --canvas: oklch(0.108 0.005 71.346);
   --raise: oklch(0.165 0.009 258);
-
-  /* Locked: DEFAULT_OPTIONS.accent. The UI accent must equal the field's. */
-  --accent: oklch(0.612 0.178 39.339);
-  /* Same hue, lowered L — the accent fails 4.5:1 as text on paper at its
-     native lightness. Chroma has negligible effect on contrast; L does. */
-  --accent-ink: oklch(0.56 0.163 39.339);
 
   --text: oklch(0.935 0.006 258);
   --text-2: oklch(0.735 0.011 258);
@@ -111,9 +112,16 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+/* Inverted, not tinted. The panel is a light surface inside a dark page, so
+   each ground gets the inversion that is actually legible on it. */
 ::selection {
-  background: var(--accent);
-  color: oklch(0.98 0.01 60);
+  background: var(--text);
+  color: var(--canvas);
+}
+
+.panel ::selection {
+  background: var(--ink);
+  color: var(--paper);
 }
 
 a {
@@ -129,8 +137,13 @@ input {
 }
 
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--text);
   outline-offset: 3px;
+}
+
+/* A near-white ring is invisible on paper. */
+.panel :focus-visible {
+  outline-color: var(--ink);
 }
 
 /* Label cross-fade --------------------------------------------------------
@@ -299,11 +312,11 @@ input {
    frame rather than compositing. The token reads as lit without it. */
 .sig-hot {
   position: relative;
-  color: var(--accent);
+  color: var(--text);
   padding: 0.08em 0.3em;
   margin: 0 0.02em;
-  background: oklch(0.612 0.178 39.339 / 0.13);
-  text-shadow: 0 0 20px oklch(0.612 0.178 39.339 / 0.7);
+  background: oklch(0.935 0.006 258 / 0.1);
+  text-shadow: 0 0 20px oklch(0.935 0.006 258 / 0.55);
 }
 
 .lede {
@@ -342,7 +355,7 @@ input {
 }
 
 .install .prompt {
-  color: var(--accent);
+  color: var(--text-3);
 }
 
 .install code {
@@ -444,7 +457,7 @@ input {
 }
 
 .tile:hover .tile-go {
-  color: var(--accent);
+  color: var(--text);
   translate: 3px 0;
 }
 
@@ -459,9 +472,11 @@ input {
   margin-bottom: var(--s2);
 }
 
+/* The one effect that is not in the library. Its neighbours sit at --text-3;
+   this one is simply turned all the way up. */
 .tile-tag.is-yours,
 .stage-tag.is-yours {
-  color: var(--accent);
+  color: var(--text);
 }
 
 .tile-blurb {
@@ -575,7 +590,7 @@ input {
 }
 
 .back:hover {
-  color: var(--accent);
+  color: var(--text);
 }
 
 .stage-head h1 {
@@ -635,9 +650,10 @@ input {
   bottom: calc(var(--s3) - 6px);
 }
 
+/* The pitch is switched off; the notice is the one that gets turned up. */
 .hint-off {
-  border-color: oklch(0.612 0.178 39.339 / 0.55);
-  color: oklch(0.8 0.09 39.339);
+  border-color: oklch(0.935 0.006 258 / 0.5);
+  color: var(--text);
 }
 
 @keyframes rise {
@@ -814,9 +830,10 @@ input {
   margin-top: 2px;
 }
 
-/* Darkened accent: the field accent fails 4.5:1 as text on paper. */
+/* On is said with contrast: the resting label sits at --ink-3, the live one
+   goes to full ink. */
 .toggle.on .toggle-state {
-  color: var(--accent-ink);
+  color: var(--ink);
 }
 
 /* A cell that slides one cell, not a pill switch — the page has no other
@@ -831,7 +848,7 @@ input {
 }
 
 .toggle.on .track {
-  background: var(--accent);
+  background: var(--ink);
 }
 
 .track i {
@@ -1021,7 +1038,7 @@ select {
 
 .code .tabs button.on {
   color: var(--ink);
-  box-shadow: inset 0 -2px 0 var(--accent);
+  box-shadow: inset 0 -2px 0 var(--ink);
 }
 
 /* Matches `.code .tabs button`'s specificity — a bare `.code .copy` loses to
@@ -1047,16 +1064,18 @@ select {
 
 .code code {
   font-family: var(--mono);
-  color: var(--paper-2);
+  color: oklch(0.74 0.008 258);
   white-space: pre;
 }
 
-/* Even chroma as a share of each hue's maximum, so no one token shouts.
-   The keyword shares the accent's hue; the rest are spaced away from it. */
-.t-keyword { color: oklch(0.78 0.082 39.339); }
-.t-string  { color: oklch(0.78 0.127 152); }
-.t-number  { color: oklch(0.78 0.099 86); }
-.t-comment { color: oklch(0.6 0.018 258); }
+/* Four steps of lightness carrying what four hues used to, ranked by what the
+   reader is here for: the values, which are the only part the panel changes.
+   Strings and numbers share the top step because in this snippet they are one
+   category — a setting you tuned. Ratios on --ink run 4.9 / 7.8 / 11.7 / 16.4. */
+.t-string,
+.t-number  { color: oklch(0.97 0.004 258); }
+.t-keyword { color: oklch(0.86 0.007 258); }
+.t-comment { color: oklch(0.62 0.01 258); }
 
 /* Enter -------------------------------------------------------------------
    Split into semantic chunks and staggered, rather than fading one container. */

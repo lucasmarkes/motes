@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { Motes } from '@motes/react'
+import { POINTER_ACCENT } from './accent'
 import { CATALOG, type CatalogEntry } from './effects'
 import { Link, morphFrom } from './router'
 import { POINTER_HINT } from './hint'
@@ -14,6 +15,7 @@ export function Index() {
           effect="flow"
           density={12}
           trail={0.35}
+          accent={POINTER_ACCENT}
           aria-hidden="true"
         />
         <div className="hero-scrim" aria-hidden="true" />
@@ -77,6 +79,7 @@ function Tile({ entry }: { entry: CatalogEntry }) {
           density={10}
           trail={0.3}
           radius={110}
+          accent={POINTER_ACCENT}
           aria-hidden="true"
         />
       </span>
