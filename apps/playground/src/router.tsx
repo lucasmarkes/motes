@@ -40,8 +40,12 @@ export function navigate(to: string): void {
   const source = morphSource
   morphSource = null
 
-  // Reduced motion gets the plain cut, which is what this always did.
+  // Only a tile click nominates a source, and only that navigation earns a
+  // transition. The panel's effect buttons are a control you flip repeatedly
+  // while comparing effects — animating those made the page flash on every
+  // click. Reduced motion and unsupported browsers get the same plain cut.
   if (
+    !source ||
     typeof document.startViewTransition !== 'function' ||
     window.matchMedia('(prefers-reduced-motion: reduce)').matches
   ) {

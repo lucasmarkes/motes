@@ -158,10 +158,13 @@ input {
   filter: blur(0);
 }
 
+/* Nothing arrives from nothing. `scale(0.25)` is the value for an icon
+   swapping inside a button; on a text label it reads as a pop, which is what
+   this looked like. The blur does the bridging work instead. */
 .swap .is-out {
   opacity: 0;
-  scale: 0.25;
-  filter: blur(4px);
+  scale: 0.96;
+  filter: blur(2px);
 }
 
 /* Voices ------------------------------------------------------------------ */
@@ -288,24 +291,19 @@ input {
 }
 
 /* A lit cell. Glow rather than an outline: a hard border around the token
-   reads as a form field, and phosphor is the field's own vocabulary. */
+   reads as a form field, and phosphor is the field's own vocabulary.
+
+   Statically lit, not pulsing. It used to breathe on a 2.8s loop directly
+   beside a field that is already in permanent motion — two competing loops
+   in one viewport, and the loop animated `text-shadow`, which repaints every
+   frame rather than compositing. The token reads as lit without it. */
 .sig-hot {
   position: relative;
   color: var(--accent);
   padding: 0.08em 0.3em;
   margin: 0 0.02em;
-  animation: ember 2.8s var(--ease) infinite;
-}
-
-@keyframes ember {
-  0%, 100% {
-    background: oklch(0.612 0.178 39.339 / 0.06);
-    text-shadow: 0 0 16px oklch(0.612 0.178 39.339 / 0.5);
-  }
-  50% {
-    background: oklch(0.612 0.178 39.339 / 0.13);
-    text-shadow: 0 0 28px oklch(0.612 0.178 39.339 / 0.95);
-  }
+  background: oklch(0.612 0.178 39.339 / 0.13);
+  text-shadow: 0 0 20px oklch(0.612 0.178 39.339 / 0.7);
 }
 
 .lede {
@@ -668,6 +666,10 @@ input {
   background: var(--paper);
   color: var(--ink);
   padding: 18px;
+  /* Captured as its own group. Left in the root snapshot it gets pulled into
+     the root fade and drops to ~10% luminance mid-transition — the brightest
+     thing on screen blinking out and back. */
+  view-transition-name: panel;
   /* Layered and transparent, so it reads as depth rather than a drawn edge. */
   box-shadow:
     0 1px 1px oklch(0 0 0 / 0.13),
