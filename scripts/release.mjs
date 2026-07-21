@@ -123,6 +123,25 @@ for (const tgz of packed) {
     ? pass(`${label}: publishConfig.access = public`)
     : fail(`${label}: publishConfig.access must be "public"`)
 
+  // npm renders these as the source, issues and homepage links. A package
+  // with no source link is the fastest way to lose someone evaluating it.
+  manifest.repository?.url
+    ? pass(`${label}: repository ${manifest.repository.url}`)
+    : fail(`${label}: missing repository.url — npm will show no source link`)
+
+  // Without `directory`, the source link lands on the monorepo root.
+  manifest.repository?.directory
+    ? pass(`${label}: repository.directory ${manifest.repository.directory}`)
+    : fail(`${label}: missing repository.directory (monorepo subpath)`)
+
+  manifest.bugs?.url
+    ? pass(`${label}: bugs ${manifest.bugs.url}`)
+    : fail(`${label}: missing bugs.url`)
+
+  manifest.homepage
+    ? pass(`${label}: homepage ${manifest.homepage}`)
+    : fail(`${label}: missing homepage`)
+
   // Shaders are inlined; a consumer must not need a .glsl loader.
   if (label === 'motes') {
     const bundle = run('tar', ['-xzOf', tgz, 'package/dist/index.js'])

@@ -45,5 +45,14 @@
   },
   "publishConfig": {
     "access": "public"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lucasmarkes/motes.git",
+    "directory": "packages/react"
+  },
+  "bugs": {
+    "url": "https://github.com/lucasmarkes/motes/issues"
+  },
+  "homepage": "https://github.com/lucasmarkes/motes#readme"
 }

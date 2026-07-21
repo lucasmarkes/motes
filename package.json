@@ -18,5 +18,13 @@
   "devDependencies": {
     "turbo": "^2.10.5",
     "typescript": "5.9.3"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lucasmarkes/motes.git"
+  },
+  "bugs": {
+    "url": "https://github.com/lucasmarkes/motes/issues"
+  },
+  "homepage": "https://github.com/lucasmarkes/motes#readme"
 }
