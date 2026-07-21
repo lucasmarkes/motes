@@ -34,6 +34,9 @@ export function Panel({ config, onChange }: PanelProps) {
 
   return (
     <aside className="panel" aria-label="Field controls">
+      {/* Only the controls scroll. The snippet stays pinned to the foot of
+          the panel, so it never has to be hunted for after a tweak. */}
+      <div className="panel-scroll">
       <section className="panel-block">
         <p className="eyebrow">effect</p>
         <div className="seg" role="group" aria-label="Effect">
@@ -70,8 +73,6 @@ export function Panel({ config, onChange }: PanelProps) {
           </span>
         </button>
       </section>
-
-      <hr className="rule" />
 
       <Slider
         label="pointer radius" unit="px"
@@ -134,8 +135,7 @@ export function Panel({ config, onChange }: PanelProps) {
           />
         </span>
       </section>
-
-      <hr className="rule" />
+      </div>
 
       <section className="code">
         <div className="tabs" role="tablist" aria-label="Code">

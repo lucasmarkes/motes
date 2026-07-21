@@ -16,8 +16,15 @@ defineEffect('rain', { glsl: RAIN_GLSL })
 
 export interface CatalogEntry {
   id: string
-  index: string
+  /**
+   * The code you would write to get this field. These four are peers, not a
+   * sequence, so an ordinal encoded nothing — the identifier does, and it
+   * teaches the API on the index page.
+   */
+  tag: string
   title: string
+  /** True for the one effect that is not in the library. */
+  custom?: boolean
   blurb: string
   /** Shown on the effect page, under the title. */
   detail: string
@@ -26,7 +33,7 @@ export interface CatalogEntry {
 export const CATALOG: CatalogEntry[] = [
   {
     id: 'flow',
-    index: '01',
+    tag: 'effect="flow"',
     title: 'flow',
     blurb: 'Domain-warped noise drifting on a slow current.',
     detail:
@@ -34,7 +41,7 @@ export const CATALOG: CatalogEntry[] = [
   },
   {
     id: 'waves',
-    index: '02',
+    tag: 'effect="waves"',
     title: 'waves',
     blurb: 'Layered sine bands, phase-shifted by a travelling warp.',
     detail:
@@ -42,7 +49,7 @@ export const CATALOG: CatalogEntry[] = [
   },
   {
     id: 'pulse',
-    index: '03',
+    tag: 'effect="pulse"',
     title: 'pulse',
     blurb: 'Radial rings breathing out from the centre of the grid.',
     detail:
@@ -50,9 +57,10 @@ export const CATALOG: CatalogEntry[] = [
   },
   {
     id: 'rain',
-    index: '04',
+    tag: "defineEffect('rain')",
     title: 'yours',
-    blurb: 'Registered at runtime with defineEffect. Six lines of GLSL.',
+    custom: true,
+    blurb: 'Registered at runtime in six lines of GLSL. Not in the library.',
     detail:
       'This effect is not in the library. It was added by this page with defineEffect, and it reacts to the cursor without a line of pointer code.',
   },

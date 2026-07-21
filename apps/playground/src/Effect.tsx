@@ -29,10 +29,10 @@ export function Effect({ entry, config, onChange }: EffectProps) {
         <Link to="/" className="back">
           <span aria-hidden="true">←</span> all effects
         </Link>
-        <h1>
-          <span className="idx">{entry.index}</span>
-          {entry.title}
-        </h1>
+        <h1>{entry.title}</h1>
+        <code className={`stage-tag ${entry.custom ? 'is-yours' : ''}`}>
+          {entry.tag}
+        </code>
         <p>{entry.detail}</p>
       </header>
 
@@ -41,9 +41,7 @@ export function Effect({ entry, config, onChange }: EffectProps) {
       ) : null}
 
       {!config.pointer ? (
-        <p className="hint hint-off">
-          interaction off — this is what everyone else ships
-        </p>
+        <p className="hint hint-off">interaction off — time is the only input</p>
       ) : null}
 
       <Panel config={config} onChange={onChange} />

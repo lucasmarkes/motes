@@ -1,20 +1,85 @@
+/* ---------------------------------------------------------------------------
+   motes playground
+
+   Two typographic voices, each with one job:
+     display  Archivo, width axis pushed wide — headlines only
+     machine  monospace — things that are literally machine text: the
+              signature, package name, code, parameter values, charsets
+
+   Everything used to be monospace, which left the signature nothing to stand
+   out against. Restricting mono to machine text is what makes
+   render(time, pointer) read as code without any extra decoration.
+--------------------------------------------------------------------------- */
+
+@font-face {
+  font-family: 'Archivo';
+  src: url('/fonts/archivo-latin-var.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-stretch: 62% 125%;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
-  --canvas: #050403;
-  --paper: #f2efe6;
-  --ink: #14110c;
-  --accent: #d8531f;
+  /* Colour ---------------------------------------------------------------
+     Neutrals sit on a cool axis (hue 258) so the warm accent reads as an
+     event rather than the ambient temperature. The previous palette put
+     every neutral at hue 84–97 and the accent at 39 — one warm wedge, no
+     contrast, which is what made it read as a template. */
 
-  --line: #d8d3c6;
-  --ink-muted: #6f6a5f;
-  --ink-soft: #46423a;
+  /* Locked: matches MOTES_BG in the renderer's common.glsl. */
+  --canvas: oklch(0.108 0.005 71.346);
+  --raise: oklch(0.165 0.009 258);
 
-  --dark-text: #efe9db;
-  --dark-muted: #7a756a;
-  --dark-rule: rgba(242, 239, 230, 0.12);
+  /* Locked: DEFAULT_OPTIONS.accent. The UI accent must equal the field's. */
+  --accent: oklch(0.612 0.178 39.339);
+  /* Same hue, lowered L — the accent fails 4.5:1 as text on paper at its
+     native lightness. Chroma has negligible effect on contrast; L does. */
+  --accent-ink: oklch(0.56 0.163 39.339);
 
-  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  --text: oklch(0.935 0.006 258);
+  --text-2: oklch(0.735 0.011 258);
+  --text-3: oklch(0.615 0.014 258);
+
+  --paper: oklch(0.968 0.003 258);
+  --paper-2: oklch(0.938 0.005 258);
+  --line: oklch(0.878 0.007 258);
+  --ink: oklch(0.205 0.012 258);
+  --ink-2: oklch(0.455 0.014 258);
+  --ink-3: oklch(0.545 0.013 258);
+
+  --rule: oklch(0.935 0.006 258 / 0.13);
+  --rule-strong: oklch(0.935 0.006 258 / 0.3);
+
+  /* Type ------------------------------------------------------------------ */
+  --display: 'Archivo', ui-sans-serif, system-ui, sans-serif;
+  --mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+
+  --fs-display: clamp(40px, 6.4vw, 78px);
+  --fs-title: clamp(28px, 3.6vw, 40px);
+  --fs-sig: clamp(17px, 2.1vw, 25px);
+  --fs-lede: 16px;
+  --fs-body: 15px;
+  --fs-ui: 13px;
+  --fs-code: 12.5px;
+  --fs-micro: 11px;
+
+  /* Space -----------------------------------------------------------------
+     Built on the renderer's own cell. density 13 is DEFAULT_OPTIONS.density,
+     and 0.6 is the monospace advance ratio the renderer uses for cell width
+     (cellW = max(5, density * 0.6)). The page is laid out on the same grid
+     the field is drawn on. */
+  --cell: 13px;
+  --cell-w: calc(var(--cell) * 0.6);
+  --s1: calc(var(--cell) * 0.5);
+  --s2: var(--cell);
+  --s3: calc(var(--cell) * 2);
+  --s4: calc(var(--cell) * 3);
+  --s5: calc(var(--cell) * 5);
+  --s6: calc(var(--cell) * 8);
 
   --tap: 44px;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
 }
 
 * {
@@ -34,12 +99,21 @@ body,
 
 body {
   background: var(--canvas);
-  color: var(--dark-text);
-  font-family: var(--mono);
-  font-size: 13px;
+  color: var(--text);
+  font-family: var(--display);
+  font-size: var(--fs-body);
+  font-weight: 400;
   line-height: 1.6;
+  /* A missing weight should fail visibly, not render as a faked bold. */
+  font-synthesis: none;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--accent);
+  color: oklch(0.98 0.01 60);
 }
 
 a {
@@ -56,48 +130,59 @@ input {
 
 :focus-visible {
   outline: 2px solid var(--accent);
-  outline-offset: 2px;
+  outline-offset: 3px;
 }
 
-/* Shared atoms ---------------------------------------------------------- */
+/* Voices ------------------------------------------------------------------ */
 
+.u-display {
+  font-family: var(--display);
+  font-stretch: 118%;
+  font-weight: 600;
+  line-height: 1.04;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+.u-mono {
+  font-family: var(--mono);
+  font-synthesis: none;
+}
+
+/* Small uppercase labels need positive tracking to stop feeling crowded.
+   One class, rather than the eight near-identical copies this page had. */
 .eyebrow {
   display: block;
-  font-size: 10px;
-  letter-spacing: 0.18em;
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--ink-muted);
-  margin-bottom: 7px;
-}
-
-.idx {
-  color: var(--accent);
-  font-variant-numeric: tabular-nums;
+  color: var(--text-3);
 }
 
 .rule {
   border: 0;
   border-top: 1px solid var(--line);
-  margin: 16px 0;
+  margin: var(--s3) 0;
 }
 
-/* Index: hero ----------------------------------------------------------- */
+/* Index: hero ------------------------------------------------------------- */
 
 .index {
-  max-width: 1180px;
+  max-width: 1240px;
   margin: 0 auto;
-  padding: 0 24px 64px;
+  padding: 0 var(--s3) var(--s6);
 }
 
 .hero {
   position: relative;
-  min-height: min(78vh, 660px);
+  min-height: min(82vh, 700px);
   display: flex;
   align-items: center;
-  margin: 0 -24px;
-  padding: 96px 24px 72px;
+  margin: 0 calc(var(--s3) * -1);
+  padding: var(--s6) var(--s3) var(--s5);
   overflow: hidden;
-  border-bottom: 1px solid var(--dark-rule);
+  border-bottom: 1px solid var(--rule);
 }
 
 .hero-field {
@@ -111,15 +196,19 @@ input {
 .hero-scrim {
   position: absolute;
   inset: 0;
-  background:
-    linear-gradient(100deg, rgba(5, 4, 3, 0.94) 0%, rgba(5, 4, 3, 0.82) 38%,
-      rgba(5, 4, 3, 0.28) 68%, rgba(5, 4, 3, 0) 100%);
+  background: linear-gradient(
+    100deg,
+    oklch(0.108 0.005 71.346 / 0.95) 0%,
+    oklch(0.108 0.005 71.346 / 0.84) 40%,
+    oklch(0.108 0.005 71.346 / 0.3) 70%,
+    oklch(0.108 0.005 71.346 / 0) 100%
+  );
   pointer-events: none;
 }
 
 .hero-copy {
   position: relative;
-  max-width: 60ch;
+  max-width: 62ch;
   pointer-events: none;
 }
 
@@ -127,64 +216,100 @@ input {
   pointer-events: auto;
 }
 
+/* The package name is a string you type, so it is set in the machine voice. */
 .wordmark {
-  font-size: 11px;
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
   letter-spacing: 0.34em;
-  text-transform: uppercase;
-  color: var(--dark-muted);
-  margin-bottom: 26px;
+  color: var(--text-2);
+  margin-bottom: var(--s4);
 }
 
 .hero h1 {
-  font-size: clamp(26px, 4.4vw, 46px);
-  line-height: 1.14;
-  letter-spacing: -0.035em;
-  font-weight: 500;
-  max-width: 20ch;
+  font-family: var(--display);
+  font-stretch: 118%;
+  font-weight: 600;
+  font-size: var(--fs-display);
+  line-height: 1.02;
+  letter-spacing: -0.04em;
+  max-width: 14ch;
   text-wrap: balance;
 }
 
-/* The signature: the library's whole argument is the second argument. */
+/* The signature ----------------------------------------------------------
+   The library's whole argument is the second argument. It is the only
+   monospace text in the hero, so it separates from the display face without
+   needing a rule, a border or a box around the line. */
 .signature {
-  margin: 30px 0 26px;
-  font-size: clamp(15px, 2.2vw, 21px);
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin: var(--s4) 0 var(--s3);
+  font-family: var(--mono);
+  font-size: var(--fs-sig);
+  font-weight: 500;
   letter-spacing: -0.01em;
-  color: var(--dark-text);
-  padding-left: 14px;
-  border-left: 2px solid var(--accent);
+  color: var(--text-2);
 }
 
 .sig-dim {
-  color: var(--dark-muted);
+  color: var(--text-3);
 }
 
+/* A lit cell. Glow rather than an outline: a hard border around the token
+   reads as a form field, and phosphor is the field's own vocabulary. */
 .sig-hot {
+  position: relative;
   color: var(--accent);
+  padding: 0.08em 0.3em;
+  margin: 0 0.02em;
+  animation: ember 2.8s var(--ease) infinite;
+}
+
+@keyframes ember {
+  0%, 100% {
+    background: oklch(0.612 0.178 39.339 / 0.06);
+    text-shadow: 0 0 16px oklch(0.612 0.178 39.339 / 0.5);
+  }
+  50% {
+    background: oklch(0.612 0.178 39.339 / 0.13);
+    text-shadow: 0 0 28px oklch(0.612 0.178 39.339 / 0.95);
+  }
 }
 
 .lede {
-  color: rgba(242, 239, 230, 0.66);
-  max-width: 52ch;
-  font-size: 12.5px;
-  line-height: 1.75;
+  color: var(--text-2);
+  max-width: 54ch;
+  font-size: var(--fs-lede);
+  line-height: 1.62;
+  text-wrap: pretty;
 }
 
 .install {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  margin-top: 30px;
-  padding: 11px 14px;
+  gap: var(--s2);
+  margin-top: var(--s4);
+  padding: var(--s2) var(--s3);
   min-height: var(--tap);
-  background: rgba(242, 239, 230, 0.05);
-  border: 1px solid var(--dark-rule);
+  font-family: var(--mono);
+  font-size: var(--fs-ui);
+  background: oklch(0.935 0.006 258 / 0.07);
+  border: 1px solid var(--rule-strong);
   cursor: pointer;
-  transition: border-color 0.16s, background 0.16s;
+  transition:
+    border-color 0.16s var(--ease),
+    background 0.16s var(--ease),
+    scale 0.12s var(--ease);
 }
 
 .install:hover {
-  border-color: rgba(242, 239, 230, 0.3);
-  background: rgba(242, 239, 230, 0.08);
+  border-color: oklch(0.935 0.006 258 / 0.5);
+  background: oklch(0.935 0.006 258 / 0.12);
+}
+
+.install:active {
+  scale: 0.96;
 }
 
 .install .prompt {
@@ -197,59 +322,62 @@ input {
 }
 
 .install-state {
-  font-size: 10px;
+  font-size: var(--fs-micro);
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--dark-muted);
-  margin-left: 6px;
+  color: var(--text-3);
+  margin-inline-start: var(--s1);
 }
 
-/* Sits over the live field, so it needs its own ground to stay legible. */
+/* Sits over the live field, so it needs its own ground to stay legible.
+   Square, not a pill: this page has no other rounded corner in it. */
 .hero-hint {
   position: absolute;
-  right: 26px;
-  bottom: 22px;
-  font-size: 10px;
+  inset-inline-end: var(--s3);
+  inset-block-end: var(--s3);
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: #cfc8b8;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(10, 8, 6, 0.62);
-  backdrop-filter: blur(4px);
-  padding: 7px 13px;
-  border-radius: 999px;
+  color: var(--text-2);
+  border: 1px solid var(--rule-strong);
+  background: oklch(0.108 0.005 71.346 / 0.72);
+  backdrop-filter: blur(5px);
+  padding: var(--s1) var(--s2);
+  /* A badge that wraps reads as broken. */
+  white-space: nowrap;
   pointer-events: none;
 }
 
-/* Index: grid ----------------------------------------------------------- */
+/* Index: grid ------------------------------------------------------------- */
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(238px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 1px;
-  background: var(--dark-rule);
-  border: 1px solid var(--dark-rule);
+  background: var(--rule);
+  border: 1px solid var(--rule);
   border-top: 0;
 }
 
 .tile {
-  display: block;
+  display: flex;
+  flex-direction: column;
   background: var(--canvas);
-  padding: 0 0 18px;
-  transition: background 0.18s;
+  transition: background 0.18s var(--ease);
 }
 
 .tile:hover,
 .tile:focus-visible {
-  background: #0b0806;
+  background: var(--raise);
 }
 
 .tile-field {
   display: block;
   position: relative;
-  height: 172px;
+  height: 180px;
   overflow: hidden;
-  border-bottom: 1px solid var(--dark-rule);
+  border-bottom: 1px solid var(--rule);
 }
 
 .tile-field canvas {
@@ -257,50 +385,77 @@ input {
   height: 100%;
 }
 
-.tile-meta {
+.tile-body {
+  display: block;
+  padding: var(--s3) var(--s3) var(--s4);
+}
+
+.tile-head {
   display: flex;
   align-items: baseline;
-  gap: 10px;
-  padding: 16px 18px 6px;
-  font-size: 12px;
-  letter-spacing: 0.02em;
+  gap: var(--s2);
+  margin-bottom: var(--s1);
 }
 
-.tile-meta .name {
-  color: var(--dark-text);
+.tile-name {
+  font-family: var(--display);
+  font-stretch: 112%;
+  font-weight: 600;
+  font-size: 19px;
+  letter-spacing: -0.02em;
+  color: var(--text);
 }
 
-.tile-meta .go {
-  margin-left: auto;
-  color: var(--dark-muted);
-  transition: transform 0.18s, color 0.18s;
+.tile-go {
+  margin-inline-start: auto;
+  color: var(--text-3);
+  transition:
+    translate 0.18s var(--ease),
+    color 0.18s var(--ease);
 }
 
-.tile:hover .go {
+.tile:hover .tile-go {
   color: var(--accent);
-  transform: translateX(3px);
+  translate: 3px 0;
+}
+
+/* The identifier, not an ordinal. These four are not a sequence, so numbering
+   them 01–04 encoded nothing. The code you would actually write does. */
+.tile-tag {
+  display: block;
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.01em;
+  color: var(--text-3);
+  margin-bottom: var(--s2);
+}
+
+.tile-tag.is-yours,
+.stage-tag.is-yours {
+  color: var(--accent);
 }
 
 .tile-blurb {
   display: block;
-  padding: 0 18px;
-  font-size: 11.5px;
-  line-height: 1.6;
-  color: rgba(242, 239, 230, 0.5);
+  font-size: var(--fs-ui);
+  line-height: 1.55;
+  color: var(--text-2);
+  text-wrap: pretty;
 }
 
 .foot {
   display: flex;
   flex-wrap: wrap;
-  gap: 22px;
-  margin-top: 34px;
-  font-size: 10px;
+  gap: var(--s4);
+  margin-top: var(--s4);
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--dark-muted);
+  color: var(--text-3);
 }
 
-/* Effect page ----------------------------------------------------------- */
+/* Effect page ------------------------------------------------------------- */
 
 .stage-shell {
   position: fixed;
@@ -323,25 +478,25 @@ input {
   position: absolute;
   top: 0;
   left: 0;
-  width: min(640px, 62%);
-  height: 360px;
+  width: min(680px, 64%);
+  height: 380px;
   z-index: 4;
   background: linear-gradient(
     148deg,
-    rgba(5, 4, 3, 0.96) 0%,
-    rgba(5, 4, 3, 0.86) 34%,
-    rgba(5, 4, 3, 0.4) 70%,
-    rgba(5, 4, 3, 0) 100%
+    oklch(0.108 0.005 71.346 / 0.96) 0%,
+    oklch(0.108 0.005 71.346 / 0.87) 36%,
+    oklch(0.108 0.005 71.346 / 0.42) 72%,
+    oklch(0.108 0.005 71.346 / 0) 100%
   );
   pointer-events: none;
 }
 
 .stage-head {
   position: absolute;
-  top: 26px;
-  left: 28px;
+  top: var(--s3);
+  left: var(--s3);
   z-index: 5;
-  max-width: 34ch;
+  max-width: 38ch;
   pointer-events: none;
 }
 
@@ -350,13 +505,18 @@ input {
 }
 
 .back {
-  display: inline-block;
-  font-size: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s1);
+  /* The visible label is ~14px tall; the control is not. */
+  min-height: 40px;
+  padding-inline-end: var(--s2);
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--dark-muted);
-  margin-bottom: 16px;
-  transition: color 0.16s;
+  color: var(--text-3);
+  transition: color 0.16s var(--ease);
 }
 
 .back:hover {
@@ -364,77 +524,123 @@ input {
 }
 
 .stage-head h1 {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  font-size: 26px;
-  font-weight: 500;
-  letter-spacing: -0.03em;
-  margin-bottom: 10px;
+  font-family: var(--display);
+  font-stretch: 118%;
+  font-weight: 600;
+  font-size: var(--fs-title);
+  line-height: 1.04;
+  letter-spacing: -0.035em;
+  margin: var(--s1) 0 var(--s1);
+}
+
+.stage-tag {
+  display: block;
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
+  color: var(--text-3);
+  margin-bottom: var(--s2);
 }
 
 .stage-head p {
-  font-size: 11.5px;
-  line-height: 1.65;
-  color: rgba(242, 239, 230, 0.52);
+  font-size: var(--fs-ui);
+  line-height: 1.6;
+  color: var(--text-2);
+  text-wrap: pretty;
 }
 
 .hint {
   position: absolute;
   left: 50%;
-  bottom: 24px;
-  transform: translateX(-50%);
+  bottom: var(--s3);
+  translate: -50% 0;
   z-index: 5;
-  font-size: 10px;
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: #cfc8b8;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(10, 8, 6, 0.55);
-  backdrop-filter: blur(4px);
-  padding: 8px 15px;
-  border-radius: 999px;
+  color: var(--text-2);
+  border: 1px solid var(--rule-strong);
+  background: oklch(0.108 0.005 71.346 / 0.7);
+  backdrop-filter: blur(5px);
+  padding: var(--s1) var(--s2);
+  white-space: nowrap;
   pointer-events: none;
-  animation: rise 0.5s ease both;
+  animation: rise 0.5s var(--ease) both;
 }
 
 .hint-off {
-  border-color: rgba(216, 83, 31, 0.5);
-  color: #f0b499;
+  border-color: oklch(0.612 0.178 39.339 / 0.55);
+  color: oklch(0.8 0.09 39.339);
 }
 
 @keyframes rise {
-  from { opacity: 0; transform: translate(-50%, 6px); }
-  to   { opacity: 1; transform: translate(-50%, 0); }
+  from {
+    opacity: 0;
+    translate: -50% 6px;
+  }
+  to {
+    opacity: 1;
+    translate: -50% 0;
+  }
 }
 
-/* Panel ----------------------------------------------------------------- */
+/* Panel ------------------------------------------------------------------- */
 
 .panel {
   position: absolute;
-  top: 16px;
-  right: 16px;
-  bottom: 16px;
+  top: var(--s2);
+  right: var(--s2);
+  bottom: var(--s2);
   z-index: 6;
-  width: 286px;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  width: 322px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   background: var(--paper);
   color: var(--ink);
   padding: 18px;
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+  /* Layered and transparent, so it reads as depth rather than a drawn edge. */
+  box-shadow:
+    0 1px 1px oklch(0 0 0 / 0.13),
+    0 8px 16px oklch(0 0 0 / 0.16),
+    0 24px 56px oklch(0 0 0 / 0.34);
 }
 
-.panel::-webkit-scrollbar {
+.panel-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.panel-scroll::-webkit-scrollbar {
   width: 6px;
 }
 
-.panel::-webkit-scrollbar-thumb {
-  background: #cbc5b6;
+.panel-scroll::-webkit-scrollbar-thumb {
+  background: var(--line);
 }
 
+/* Pinned to the foot of the panel. */
+.code {
+  flex: none;
+  padding-top: var(--s2);
+  border-top: 1px solid var(--line);
+}
+
+.panel .eyebrow {
+  color: var(--ink-2);
+  margin-bottom: 4px;
+}
+
+/* Tight, because the code block at the foot of the panel is the payoff and
+   it has to stay above the fold at 900px. */
 .panel-block {
-  margin-bottom: 14px;
+  margin-bottom: var(--s2);
+}
+
+.panel .rule {
+  margin: var(--s2) 0;
 }
 
 .row-inline {
@@ -454,22 +660,32 @@ input {
 
 .seg button {
   flex: 1;
-  padding: 8px 0;
-  font-size: 11px;
-  background: #fbfaf5;
-  color: var(--ink-muted);
+  min-height: 40px;
+  padding: 0;
+  font-family: var(--mono);
+  font-size: 12px;
+  background: var(--paper-2);
+  color: var(--ink-2);
   border: 0;
-  border-right: 1px solid var(--line);
+  border-inline-end: 1px solid var(--line);
   cursor: pointer;
-  transition: background 0.14s, color 0.14s;
+  transition:
+    background 0.14s var(--ease),
+    color 0.14s var(--ease),
+    scale 0.12s var(--ease);
 }
 
 .seg button:last-child {
-  border-right: 0;
+  border-inline-end: 0;
 }
 
 .seg button:hover {
   color: var(--ink);
+  background: var(--paper);
+}
+
+.seg button:active {
+  scale: 0.96;
 }
 
 .seg button.on {
@@ -482,20 +698,27 @@ input {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--s2);
   width: 100%;
   min-height: var(--tap);
-  padding: 10px 12px;
-  background: #fbfaf5;
+  padding: var(--s1) var(--s2);
+  background: var(--paper-2);
   border: 1px solid var(--line);
   cursor: pointer;
-  text-align: left;
-  transition: border-color 0.16s, background 0.16s;
+  text-align: start;
+  transition:
+    border-color 0.16s var(--ease),
+    background 0.16s var(--ease),
+    scale 0.12s var(--ease);
+}
+
+.toggle:active {
+  scale: 0.96;
 }
 
 .toggle.on {
   border-color: var(--ink);
-  background: #fff;
+  background: var(--paper);
 }
 
 .toggle-text {
@@ -504,7 +727,8 @@ input {
 
 .toggle-label {
   display: block;
-  font-size: 11px;
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--ink);
@@ -512,24 +736,27 @@ input {
 
 .toggle-state {
   display: block;
-  font-size: 10px;
-  letter-spacing: 0.04em;
-  color: var(--ink-muted);
-  margin-top: 3px;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.01em;
+  color: var(--ink-3);
+  margin-top: 2px;
 }
 
+/* Darkened accent: the field accent fails 4.5:1 as text on paper. */
 .toggle.on .toggle-state {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 
+/* A cell that slides one cell, not a pill switch — the page has no other
+   rounded corner, and a moving square is the field's own vocabulary. */
 .track {
   flex: none;
-  width: 32px;
-  height: 18px;
-  border-radius: 999px;
-  background: #cbc5b6;
   position: relative;
-  transition: background 0.18s;
+  width: calc(var(--cell) * 2);
+  height: var(--cell);
+  background: var(--line);
+  transition: background 0.18s var(--ease);
 }
 
 .toggle.on .track {
@@ -538,27 +765,26 @@ input {
 
 .track i {
   position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 14px;
-  height: 14px;
-  background: #fff;
-  border-radius: 50%;
-  transition: transform 0.18s;
+  inset-block: 2px;
+  inset-inline-start: 2px;
+  width: calc(var(--cell) - 4px);
+  background: var(--paper);
+  transition: translate 0.18s var(--ease);
 }
 
 .toggle.on .track i {
-  transform: translateX(14px);
+  translate: var(--cell) 0;
 }
 
 .lab {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  font-size: 11px;
-  letter-spacing: 0.04em;
-  color: var(--ink-soft);
-  margin-bottom: 6px;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.01em;
+  color: var(--ink-2);
+  margin-bottom: 2px;
 }
 
 .lab b {
@@ -569,20 +795,26 @@ input {
 
 .lab b em {
   font-style: normal;
-  color: var(--ink-muted);
-  margin-left: 2px;
+  color: var(--ink-3);
+  margin-inline-start: 2px;
+}
+
+.slider .lab {
+  margin-bottom: 0;
 }
 
 .slider.is-disabled {
   opacity: 0.4;
 }
 
+/* The visible track is 2px. The control is 32px, so it can actually be
+   grabbed — the input was previously only as tall as its own track. */
 input[type='range'] {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
-  height: 2px;
-  background: #cbc5b6;
+  height: 32px;
+  background: none;
   cursor: pointer;
 }
 
@@ -590,10 +822,21 @@ input[type='range']:disabled {
   cursor: not-allowed;
 }
 
+input[type='range']::-webkit-slider-runnable-track {
+  height: 2px;
+  background: var(--line);
+}
+
+input[type='range']::-moz-range-track {
+  height: 2px;
+  background: var(--line);
+}
+
 input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 12px;
   height: 12px;
+  margin-top: -5px;
   background: var(--ink);
   cursor: pointer;
 }
@@ -601,16 +844,20 @@ input[type='range']::-webkit-slider-thumb {
 input[type='range']::-moz-range-thumb {
   width: 12px;
   height: 12px;
-  background: var(--ink);
   border: 0;
+  border-radius: 0;
+  background: var(--ink);
   cursor: pointer;
 }
 
 select {
   width: 100%;
-  padding: 8px;
-  font-size: 12px;
-  background: #fbfaf5;
+  min-height: 40px;
+  padding: 0 var(--s1);
+  font-family: var(--mono);
+  /* 16px on mobile: iOS Safari zooms the page for anything smaller. */
+  font-size: 16px;
+  background: var(--paper-2);
   border: 1px solid var(--line);
   cursor: pointer;
 }
@@ -618,77 +865,138 @@ select {
 .accent-field {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--s1);
 }
 
 .hex {
-  font-size: 11px;
-  color: var(--ink-muted);
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-2);
   font-variant-numeric: tabular-nums;
 }
 
+/* 28×18 visible, extended to a 44×44 target by the pseudo-element. */
 .swatch {
-  width: 28px;
-  height: 18px;
+  position: relative;
+  width: 30px;
+  height: 20px;
   padding: 0;
   border: 1px solid var(--line);
   background: none;
   cursor: pointer;
+  transition: scale 0.12s var(--ease);
 }
 
-/* Code -------------------------------------------------------------------*/
+.swatch::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--tap);
+  height: var(--tap);
+  translate: -50% -50%;
+}
+
+.swatch:active {
+  scale: 0.96;
+}
+
+/* Code --------------------------------------------------------------------*/
 
 .code .tabs {
   display: flex;
   align-items: center;
-  gap: 14px;
-  margin-bottom: 9px;
+  gap: var(--s2);
+  margin-bottom: var(--s1);
 }
 
 .code .tabs button {
-  padding: 0 0 3px;
-  font-size: 10px;
+  min-height: 40px;
+  padding: 0;
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
   letter-spacing: 0.16em;
   text-transform: uppercase;
   background: none;
   border: 0;
-  border-bottom: 1.5px solid transparent;
-  color: #a29d90;
+  box-shadow: inset 0 -2px 0 transparent;
+  color: var(--ink-3);
   cursor: pointer;
+  transition:
+    color 0.14s var(--ease),
+    box-shadow 0.14s var(--ease),
+    scale 0.12s var(--ease);
+}
+
+.code .tabs button:hover {
+  color: var(--ink);
+}
+
+.code .tabs button:active {
+  scale: 0.96;
 }
 
 .code .tabs button.on {
   color: var(--ink);
-  border-bottom-color: var(--accent);
+  box-shadow: inset 0 -2px 0 var(--accent);
 }
 
-.code .copy {
-  margin-left: auto;
-  color: var(--ink-muted);
+/* Matches `.code .tabs button`'s specificity — a bare `.code .copy` loses to
+   its `padding: 0` and the hit area silently stays too narrow. */
+.code .tabs button.copy {
+  margin-inline-start: auto;
+  padding-inline: var(--s2);
+  color: var(--ink-2);
 }
 
 .code pre {
   background: var(--ink);
-  padding: 12px;
+  padding: var(--s2);
   overflow-x: auto;
-  font-size: 10.5px;
-  line-height: 1.65;
+  font-size: var(--fs-code);
+  line-height: 1.7;
 }
 
 .code code {
-  font-family: inherit;
-  color: #e7e1d3;
+  font-family: var(--mono);
+  color: var(--paper-2);
   white-space: pre;
 }
 
-.t-keyword { color: #ff8a4d; }
-.t-string  { color: #9ccf7a; }
-.t-comment { color: #6f6a5f; }
-.t-number  { color: #e8c46a; }
+/* Even chroma as a share of each hue's maximum, so no one token shouts.
+   The keyword shares the accent's hue; the rest are spaced away from it. */
+.t-keyword { color: oklch(0.78 0.082 39.339); }
+.t-string  { color: oklch(0.78 0.127 152); }
+.t-number  { color: oklch(0.78 0.099 86); }
+.t-comment { color: oklch(0.6 0.018 258); }
 
-/* Responsive -------------------------------------------------------------*/
+/* Enter -------------------------------------------------------------------
+   Split into semantic chunks and staggered, rather than fading one container. */
 
-@media (max-width: 860px) {
+.hero-copy > * {
+  animation: enter 0.55s var(--ease) both;
+}
+
+.hero-copy > *:nth-child(1) { animation-delay: 0.02s; }
+.hero-copy > *:nth-child(2) { animation-delay: 0.12s; }
+.hero-copy > *:nth-child(3) { animation-delay: 0.22s; }
+.hero-copy > *:nth-child(4) { animation-delay: 0.32s; }
+.hero-copy > *:nth-child(5) { animation-delay: 0.42s; }
+
+@keyframes enter {
+  from {
+    opacity: 0;
+    translate: 0 10px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+/* Responsive --------------------------------------------------------------*/
+
+@media (max-width: 900px) {
   .stage-shell {
     position: static;
     min-height: 100vh;
@@ -708,7 +1016,7 @@ select {
 
   .stage-head {
     position: static;
-    padding: 22px 18px 0;
+    padding: var(--s3) var(--s2) 0;
     max-width: none;
     order: -1;
   }
@@ -716,9 +1024,21 @@ select {
   .panel {
     position: static;
     width: auto;
-    margin: 16px;
+    margin: var(--s2);
     bottom: auto;
     overflow: visible;
+  }
+
+  /* Stacked: nothing is pinned, so the panel grows instead of scrolling. */
+  .panel-scroll {
+    min-height: auto;
+    overflow: visible;
+  }
+
+  /* Desktop trades slider height for keeping the snippet in view; on touch
+     there is no such fold, and a thumb needs the full 44px. */
+  input[type='range'] {
+    height: var(--tap);
   }
 
   .hint {
@@ -728,12 +1048,31 @@ select {
 
   .hero {
     min-height: 0;
-    padding: 64px 20px 48px;
+    padding: var(--s5) var(--s2) var(--s4);
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+  }
+
+  /* Pinned bottom-right, it lands on top of the install button once the
+     column is this narrow. In flow, it simply follows the copy. */
+  .hero-hint {
+    position: static;
+    align-self: flex-start;
+    margin-top: var(--s3);
+  }
+
+  .hero h1 {
+    max-width: 18ch;
   }
 
   .hero-scrim {
-    background: linear-gradient(180deg, rgba(5, 4, 3, 0.88) 0%,
-      rgba(5, 4, 3, 0.8) 60%, rgba(5, 4, 3, 0.6) 100%);
+    background: linear-gradient(
+      180deg,
+      oklch(0.108 0.005 71.346 / 0.9) 0%,
+      oklch(0.108 0.005 71.346 / 0.82) 60%,
+      oklch(0.108 0.005 71.346 / 0.62) 100%
+    );
   }
 }
 

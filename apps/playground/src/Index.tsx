@@ -19,23 +19,22 @@ export function Index() {
 
         <div className="hero-copy">
           <p className="wordmark">motes</p>
-          <h1>
-            Procedural, pointer-reactive ASCII backgrounds for the web.
-          </h1>
+          <h1>The cursor is an input.</h1>
 
           {/* The thesis, stated as the thing that differs: a second argument. */}
           <p className="signature" aria-label="render of time and pointer">
             <span>render(</span>
             <span className="sig-dim">time</span>
-            <span>, </span>
+            <span>,&nbsp;</span>
             <span className="sig-hot">pointer</span>
             <span>)</span>
           </p>
 
           <p className="lede">
-            Authoring tools bake frames and can't react. Procedural galleries
-            animate from time alone. motes takes the cursor as an input, and
-            the same pointer layer crosses every effect — including yours.
+            Procedural ASCII backgrounds for the web. Authoring tools bake
+            frames and can’t react; procedural galleries animate from time
+            alone. motes takes the pointer as a first-class argument, and that
+            layer crosses every effect — including the ones you write.
           </p>
 
           <Install />
@@ -72,12 +71,16 @@ function Tile({ entry }: { entry: CatalogEntry }) {
           aria-hidden="true"
         />
       </span>
-      <span className="tile-meta">
-        <span className="idx">{entry.index}</span>
-        <span className="name">{entry.title}</span>
-        <span className="go" aria-hidden="true">→</span>
+      <span className="tile-body">
+        <span className="tile-head">
+          <span className="tile-name">{entry.title}</span>
+          <span className="tile-go" aria-hidden="true">→</span>
+        </span>
+        <code className={`tile-tag ${entry.custom ? 'is-yours' : ''}`}>
+          {entry.tag}
+        </code>
+        <span className="tile-blurb">{entry.blurb}</span>
       </span>
-      <span className="tile-blurb">{entry.blurb}</span>
     </Link>
   )
 }
