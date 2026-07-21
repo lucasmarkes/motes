@@ -58,9 +58,22 @@ MOTES_REGISTRY_URL=https://your-host node registry/build.mjs
 ```
 
 `shadcn add` needs an absolute URL to fetch an item, and a preset's reference
-to the base component has to be absolute too. That hostname is injected from
-`MOTES_REGISTRY_URL` at build time so it never appears in source. Without the
-variable the build falls back to `http://localhost:5173` and warns.
+to the base component has to be absolute too. That hostname never appears in
+source; it is resolved from the environment, in order:
+
+| Source | When |
+| --- | --- |
+| `MOTES_REGISTRY_URL` | Always wins, if set. |
+| `VERCEL_PROJECT_PRODUCTION_URL` | Production deployments. |
+| `VERCEL_URL` | Preview deployments — items self-reference that preview, so `shadcn add` is testable before production. |
+| `http://localhost:5173` | Local. Warns. |
+
+A deployed build that prints the localhost warning has published items nobody
+can install. Treat that line in the build log as a failed deploy.
+
+All four variables are declared in `turbo.json` under the `build` task.
+Turborepo does not forward undeclared environment variables to tasks, so an
+undeclared one is silently absent and the build falls back to localhost.
 
 The playground's `build` script runs the generator first, so deploying the
 playground publishes the registry with it.

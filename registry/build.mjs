@@ -4,9 +4,9 @@
  *
  * `shadcn add` needs an absolute URL to fetch an item, and cross-item
  * references (a preset pointing at the base component) have to be absolute
- * too. So a hostname must appear in the *output* — but never in source.
- * It comes from MOTES_REGISTRY_URL at build time, and every JSON file under
- * the output directory is generated, never hand-edited.
+ * too. So a hostname must appear in the *output* — but never in source. It is
+ * resolved from the environment at build time (see resolveBase), and every
+ * JSON file under the output directory is generated, never hand-edited.
  */
 import { readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -17,17 +17,43 @@ const SRC = join(here, 'src')
 const OUT = join(here, '..', 'apps', 'playground', 'public', 'r')
 
 const FALLBACK = 'http://localhost:5173'
-const raw = process.env.MOTES_REGISTRY_URL?.trim()
 
-if (!raw) {
+/**
+ * Resolve the base URL the items will advertise.
+ *
+ * Preview deployments get a unique hostname that cannot be known ahead of
+ * time, so they derive it from VERCEL_URL and end up self-referencing — a
+ * preview's items install from that preview. That makes `shadcn add` testable
+ * before anything touches production.
+ */
+function resolveBase() {
+  const explicit = process.env.MOTES_REGISTRY_URL?.trim()
+  if (explicit) return { url: explicit, source: 'MOTES_REGISTRY_URL' }
+
+  const productionHost = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim()
+  if (process.env.VERCEL_ENV === 'production' && productionHost) {
+    return { url: `https://${productionHost}`, source: 'VERCEL_PROJECT_PRODUCTION_URL' }
+  }
+
+  const deploymentHost = process.env.VERCEL_URL?.trim()
+  if (deploymentHost) {
+    return { url: `https://${deploymentHost}`, source: 'VERCEL_URL' }
+  }
+
+  return { url: FALLBACK, source: 'fallback' }
+}
+
+const resolved = resolveBase()
+
+if (resolved.source === 'fallback') {
   console.warn(
-    `[registry] MOTES_REGISTRY_URL is not set; using ${FALLBACK}.\n` +
-      `[registry] Set it in the deploy environment or the published items ` +
-      `will point at localhost.`,
+    `[registry] no registry URL in the environment; using ${FALLBACK}.\n` +
+      `[registry] A deployed build that prints this line has published items ` +
+      `pointing at localhost.`,
   )
 }
 
-const BASE = (raw || FALLBACK).replace(/\/+$/, '')
+const BASE = resolved.url.replace(/\/+$/, '')
 const itemUrl = (name) => `${BASE}/r/${name}.json`
 
 /** Shared by every item: the two packages the components import. */
@@ -112,5 +138,5 @@ writeFileSync(
   ) + '\n',
 )
 
-console.log(`[registry] base ${BASE}`)
+console.log(`[registry] base ${BASE} (from ${resolved.source})`)
 for (const item of built) console.log(`[registry]   ${itemUrl(item.name)}`)
