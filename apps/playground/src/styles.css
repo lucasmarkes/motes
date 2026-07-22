@@ -1771,12 +1771,64 @@ input {
   }
 }
 
+/* Reduced motion -----------------------------------------------------------
+   Gentler, not off.
+
+   This used to be the blunt version — every duration on the page forced to
+   0.01ms — which does technically remove the motion and also removes every
+   bridge between two states. The copy icon became a hard cut from one glyph
+   to another. The charset menu appeared fully formed with no relationship to
+   the trigger. A state change with no transition at all is not calmer than
+   one with a transition; it is just harder to follow.
+
+   So what goes is displacement. Nothing slides, grows or shrinks; opacity,
+   colour and blur keep their normal timings and carry the state changes on
+   their own.
+
+   `scale` can be killed globally because nothing on this page uses it for
+   layout. `translate` cannot — the slider thumb, the hint and the chevron all
+   use it to sit where they sit — so the travelling ones are named. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
+    /* Beats the value the animation would set: an author `!important`
+       declaration outranks an animation in the cascade. */
+    scale: none !important;
+  }
+
+  /* Entrances arrive in place. */
+  .hero-copy > *,
+  .hint {
+    animation-name: fade-in;
+  }
+
+  .pick-list {
+    animation-name: fade-in;
+  }
+
+  /* Hover and state travel. */
+  .tile:hover .tile-go,
+  .tile:focus-visible .tile-go,
+  .toggle.on .track i,
+  .pick-trigger[aria-expanded='true'] .pick-chev {
+    translate: none;
+  }
+
+  /* The field's own transition is a magnification; without it the two pages
+     simply cross-fade, which is the point. */
+  ::view-transition-group(motes-field),
+  ::view-transition-old(motes-field),
+  ::view-transition-new(motes-field) {
     animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
