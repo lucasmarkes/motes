@@ -142,6 +142,16 @@
      short window it overruns and the cut moves up into the art — abstract, no
      wrong place to cut. It can never move down into the text. */
   --tile-art: 180px;
+
+  /* The band between the two fields ---------------------------------------
+     The hero's field and the first row of tile art are both fields, drawn by
+     the same renderer, and they used to meet across a 1px rule with nothing
+     else between them — so they read as one surface with a line ruled through
+     it, and the catalogue never announced itself as a separate thing. This is
+     the distance that separates them: the field is masked to nothing over the
+     last band of the hero, and then there is a second band of canvas with
+     nothing in it at all. */
+  --hero-out: var(--s6);
 }
 
 * {
@@ -392,7 +402,14 @@ input {
    different things, each closed on its own terms. */
 .hero {
   position: relative;
-  min-height: calc(100svh - var(--tile-art));
+  /* --hero-out comes out of the height rather than being added on top of it,
+     which is what keeps the fold rule true: the first row of art still ends
+     exactly on the fold, it just gets there after a band of empty canvas
+     instead of straight off the back of the hero's own field. Measured, the
+     art's bottom edge lands on 901 against a 900px fold — the one pixel is
+     the grid's own top rule. */
+  min-height: calc(100svh - var(--tile-art) - var(--hero-out));
+  margin-bottom: var(--hero-out);
   display: flex;
   align-items: center;
   /* Scales with the window so the copy still clears the fold on a short one.
@@ -405,11 +422,20 @@ input {
   position: relative;
 }
 
+/* The field ends by running out, not by being cut off. The mask is finished
+   by the hero's own bottom edge, so everything below that — the whole of
+   --hero-out — is bare canvas, and the first tile begins on canvas rather
+   than against the tail of another field. */
 .hero-field {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
+  mask-image: linear-gradient(
+    to bottom,
+    #000 calc(100% - var(--hero-out)),
+    transparent 100%
+  );
 }
 
 /* Keeps the copy legible without flattening the field behind it.
