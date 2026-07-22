@@ -484,12 +484,43 @@ input {
    without being nameable. The hero's own bottom edge draws the line above. */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: 1fr;
   gap: 1px;
   max-width: var(--page);
   margin-inline: auto;
   background: var(--rule);
   border-block: 1px solid var(--rule);
+}
+
+@media (min-width: 601px) and (max-width: 900px) {
+  .grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Two up, two down, unequal — 7 and 5 of twelve, alternating so the seam
+   between the rows steps across rather than running straight down.
+
+   Four identical columns said the four effects were interchangeable, and they
+   are not: flow is the default you get for free, and the last one is written
+   at runtime and is not in the library at all. Those two carry the argument,
+   so they get the room; waves and pulse are variations on it. Nothing here is
+   a ranked list, which is also why the ordinals went away earlier — width is
+   emphasis, not rank. */
+@media (min-width: 901px) {
+  .grid {
+    grid-template-columns: repeat(12, 1fr);
+  }
+
+  .tile:nth-child(4n + 1),
+  .tile:nth-child(4n) {
+    grid-column: span 7;
+  }
+
+  .tile:nth-child(4n + 2),
+  .tile:nth-child(4n + 3) {
+    grid-column: span 5;
+  }
 }
 
 .tile {
@@ -543,8 +574,9 @@ input {
   color: var(--text);
 }
 
+/* Beside the name, not pinned to the far edge. In a seven-column tile that is
+   most of a metre of empty rule away from the word it belongs to. */
 .tile-go {
-  margin-inline-start: auto;
   color: var(--text-3);
   transition:
     translate 0.18s var(--ease),
@@ -574,8 +606,11 @@ input {
   color: var(--text);
 }
 
+/* Capped, because the wide cells are now wide enough to run a one-line blurb
+   past eighty characters. A measure belongs to the text, not to its column. */
 .tile-blurb {
   display: block;
+  max-width: 50ch;
   font-size: var(--fs-ui);
   line-height: 1.55;
   color: var(--text-2);
