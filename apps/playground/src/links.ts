@@ -8,7 +8,7 @@
 export const LINKS = {
   github: 'https://github.com/lucasmarkes/motes',
   npm: 'https://www.npmjs.com/package/motes',
-  x: 'https://x.com/lucasmarkes',
+  x: 'https://x.com/lucasmarkes__',
   /** Whose it is, as opposed to where it lives. */
   author: 'https://github.com/lucasmarkes',
 } as const
