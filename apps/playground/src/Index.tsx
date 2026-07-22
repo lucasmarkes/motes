@@ -33,11 +33,14 @@ export function Index() {
             <span>)</span>
           </p>
 
+          {/* Four sentences at 6, 12, 2 and 12 words. The two-word one is
+              doing the work; it only lands because the one before it runs
+              long. The version this replaced was three matched clauses of
+              roughly equal weight, which is a cadence nobody speaks in. */}
           <p className="lede">
-            Procedural ASCII backgrounds for the web. Authoring tools bake
-            frames and can’t react; procedural galleries animate from time
-            alone. motes takes the pointer as a first-class argument, and that
-            layer crosses every effect — including the ones you write.
+            Procedural ASCII backgrounds for the web. Every other one animates
+            from a clock and can’t see your cursor. motes can. Write your own
+            effect and the cursor works in it anyway.
           </p>
 
           <Install />
