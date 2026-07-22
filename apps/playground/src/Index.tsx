@@ -56,7 +56,22 @@ export function Index() {
               effect and the cursor works in it anyway.
             </p>
 
-            <Install />
+            {/* One unit: the command and its footnote. Grouped rather than
+                left as two siblings so the footnote sits a cell under the
+                command instead of a full paragraph break away — at the stack's
+                standard gap it reads as another item in the list, not as a
+                note about the thing above it. It also arrives as one thing in
+                the entrance, which is what it is. */}
+            <div className="hero-action">
+              <Install />
+
+              {/* Not the badge row reborn. Two facts, placed at the one moment
+                  either of them is a live question — while somebody is looking
+                  at the command that would install it. MIT is deliberately not
+                  here: it is a click away in the repo, and a third fact in a
+                  row is how the badge row started. */}
+              <p className="hero-meta">zero dependencies · WebGL2</p>
+            </div>
 
             <p
               className={`hero-hint ${touched ? 'is-out' : ''}`}

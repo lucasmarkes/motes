@@ -42,13 +42,19 @@ export function SiteHeader() {
 }
 
 /**
- * One line, and the badge row beneath it until item 3 takes that away.
+ * One line.
  *
  * github / npm / x used to appear here as well as in the bar, which meant the
  * page answered the same question twice and neither answer read as the real
  * one. The bar is the persistent nav and it is always on screen, so it keeps
  * them; the footer keeps only what the bar cannot say — whose this is, and
  * where the source lives.
+ *
+ * The badge row that used to sit under this — MOTES · MIT · ZERO RUNTIME
+ * DEPENDENCIES · WEBGL2 — is gone. Two of those four were facts about the
+ * page rather than claims worth making, and the two that were worth making
+ * are now under the install command, which is the only place either of them
+ * is a live question.
  */
 export function SiteFooter() {
   return (
@@ -56,13 +62,6 @@ export function SiteFooter() {
       <p className="foot-credit">
         Built by <Out href={LINKS.author}>{AUTHOR}</Out>. Source on{' '}
         <Out href={LINKS.github}>GitHub</Out>.
-      </p>
-
-      <p className="foot-facts">
-        <span>motes</span>
-        <span>MIT</span>
-        <span>zero runtime dependencies</span>
-        <span>WebGL2</span>
       </p>
     </footer>
   )
