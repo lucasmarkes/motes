@@ -42,19 +42,21 @@ export function SiteHeader() {
 }
 
 /**
- * The badge line stays — it is the spec, and specs belong at the bottom — but
- * a footer that only describes the thing and never points anywhere is a dead
- * end. The links go above the badges because they are the part you can act on.
+ * One line, and the badge row beneath it until item 3 takes that away.
+ *
+ * github / npm / x used to appear here as well as in the bar, which meant the
+ * page answered the same question twice and neither answer read as the real
+ * one. The bar is the persistent nav and it is always on screen, so it keeps
+ * them; the footer keeps only what the bar cannot say — whose this is, and
+ * where the source lives.
  */
 export function SiteFooter() {
   return (
     <footer className="foot">
-      <div className="foot-row">
-        <OutLinks />
-        <p className="foot-credit">
-          built by <Out href={LINKS.author}>{AUTHOR}</Out>
-        </p>
-      </div>
+      <p className="foot-credit">
+        Built by <Out href={LINKS.author}>{AUTHOR}</Out>. Source on{' '}
+        <Out href={LINKS.github}>GitHub</Out>.
+      </p>
 
       <p className="foot-facts">
         <span>motes</span>

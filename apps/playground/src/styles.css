@@ -749,23 +749,15 @@ input {
 }
 
 /* The footer --------------------------------------------------------------
-   Two rows. The links come first because they are the part you can act on;
-   the badge line is the spec, and a spec belongs under the thing it describes.
-   Both start on the rail, like everything else. */
+   One sentence, on the rail. `.foot-row` is gone with the second copy of
+   github / npm / x it used to hold against the credit — with one child left
+   there is nothing to lay out. */
 
 .foot {
   display: flex;
   flex-direction: column;
   gap: var(--s3);
   margin-top: var(--s4);
-}
-
-.foot-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--s3);
 }
 
 .foot-credit {
