@@ -99,7 +99,7 @@ Prefer owning the code? The shadcn registry ships drop-in background
 components — a base `<MotesBackground />` plus three preconfigured effects.
 
 ```sh
-npx shadcn@latest add <registry-url>/r/motes-flow-background.json
+npx shadcn@latest add https://motes.lucasmarkes.com/r/motes-flow-background.json
 ```
 
 See [`registry/README.md`](registry/README.md).

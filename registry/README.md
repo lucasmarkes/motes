@@ -18,7 +18,7 @@ installing one pulls the base component with it.
 ## Install
 
 ```sh
-npx shadcn@latest add <registry-url>/r/motes-flow-background.json
+npx shadcn@latest add https://motes.lucasmarkes.com/r/motes-flow-background.json
 ```
 
 Then render it once, near the root of your app:
