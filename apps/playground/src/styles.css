@@ -856,16 +856,64 @@ input {
   }
 }
 
+/* The reveal is a transition, not a keyframe. `.is-held` is the hidden state
+   and JavaScript's only job is to take it off (see reveal.ts); a transition
+   retargets from wherever it has got to, where a keyframe restarts from zero
+   — which matters on a grid you can scroll back up through mid-arrival.
+
+   The delay rides on the two revealed properties only. Putting it on the
+   shorthand would have handed the hover a 70ms wait as well, and a tile that
+   thinks for 70ms before acknowledging the cursor is a broken tile. */
 .tile {
   display: flex;
   flex-direction: column;
   background: var(--canvas);
-  transition: background var(--t-hover) var(--ease);
+  transition:
+    background var(--t-hover) var(--ease),
+    opacity 0.34s var(--ease) var(--reveal-delay, 0ms),
+    translate 0.34s var(--ease) var(--reveal-delay, 0ms);
+}
+
+.tile.is-held {
+  opacity: 0;
+  translate: 0 10px;
+}
+
+/* Second in its row waits 70ms, so a row arrives as a row. Only where there
+   is a row to arrive as: below 601px the grid is a single column and every
+   tile is already first in its own. */
+@media (min-width: 601px) {
+  .tile:nth-child(2n) {
+    --reveal-delay: 70ms;
+  }
 }
 
 .tile:hover,
 .tile:focus-visible {
   background: var(--raise);
+}
+
+/* The art answers the cursor too --------------------------------------------
+   A tile used to respond to a hover with a background one step lighter and an
+   arrow moving 3px, both of them in the frame around the art — and the art is
+   the reason anybody is looking at the tile. It sits at 0.8 now and comes to
+   full strength under the cursor, which reads as the field getting denser
+   without a single uniform changing: the renderer is untouched, this is one
+   composited property.
+
+   Behind a hover query, because the resting state is a dimmed one. On a
+   touch screen, where `:hover` sticks to whatever was last tapped, that would
+   have left three tiles permanently dimmed and one lit at random. */
+@media (hover: hover) and (pointer: fine) {
+  .tile-field canvas {
+    opacity: 0.8;
+    transition: opacity var(--t-hover) var(--ease);
+  }
+
+  .tile:hover .tile-field canvas,
+  .tile:focus-visible .tile-field canvas {
+    opacity: 1;
+  }
 }
 
 .tile-field {
@@ -1778,21 +1826,32 @@ input {
 .t-comment { color: oklch(0.62 0.01 258); }
 
 /* Enter -------------------------------------------------------------------
-   Split into semantic chunks and staggered, rather than fading one container. */
+   Split into semantic chunks and staggered, rather than fading one container.
 
+   340ms and 60ms apart, where it used to be 550 and 100. At the old numbers
+   the last chunk began arriving 420ms after the first and finished 970ms in,
+   which is long enough to watch — and a page you watch arrive is performing.
+   The whole sequence now closes at 640ms, and the eye reads it as the page
+   settling rather than as six things taking their turn.
+
+   The bar goes first, at no delay, because it is the top of the page and it
+   is where the mark lives. It arrives as one chunk: the mark travelling in
+   while github / npm / x sat still would be two decisions where the reader
+   can only see one line. */
+.site-head-row,
 .hero-copy > * {
-  animation: enter 0.55s var(--ease) both;
+  animation: enter 0.34s var(--ease) both;
 }
 
 /* Five chunks: headline, signature, lede, action, hint. There were six delays
    declared here when there were only ever five to six children; grouping the
    command with its footnote made the count exactly five, so the sixth rule is
    gone rather than left matching nothing. */
-.hero-copy > *:nth-child(1) { animation-delay: 0.02s; }
+.hero-copy > *:nth-child(1) { animation-delay: 0.06s; }
 .hero-copy > *:nth-child(2) { animation-delay: 0.12s; }
-.hero-copy > *:nth-child(3) { animation-delay: 0.22s; }
-.hero-copy > *:nth-child(4) { animation-delay: 0.32s; }
-.hero-copy > *:nth-child(5) { animation-delay: 0.42s; }
+.hero-copy > *:nth-child(3) { animation-delay: 0.18s; }
+.hero-copy > *:nth-child(4) { animation-delay: 0.24s; }
+.hero-copy > *:nth-child(5) { animation-delay: 0.3s; }
 
 @keyframes enter {
   from {
@@ -1893,18 +1952,27 @@ input {
 }
 
 /* Reduced motion -----------------------------------------------------------
-   Gentler, not off.
+   Two different questions, answered differently.
 
-   This used to be the blunt version — every duration on the page forced to
-   0.01ms — which does technically remove the motion and also removes every
-   bridge between two states. The copy icon became a hard cut from one glyph
-   to another. The charset menu appeared fully formed with no relationship to
-   the trigger. A state change with no transition at all is not calmer than
-   one with a transition; it is just harder to follow.
+   For a state change — the copy icon becoming a check, the charset menu
+   opening, a toggle flipping — off is not calmer than gentle. This block used
+   to force every duration on the page to 0.01ms, and what that produced was
+   a copy icon that hard-cut from one glyph to another and a menu that
+   appeared fully formed with no relationship to its trigger. So state changes
+   keep their transitions and lose only their displacement: nothing slides,
+   grows or shrinks, and opacity, colour and blur carry the change on their
+   own.
 
-   So what goes is displacement. Nothing slides, grows or shrinks; opacity,
-   colour and blur keep their normal timings and carry the state changes on
-   their own.
+   For an entrance, the answer is different, and it is the one thing here that
+   reversed. An entrance is not bridging two states — there is no earlier
+   state, only the page, which is already the thing you asked for. Fading it
+   in gently is still the page moving without being asked. Entrances are off:
+   the hero copy, the bar and the pointer hint are simply there, and the tiles
+   never take their hidden class in the first place because reveal.ts does not
+   engage the observer under this query.
+
+   The field keeps running. It is the subject of the page rather than an
+   effect applied to it, and it is what the visitor came to look at.
 
    `scale` can be killed globally because nothing on this page uses it for
    layout. `translate` cannot — the slider thumb, the hint and the chevron all
@@ -1918,10 +1986,20 @@ input {
     scale: none !important;
   }
 
-  /* Entrances arrive in place. */
+  /* No entrance at all. `both` fills the from-state before the delay, so the
+     animation has to go rather than be zeroed — a 0s animation still holds
+     the page invisible for its delay. */
+  .site-head-row,
   .hero-copy > *,
   .hint {
-    animation-name: fade-in;
+    animation: none;
+  }
+
+  /* The reveal's own travel, for the case where the class is on the element
+     when the query starts matching — a preference toggled after load. */
+  .tile.is-held {
+    opacity: 1;
+    translate: none;
   }
 
   .pick-list {

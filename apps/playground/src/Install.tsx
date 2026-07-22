@@ -35,7 +35,7 @@ function Install() {
           await navigator.clipboard.writeText(COMMAND)
           setManual(false)
           setCopied(true)
-          window.setTimeout(() => setCopied(false), 1400)
+          window.setTimeout(() => setCopied(false), 1500)
         } catch {
           // Denied, insecure context, or no Clipboard API. Every one of those
           // used to be swallowed here, which left the button doing visibly

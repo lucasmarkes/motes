@@ -6,6 +6,7 @@ import { Link, morphFrom } from './router'
 import { POINTER_HINT } from './hint'
 import { SiteHeader, SiteFooter } from './Chrome'
 import { InstallRow } from './Install'
+import { useReveal } from './reveal'
 
 export function Index() {
   // The hint has one job and it is done the moment you move. Any move over
@@ -98,11 +99,15 @@ export function Index() {
 
 function Tile({ entry }: { entry: CatalogEntry }) {
   const field = useRef<HTMLSpanElement>(null)
+  // Arrives when it is looked at rather than all four at once on load. The
+  // class is the whole of the hidden state; see reveal.ts and `.tile.is-held`.
+  const [tile, held] = useReveal<HTMLAnchorElement>()
 
   return (
     <Link
+      ref={tile}
       to={`/${entry.id}`}
-      className="tile"
+      className={`tile ${held ? 'is-held' : ''}`}
       // This preview is a small-scale render of the very stage being opened,
       // so it grows into it rather than being cut away.
       onActivate={() => morphFrom(field.current)}

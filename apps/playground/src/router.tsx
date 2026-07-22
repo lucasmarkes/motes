@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode, type Ref } from 'react'
 
 /**
  * Path-based routing, no dependency and no knowledge of its own origin.
@@ -66,17 +66,20 @@ export function navigate(to: string): void {
 interface LinkProps {
   to: string
   className?: string
+  /** The anchor itself, for callers that need to observe or measure it. */
+  ref?: Ref<HTMLAnchorElement>
   /** Runs just before navigating — used to nominate a morph source. */
   onActivate?: () => void
   children: ReactNode
 }
 
 /** A real anchor, so middle-click, copy-link and keyboard focus all work. */
-export function Link({ to, className, onActivate, children }: LinkProps) {
+export function Link({ to, className, ref, onActivate, children }: LinkProps) {
   return (
     <a
       href={to}
       className={className}
+      ref={ref}
       onClick={(e) => {
         if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return
         e.preventDefault()
