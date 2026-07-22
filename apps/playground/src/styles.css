@@ -371,24 +371,33 @@ input {
   margin-inline-start: var(--s1);
 }
 
-/* Sits over the live field, so it needs its own ground to stay legible.
-   Square, not a pill: this page has no other rounded corner in it. */
+/* A line, not a badge.
+
+   It used to be a bordered, blurred, letter-spaced uppercase pill pinned to
+   the far corner — six words of instruction dressed with more chrome than the
+   install command, and permanent, so it went on shouting long after it was
+   true. Now it is the last line of the copy column, where the scrim already
+   holds the field back and it needs no ground of its own, and it leaves on
+   the first move.
+
+   pointer-events stays off: the field has to keep reacting through it. */
 .hero-hint {
-  position: absolute;
-  inset-inline-end: var(--s3);
-  inset-block-end: var(--s3);
+  margin-top: var(--s3);
   font-family: var(--mono);
   font-size: var(--fs-micro);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--text-2);
-  border: 1px solid var(--rule-strong);
-  background: oklch(0.108 0.005 71.346 / 0.72);
-  backdrop-filter: blur(5px);
-  padding: var(--s1) var(--s2);
-  /* A badge that wraps reads as broken. */
-  white-space: nowrap;
+  color: var(--text-3);
   pointer-events: none;
+  transition: opacity 0.45s var(--ease);
+}
+
+/* Dropping the entrance animation is load-bearing, not tidying: it is declared
+   `both`, so its filled end state outranks any opacity written here and the exit
+   would never play. Cancelling it also covers the case where you move before the
+   line has finished arriving — the before-change style still counts the running
+   animation, so it fades from wherever it had got to, or never shows at all. */
+.hero-hint.is-out {
+  animation: none;
+  opacity: 0;
 }
 
 /* Index: grid ------------------------------------------------------------- */
@@ -629,13 +638,13 @@ input {
   z-index: 5;
   font-family: var(--mono);
   font-size: var(--fs-micro);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
   color: var(--text-2);
-  border: 1px solid var(--rule-strong);
-  background: oklch(0.108 0.005 71.346 / 0.7);
-  backdrop-filter: blur(5px);
-  padding: var(--s1) var(--s2);
+  /* The field runs all the way under this one and there is no scrim this low,
+     so it holds its own legibility with a shadow rather than a box. The
+     glyphs stay visible straight through it, which a panel would have hidden. */
+  text-shadow:
+    0 0 3px var(--canvas),
+    0 0 9px var(--canvas);
   white-space: nowrap;
   pointer-events: none;
   animation: rise 0.5s var(--ease) backwards;
@@ -650,9 +659,9 @@ input {
   bottom: calc(var(--s3) - 6px);
 }
 
-/* The pitch is switched off; the notice is the one that gets turned up. */
+/* Not a hint — a statement of what the field is currently doing, so it stays
+   put and it is the one that gets turned up. */
 .hint-off {
-  border-color: oklch(0.935 0.006 258 / 0.5);
   color: var(--text);
 }
 
@@ -1089,6 +1098,7 @@ select {
 .hero-copy > *:nth-child(3) { animation-delay: 0.22s; }
 .hero-copy > *:nth-child(4) { animation-delay: 0.32s; }
 .hero-copy > *:nth-child(5) { animation-delay: 0.42s; }
+.hero-copy > *:nth-child(6) { animation-delay: 0.52s; }
 
 @keyframes enter {
   from {
@@ -1159,14 +1169,6 @@ select {
     flex-direction: column;
     align-items: stretch;
     justify-content: center;
-  }
-
-  /* Pinned bottom-right, it lands on top of the install button once the
-     column is this narrow. In flow, it simply follows the copy. */
-  .hero-hint {
-    position: static;
-    align-self: flex-start;
-    margin-top: var(--s3);
   }
 
   .hero h1 {

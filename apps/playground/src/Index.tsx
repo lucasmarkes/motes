@@ -7,9 +7,14 @@ import { POINTER_HINT } from './hint'
 import { Swap } from './Swap'
 
 export function Index() {
+  // The hint has one job and it is done the moment you move. Any move over
+  // the hero counts, not just one that lands on the canvas — the copy sits
+  // on top of the field, and having moved across it you already know.
+  const [touched, setTouched] = useState(false)
+
   return (
     <main className="index">
-      <header className="hero">
+      <header className="hero" onPointerMove={() => setTouched(true)}>
         <Motes
           className="hero-field"
           effect="flow"
@@ -44,9 +49,14 @@ export function Index() {
           </p>
 
           <Install />
-        </div>
 
-        <p className="hero-hint">{POINTER_HINT}</p>
+          <p
+            className={`hero-hint ${touched ? 'is-out' : ''}`}
+            aria-hidden={touched}
+          >
+            {POINTER_HINT}
+          </p>
+        </div>
       </header>
 
       <section className="grid" aria-label="Effects">
