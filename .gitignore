@@ -1,6 +1,18 @@
 node_modules/
 dist/
 .turbo/
+
+# Intermediate video frames — ~900 PNGs per run, re-derivable from scripts/video.mjs
+assets/frames/
+
+# Launch clips — ~30MB of exports, re-derivable with `pnpm video`. Nothing in
+# the repo links them; they get uploaded to the post directly.
+# assets/hero.gif stays tracked: the npm READMEs hotlink it from raw.githubusercontent.
+assets/*.mp4
+assets/sweep*.gif
+
+# One-off measurement scratch; depends on $CLAUDE_JOB_DIR and runs nowhere else.
+.measure.mjs
 *.tsbuildinfo
 .DS_Store
 .env

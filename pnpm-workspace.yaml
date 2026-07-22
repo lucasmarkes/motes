@@ -3,5 +3,7 @@ packages:
   - 'apps/*'
 
 # esbuild ships a platform binary via postinstall; tsup and vite both need it.
+# ffmpeg-static does the same, and `pnpm video` cannot encode without it.
 onlyBuiltDependencies:
   - esbuild
+  - ffmpeg-static
