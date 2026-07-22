@@ -1,4 +1,4 @@
-import { LINKS } from './links'
+import { LINKS, AUTHOR } from './links'
 
 /** Off-site, so a new tab — the field on the page you came from stays alive. */
 export function Out({ href, children }: { href: string; children: string }) {
@@ -38,5 +38,30 @@ export function SiteHeader() {
         <OutLinks />
       </div>
     </header>
+  )
+}
+
+/**
+ * The badge line stays — it is the spec, and specs belong at the bottom — but
+ * a footer that only describes the thing and never points anywhere is a dead
+ * end. The links go above the badges because they are the part you can act on.
+ */
+export function SiteFooter() {
+  return (
+    <footer className="foot">
+      <div className="foot-row">
+        <OutLinks />
+        <p className="foot-credit">
+          built by <Out href={LINKS.author}>{AUTHOR}</Out>
+        </p>
+      </div>
+
+      <p className="foot-facts">
+        <span>motes</span>
+        <span>MIT</span>
+        <span>zero runtime dependencies</span>
+        <span>WebGL2</span>
+      </p>
+    </footer>
   )
 }

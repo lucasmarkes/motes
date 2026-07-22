@@ -683,11 +683,56 @@ input {
   text-wrap: pretty;
 }
 
+/* The footer --------------------------------------------------------------
+   Two rows. The links come first because they are the part you can act on;
+   the badge line is the spec, and a spec belongs under the thing it describes.
+   Both start on the rail, like everything else. */
+
 .foot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  margin-top: var(--s4);
+}
+
+.foot-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+}
+
+.foot-credit {
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.08em;
+  color: var(--text-3);
+}
+
+/* Inline in a sentence, so it cannot take the links' 44px min-height without
+   knocking its own line off the baseline. The target is grown around it. */
+.foot-credit a {
+  position: relative;
+  color: var(--text);
+  opacity: 0.55;
+  transition: opacity 0.14s var(--ease);
+}
+
+.foot-credit a::after {
+  content: '';
+  position: absolute;
+  inset: -14px -6px;
+}
+
+.foot-credit a:hover {
+  opacity: 1;
+}
+
+.foot-facts {
   display: flex;
   flex-wrap: wrap;
   gap: var(--s4);
-  margin-top: var(--s4);
   font-family: var(--mono);
   font-size: var(--fs-micro);
   letter-spacing: 0.16em;

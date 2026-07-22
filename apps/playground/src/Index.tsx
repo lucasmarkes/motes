@@ -5,7 +5,7 @@ import { CATALOG, type CatalogEntry } from './effects'
 import { Link, morphFrom } from './router'
 import { POINTER_HINT } from './hint'
 import { Swap } from './Swap'
-import { SiteHeader } from './Chrome'
+import { SiteHeader, SiteFooter } from './Chrome'
 
 export function Index() {
   // The hint has one job and it is done the moment you move. Any move over
@@ -75,12 +75,7 @@ export function Index() {
       </section>
 
       <div className="rail">
-        <footer className="foot">
-          <span>motes</span>
-          <span>MIT</span>
-          <span>zero runtime dependencies</span>
-          <span>WebGL2</span>
-        </footer>
+        <SiteFooter />
       </div>
     </main>
   )
