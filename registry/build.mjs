@@ -11,37 +11,14 @@
 import { readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+// Shared with the playground's OG tags, which have the same problem: an
+// absolute URL is required in the output and forbidden in the source. One
+// ladder, so a preview cannot resolve one of them and not the other.
+import { resolveBase, FALLBACK } from '../scripts/base-url.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const SRC = join(here, 'src')
 const OUT = join(here, '..', 'apps', 'playground', 'public', 'r')
-
-const FALLBACK = 'http://localhost:5173'
-
-/**
- * Resolve the base URL the items will advertise.
- *
- * Preview deployments get a unique hostname that cannot be known ahead of
- * time, so they derive it from VERCEL_URL and end up self-referencing — a
- * preview's items install from that preview. That makes `shadcn add` testable
- * before anything touches production.
- */
-function resolveBase() {
-  const explicit = process.env.MOTES_REGISTRY_URL?.trim()
-  if (explicit) return { url: explicit, source: 'MOTES_REGISTRY_URL' }
-
-  const productionHost = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim()
-  if (process.env.VERCEL_ENV === 'production' && productionHost) {
-    return { url: `https://${productionHost}`, source: 'VERCEL_PROJECT_PRODUCTION_URL' }
-  }
-
-  const deploymentHost = process.env.VERCEL_URL?.trim()
-  if (deploymentHost) {
-    return { url: `https://${deploymentHost}`, source: 'VERCEL_URL' }
-  }
-
-  return { url: FALLBACK, source: 'fallback' }
-}
 
 const resolved = resolveBase()
 

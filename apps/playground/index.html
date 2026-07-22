@@ -9,8 +9,13 @@
       name="description"
       content="Procedural, pointer-reactive ASCII backgrounds for the web. render(time, pointer). Drop-in for React and vanilla, zero runtime dependencies."
     />
-    <!-- Relative only: this page never needs to know its own origin. -->
+    <!-- Relative, because a browser resolves these against the document. -->
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <!-- For the clients that will not take an SVG: Safari's touch icon, and
+         the 32px raster every older browser falls back to. Both are generated
+         from favicon.svg by scripts/og.mjs, so there is one mark, not three. -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
 
     <!--
       Started here rather than when the stylesheet is parsed. Paired with
@@ -25,12 +30,38 @@
       type="font/woff2"
       crossorigin
     />
+    <!--
+      The one place this page names its own origin, and it still does not:
+      `%BASE%` is replaced at build time by the plugin in vite.config.ts, from
+      the same ladder the registry resolves (scripts/base-url.mjs). A crawler
+      will not resolve `og:image` against the document the way a browser
+      resolves the icon above, so these have to be absolute — and a preview
+      deploy therefore advertises its own card rather than production's.
+    -->
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="motes" />
+    <meta property="og:site_name" content="motes" />
+    <meta property="og:title" content="motes — the cursor is an input" />
     <meta
       property="og:description"
       content="Procedural, pointer-reactive ASCII backgrounds for the web."
     />
+    <meta property="og:url" content="%BASE%/" />
+    <meta property="og:image" content="%BASE%/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="A field of ASCII characters on near-black, brightening into a hot core around a cursor arrow, with the headline: The cursor is an input."
+    />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="motes — the cursor is an input" />
+    <meta
+      name="twitter:description"
+      content="Procedural, pointer-reactive ASCII backgrounds for the web."
+    />
+    <meta name="twitter:image" content="%BASE%/og.png" />
+    <meta name="twitter:creator" content="@lucasmarkes__" />
   </head>
   <body>
     <div id="root"></div>

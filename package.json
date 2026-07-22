@@ -13,9 +13,12 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "clean": "turbo run clean",
-    "release": "node scripts/release.mjs"
+    "release": "node scripts/release.mjs",
+    "og": "node scripts/og.mjs"
   },
   "devDependencies": {
+    "playwright": "^1.61.1",
+    "pngjs": "^7.0.0",
     "turbo": "^2.10.5",
     "typescript": "5.9.3"
   },

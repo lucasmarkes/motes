@@ -1,6 +1,9 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "stream",
+  "globalDependencies": [
+    "scripts/base-url.mjs"
+  ],
   "tasks": {
     "build": {
       "dependsOn": [
@@ -8,9 +11,13 @@
       ],
       "inputs": [
         "src/**",
+        "index.html",
+        "vite.config.ts",
         "tsup.config.ts",
         "tsconfig.json",
-        "package.json"
+        "package.json",
+        "public/**",
+        "!public/r/**"
       ],
       "outputs": [
         "dist/**"
