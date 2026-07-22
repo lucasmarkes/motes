@@ -227,9 +227,11 @@ input {
 
 /* Index: hero ------------------------------------------------------------- */
 
+/* One rule: the field bleeds, everything you can read is contained.
+   The field is the product, so letterboxing it inside a 1240px column — which
+   is what this page used to do, leaving a dead strip of background down each
+   side — argues against the thing it is demonstrating. Nothing else bleeds. */
 .index {
-  max-width: var(--page);
-  margin: 0 auto;
   padding-bottom: var(--s6);
 }
 
@@ -238,9 +240,14 @@ input {
    box while their labels still land on the rail. */
 .rail {
   width: 100%;
+  max-width: var(--page);
+  margin-inline: auto;
   padding-inline: var(--rail);
 }
 
+/* No bottom rule. A full-bleed band ends where its field ends; the grid below
+   is a contained module and draws its own edges at the contained width. Two
+   different things, each closed on its own terms. */
 .hero {
   position: relative;
   min-height: min(82vh, 700px);
@@ -248,7 +255,6 @@ input {
   align-items: center;
   padding-block: var(--s6) var(--s5);
   overflow: hidden;
-  border-bottom: 1px solid var(--rule);
 }
 
 .hero > .rail {
@@ -432,8 +438,10 @@ input {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 1px;
+  max-width: var(--page);
+  margin-inline: auto;
   background: var(--rule);
-  border-bottom: 1px solid var(--rule);
+  border-block: 1px solid var(--rule);
 }
 
 .tile {
