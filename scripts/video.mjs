@@ -118,6 +118,16 @@ const HOME_SECONDS = 12
 const HOME_SWEEP_SECONDS = 3
 
 /**
+ * Frames of crossfade that close the loop over the field — see `dissolveLoop`.
+ * Long enough that the field eases rather than switches; short enough to stay
+ * under the beat where the cursor is moving slowest, so it is never the most
+ * interesting thing on screen. The GIF gets less because it repeats four times
+ * as often.
+ */
+const HOME_DISSOLVE = Math.round(0.6 * FPS)
+const HOME_SWEEP_DISSOLVE = Math.round(0.3 * FPS)
+
+/**
  * Frames run before the first captured one, with the cursor still off-canvas.
  *
  * The trail buffer starts at the background colour and a field that has only
@@ -631,9 +641,79 @@ function findCore(png, box) {
   return n ? { x: Math.round(sx / n), y: Math.round(sy / n) } : null
 }
 
+// ── closing the loop over the field ────────────────────────────────────────
+
+const TO_LINEAR = new Float32Array(256)
+for (let i = 0; i < 256; i++) {
+  const c = i / 255
+  TO_LINEAR[i] = c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+}
+function toSrgb(v) {
+  const c = v <= 0.0031308 ? v * 12.92 : 1.055 * v ** (1 / 2.4) - 0.055
+  return Math.max(0, Math.min(255, Math.round(c * 255)))
+}
+
+/**
+ * The closed spline loops the cursor. It does not loop the field.
+ *
+ * `flow.glsl` drives every term from sin/cos of t with coefficients 0.6, 0.5,
+ * 0.4 and 0.3, so the field's period is 2π/0.1 ≈ 62.8s and no twelve-second
+ * window of it is a loop. Measured on the first render, the seam moved 34% of
+ * the pixels by more than a just-noticeable step where an ordinary frame moves
+ * 0.5% — a slap every time the thing repeats, which on a muted autoplay is the
+ * only edit the viewer is guaranteed to notice.
+ *
+ * Nothing can be tuned to fix that: matching the field's period would mean a
+ * 63-second take or running the current 5.2× too fast. So the capture instead
+ * runs `overlap` frames past the end — same cursor, since the path has already
+ * wrapped, but the field a full take further on — and those frames are
+ * dissolved back over the head. Frame 0 becomes exactly frame `total`, which is
+ * the natural successor to frame `total-1`, and the field then eases across to
+ * its own beginning over the following `overlap` frames.
+ *
+ * Only the ambient field crossfades. The cursor, its core and its wake are
+ * pixel-identical in both layers, because the pointer sim is a stable filter
+ * being fed the same periodic input — so nothing the eye is actually tracking
+ * ghosts. The mix is in linear light: dissolving two dark fields in sRGB dips
+ * the midpoint, which would read as the field dimming and coming back.
+ *
+ * The stage cut deliberately gets none of this. Its page state does not loop
+ * either — it ends on `pulse` with the toggle back on, having started on
+ * `flow` — so a dissolve there would crossfade two different effects, and that
+ * video is a tour rather than a loop.
+ */
+function dissolveLoop(dir, total, overlap) {
+  const name = (f) => join(dir, `f-${String(f).padStart(4, '0')}.png`)
+  for (let i = 0; i < overlap; i++) {
+    const head = PNG.sync.read(readFileSync(name(i)))
+    const tail = PNG.sync.read(readFileSync(name(total + i)))
+    // Linear, and deliberately not smoothstep. Easing exists to hide the
+    // corners where a crossfade starts and stops, and it buys that by moving
+    // half the change into the middle — which triples the worst single-frame
+    // step. The two layers here are uncorrelated noise, so there is no edge for
+    // a corner to show up on; what the eye can catch is one frame changing more
+    // than its neighbours. Linear spreads the change evenly and puts the worst
+    // step at total/overlap, which is what makes a short dissolve affordable.
+    const w = i / (overlap - 1)
+    for (let p = 0; p < head.data.length; p += 4) {
+      for (let c = 0; c < 3; c++) {
+        head.data[p + c] = toSrgb(
+          TO_LINEAR[tail.data[p + c]] * (1 - w) + TO_LINEAR[head.data[p + c]] * w,
+        )
+      }
+    }
+    // Chromium screenshots are colourType 2 and pngjs defaults to 6. Writing a
+    // handful of RGBA frames into an otherwise RGB sequence changes the format
+    // mid-stream, and ffmpeg's image2 demuxer, which read the format from frame
+    // 0, gives up with "Internal bug, should not have happened".
+    writeFileSync(name(i), PNG.sync.write(head, { colorType: head.colorType }))
+  }
+  for (let i = 0; i < overlap; i++) rmSync(name(total + i), { force: true })
+}
+
 // ── capture ────────────────────────────────────────────────────────────────
 
-async function capture({ origin, route, keys, duration, dir, label, frames: frameCount, measure, scene = 'stage' }) {
+async function capture({ origin, route, keys, duration, dir, label, frames: frameCount, measure, scene = 'stage', dissolve = 0 }) {
   const total = frameCount ?? Math.round(duration * FPS)
   const home = scene === 'home'
   // `.hero` is `100svh` less the strip of tiles that has to clear the fold, so
@@ -769,7 +849,9 @@ async function capture({ origin, route, keys, duration, dir, label, frames: fram
   let drift = null
   let cadence = { min: Infinity, max: 0 }
 
-  for (let f = 0; f < total; f++) {
+  // `dissolve` extra frames are captured past the end and folded back into the
+  // head below, so the field loops as cleanly as the cursor does.
+  for (let f = 0; f < total + dissolve; f++) {
     const p = path(f / FPS)
     await page.mouse.move(p.x, p.y)
 
@@ -813,12 +895,13 @@ async function capture({ origin, route, keys, duration, dir, label, frames: fram
     }
 
     if (!measure && f % 120 === 0) {
-      process.stdout.write(`  ${label} ${f}/${total}\r`)
+      process.stdout.write(`  ${label} ${f}/${total + dissolve}\r`)
     }
   }
 
   await browser.close()
-  return { digests, drift, cadence, toggle, geometry, total, guard }
+  if (dissolve) dissolveLoop(dir, total, dissolve)
+  return { digests, drift, cadence, toggle, geometry, total, guard, dissolve }
 }
 
 // ── encode ─────────────────────────────────────────────────────────────────
@@ -888,7 +971,7 @@ function encodeMp4(dir, out) {
  *
  * Every cell of the field redraws every frame, so inter-frame delta coding has
  * almost nothing to elide and size tracks (area × frame count) almost linearly.
- * Measured on the 3s sweep: dropping 192 colours to 64 saved 3%, and turning
+ * Measured on the stage sweep: dropping 192 colours to 64 saved 3%, and turning
  * dither off saved another 1% — the entropy is spatial (where the glyphs are),
  * not chromatic. Cropping the panel out made the file *bigger*, because the
  * panel is the one large region that does hold still between frames.
@@ -897,8 +980,21 @@ function encodeMp4(dir, out) {
  * into a halftone and stop reading as characters, which is the whole point of
  * the library. So this matches hero.gif at 900 wide — a README shows them at
  * the same size — and buys that back at 20fps instead of 30.
+ *
+ * The colour count is 64 rather than the 96 that first shipped, and the reason
+ * is worth writing down because it inverts the paragraph above. On the homepage
+ * cut there is no panel, so nothing holds still, and the loop dissolve adds a
+ * span of frames carrying two superimposed fields — which is where the
+ * intermediate greys come from. Measured there, colour count is suddenly the
+ * strongest lever in the encoder: 96→64 is −16% and 96→48 is −28%, against the
+ * 3% it was worth on the stage. PSNR against the source is 49.8 / 48.1 / 46.4dB
+ * for 96 / 64 / 48, and at 2× none of the three are distinguishable — a field
+ * of quantised glyphs has no smooth ramp to band. 64 is the point where the
+ * dissolve becomes free: the GIF lands at the same size it was before the loop
+ * was fixed. 48 would be smaller still, and is more quality than the
+ * measurement justifies spending.
  */
-function encodeGif(dir, out, width = 900, fps = 20) {
+function encodeGif(dir, out, width = 900, fps = 20, colors = 64) {
   const palette = join(dir, '..', 'sweep-palette.png')
   const filters = `fps=${fps},scale=${width}:-1:flags=lanczos`
   run([
@@ -906,7 +1002,7 @@ function encodeGif(dir, out, width = 900, fps = 20) {
     // stats_mode=diff weights the palette toward what changes between frames,
     // which on a field of grey glyphs is the cursor core — the thing that must
     // not band.
-    '-vf', `${filters},palettegen=max_colors=96:stats_mode=diff`,
+    '-vf', `${filters},palettegen=max_colors=${colors}:stats_mode=diff`,
     palette,
   ])
   run([
@@ -993,13 +1089,14 @@ try {
         rmSync(dir, { recursive: true, force: true })
         const r = await capture({
           origin, route: '/', keys: HOME_PATH, duration: HOME_SECONDS,
-          scene: 'home', dir, label: 'home',
+          scene: 'home', dir, label: 'home', dissolve: HOME_DISSOLVE,
         })
         const copy = r.geometry.copy
         console.log(`  ${r.total} frames  ·  ${r.cadence.min}–${r.cadence.max} rAF per tick    `)
         console.log(`  hero ${Math.round(r.geometry.hero.width)}×${Math.round(r.geometry.hero.height)}, ` +
           `copy column x ${Math.round(copy.x)}–${Math.round(copy.x + copy.width)}`)
         console.log(`  path clears it by ${r.guard.clearance}px; lowest point y=${r.guard.lowest}`)
+        console.log(`  field looped with a ${(r.dissolve / FPS).toFixed(1)}s dissolve into frame 0`)
       }
       if (!NO_ENCODE) {
         const out = join(ASSETS, 'launch-home.mp4')
@@ -1015,9 +1112,10 @@ try {
         rmSync(dir, { recursive: true, force: true })
         const r = await capture({
           origin, route: '/', keys: HOME_SWEEP_PATH, duration: HOME_SWEEP_SECONDS,
-          scene: 'home', dir, label: 'home-sweep',
+          scene: 'home', dir, label: 'home-sweep', dissolve: HOME_SWEEP_DISSOLVE,
         })
         console.log(`  ${r.total} frames  ·  path clears the copy by ${r.guard.clearance}px    `)
+        console.log(`  field looped with a ${(r.dissolve / FPS).toFixed(1)}s dissolve into frame 0`)
       }
       if (!NO_ENCODE) {
         const gif = join(ASSETS, 'sweep-home.gif')
