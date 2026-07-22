@@ -870,25 +870,37 @@ input {
   }
 }
 
+.tile {
+  display: flex;
+  flex-direction: column;
+  background: var(--canvas);
+  transition: background var(--t-hover) var(--ease);
+}
+
 /* The reveal is a transition, not a keyframe. `.is-held` is the hidden state
    and JavaScript's only job is to take it off (see reveal.ts); a transition
    retargets from wherever it has got to, where a keyframe restarts from zero
    — which matters on a grid you can scroll back up through mid-arrival.
 
-   The delay rides on the two revealed properties only. Putting it on the
-   shorthand would have handed the hover a 70ms wait as well, and a tile that
-   thinks for 70ms before acknowledging the cursor is a broken tile. */
-.tile {
-  display: flex;
-  flex-direction: column;
-  background: var(--canvas);
+   It fades what is in the tile, not the tile. Fading the tile itself made it a
+   transparent grid cell, and what shows through a transparent grid cell is
+   `.grid`'s own background — the 13% white it uses to draw the 1px rules
+   between cells. Measured: at opacity 0 the cell sat at rgb(34,34,33) and the
+   tile darkened into place from a pale slab, which is the opposite of
+   arriving. It emerges from the page's own black now: rgb(5,4,3) throughout.
+
+   The delay rides on the two revealed properties only. On the shorthand it
+   would have reached the hover as well, and a tile that thinks for 70ms
+   before acknowledging the cursor is a broken tile. */
+.tile-field,
+.tile-body {
   transition:
-    background var(--t-hover) var(--ease),
     opacity 0.34s var(--ease) var(--reveal-delay, 0ms),
     translate 0.34s var(--ease) var(--reveal-delay, 0ms);
 }
 
-.tile.is-held {
+.tile.is-held .tile-field,
+.tile.is-held .tile-body {
   opacity: 0;
   translate: 0 10px;
 }
@@ -2011,7 +2023,8 @@ input {
 
   /* The reveal's own travel, for the case where the class is on the element
      when the query starts matching — a preference toggled after load. */
-  .tile.is-held {
+  .tile.is-held .tile-field,
+  .tile.is-held .tile-body {
     opacity: 1;
     translate: none;
   }
