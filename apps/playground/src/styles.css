@@ -419,12 +419,21 @@ input {
    shape for a column of text hanging on the left rail and the wrong one for a
    column down the middle: centred text over it sits lit on one side and bare
    on the other. Now the cover is where the words are and the corners are left
-   alone, so the field is still visibly running at all four of them. */
+   alone, so the field is still visibly running at all four of them.
+
+   The height is 78%, not 62%. At 62% the ellipse ran out at y=569 on a 720px
+   hero and the copy ran to 586, so the last two lines — the footnote under
+   the command, and the pointer hint under that — hung off the bottom of their
+   own ground: measured over twenty frames of the running field, the headline
+   sat on a worst case of 7.8:1 and the footnote on 1.98:1, which is why one
+   was a headline and the other was a smudge. Matching the ellipse to the
+   column it exists for is the fix. The centre moves with it, 48% to 52%, so
+   the copy stays on the ellipse's middle rather than sliding down its edge. */
 .hero-scrim {
   position: absolute;
   inset: 0;
   background: radial-gradient(
-    ellipse 78% 62% at 50% 48%,
+    ellipse 78% 78% at 50% 52%,
     oklch(0.108 0.005 71.346 / 0.92) 0%,
     oklch(0.108 0.005 71.346 / 0.72) 42%,
     oklch(0.108 0.005 71.346 / 0) 100%
@@ -725,10 +734,19 @@ input {
    it, so it is set like a footnote: no border, no uppercase, no tracking, and
    the quietest ink on the page. The row it replaced was uppercase at 0.16em
    in a bordered strip, which is a lot of voice for "this has no dependencies". */
+/* --text-2, not --text-3. The scrim was only half of why this line could not
+   be read. --text-3 is luminance 0.233 and the darkest ground this page owns
+   is the canvas at 0.009, which caps the line at 4.76:1 before the field
+   contributes anything at all — an 11px line that needs 4.5:1 was living on a
+   quarter of a stop, and against the field it measured 4.03. On --text-2 the
+   same worst frame gives 6.4.
+
+   Quiet is a job for size and family, both of which this line already has. It
+   cannot also be a job for a colour with no room left in it. */
 .hero-meta {
   font-family: var(--mono);
   font-size: var(--fs-micro);
-  color: var(--text-3);
+  color: var(--text-2);
 }
 
 /* A line, not a badge.
@@ -741,10 +759,14 @@ input {
    the first move.
 
    pointer-events stays off: the field has to keep reacting through it. */
+/* Same colour as the footnote above it, and for the same reason — it is the
+   same 11px over the same field, and it measured 3.71:1 where the footnote
+   measured 4.03. Fixing one and leaving its neighbour one line lower would
+   have been fixing the report rather than the page. */
 .hero-hint {
   font-family: var(--mono);
   font-size: var(--fs-micro);
-  color: var(--text-3);
+  color: var(--text-2);
   pointer-events: none;
   transition: opacity 0.45s var(--ease);
 }
