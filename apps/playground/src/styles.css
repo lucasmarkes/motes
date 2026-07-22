@@ -62,8 +62,11 @@
   --fs-lede: 16px;
   --fs-body: 15px;
   --fs-ui: 13px;
-  --fs-code: 12.5px;
+  --fs-fine: 12px;
   --fs-micro: 11px;
+  /* Code is the fine step. It was 12.5px — a size that existed only because
+     nothing stopped it, sitting half a pixel from a size already in use. */
+  --fs-code: var(--fs-fine);
 
   /* Space -----------------------------------------------------------------
      Built on the renderer's own cell. density 13 is DEFAULT_OPTIONS.density,
@@ -292,14 +295,53 @@ input {
   pointer-events: none;
 }
 
+/* Vertical rhythm --------------------------------------------------------
+   Two gaps, both cell multiples: three cells around the headline and before
+   the action, two between lines at body scale. A gap has to carry the weight
+   of the type on either side of it, and a headline five times the size of the
+   lede cannot be given the same air as two lines of prose.
+
+   The trim below is the part that matters. The numbers were already cell
+   multiples before this and still read as arbitrary, because none of them
+   reached the eye: a 78px headline at line-height 1.02 has almost no leading,
+   a 16px lede at 1.62 carries about seven pixels of it top and bottom, so
+   every declared gap arrived with a different amount of half-leading added.
+   Trimming to cap height and baseline makes the declared number the seen
+   number — after which the numbers can finally be judged, and two of them
+   turned out to need a cell back. */
 .hero-copy {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  /* Not `stretch`: the install is a button and would run the full measure. */
+  align-items: flex-start;
+  gap: var(--s3);
   max-width: 62ch;
   pointer-events: none;
 }
 
 .hero-copy > * {
+  /* Against the column, not the item's own content — otherwise the headline
+     grows to its 14ch cap and rewraps. */
+  max-width: 100%;
   pointer-events: auto;
+}
+
+/* Three cells: on both sides of the headline, and before the action. */
+.hero-copy > h1,
+.hero-copy > .signature,
+.hero-copy > .install {
+  margin-top: var(--s2);
+}
+
+@supports (text-box: trim-both cap alphabetic) {
+  .wordmark,
+  .hero h1,
+  .signature,
+  .lede,
+  .hero-hint {
+    text-box: trim-both cap alphabetic;
+  }
 }
 
 /* The package name is a string you type, so it is set in the machine voice. */
@@ -308,7 +350,6 @@ input {
   font-size: var(--fs-micro);
   letter-spacing: 0.34em;
   color: var(--text-2);
-  margin-bottom: var(--s4);
 }
 
 .hero h1 {
@@ -326,11 +367,10 @@ input {
    The library's whole argument is the second argument. It is the only
    monospace text in the hero, so it separates from the display face without
    needing a rule, a border or a box around the line. */
+/* A block of inline text, not a flex row. Flex gave it nothing here — the
+   spans sat in source order with a zero gap either way — and it cost the line
+   box the trim, since there is no text directly inside a flex container. */
 .signature {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  margin: var(--s4) 0 var(--s3);
   font-family: var(--mono);
   font-size: var(--fs-sig);
   font-weight: 500;
@@ -370,7 +410,6 @@ input {
   display: inline-flex;
   align-items: center;
   gap: var(--s2);
-  margin-top: var(--s4);
   padding: var(--s2) var(--s3);
   min-height: var(--tap);
   font-family: var(--mono);
@@ -421,7 +460,6 @@ input {
 
    pointer-events stays off: the field has to keep reacting through it. */
 .hero-hint {
-  margin-top: var(--s3);
   font-family: var(--mono);
   font-size: var(--fs-micro);
   color: var(--text-3);
@@ -497,7 +535,10 @@ input {
   font-family: var(--display);
   font-stretch: 112%;
   font-weight: 600;
-  font-size: 19px;
+  /* Was 19px, a size used nowhere else. The display face at 600 and a tighter
+     track already separate it from the 13px blurb; it did not need a step of
+     its own to do it. */
+  font-size: var(--fs-lede);
   letter-spacing: -0.02em;
   color: var(--text);
 }
@@ -804,7 +845,7 @@ input {
   min-height: 40px;
   padding: 0;
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--fs-fine);
   background: var(--paper-2);
   color: var(--ink-2);
   border: 0;
@@ -878,7 +919,7 @@ input {
 .toggle-state {
   display: block;
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--fs-fine);
   letter-spacing: 0.01em;
   color: var(--ink-3);
   margin-top: 2px;
@@ -923,7 +964,7 @@ input {
   justify-content: space-between;
   align-items: baseline;
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--fs-fine);
   letter-spacing: 0.01em;
   color: var(--ink-2);
   margin-bottom: 2px;
@@ -1022,7 +1063,7 @@ select {
 
 .hex {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--fs-fine);
   color: var(--ink-2);
   font-variant-numeric: tabular-nums;
 }
