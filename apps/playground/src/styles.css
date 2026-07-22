@@ -613,6 +613,14 @@ input {
   /* Not `stretch`: the height below is explicit, so there is nothing to
      stretch to. Centre says what is actually happening. */
   align-items: center;
+  justify-content: center;
+  /* Stack rather than squeeze. The two buttons want 309px and a five-figure
+     star count takes that to 361, against 294 of content box on a 320px
+     phone — so flex was shrinking them, `npm i motes` was wrapping to two
+     lines, and with a fixed height those two lines had nowhere to go but
+     out through the bottom of the button. Wrapping is the answer a flex row
+     is supposed to give when it runs out of room. */
+  flex-wrap: wrap;
   gap: var(--s2);
 }
 
@@ -624,6 +632,12 @@ input {
   gap: var(--s2);
   height: var(--btn-h);
   padding-inline: var(--s3);
+  /* Neither of these is a paragraph. `flex: none` keeps the row from taking
+     the width out of the buttons instead of wrapping them, and nowrap keeps
+     an install command on one line, which is the only place a command can
+     be read. */
+  flex: none;
+  white-space: nowrap;
   font-family: var(--mono);
   font-size: var(--fs-ui);
   background:
