@@ -5,6 +5,7 @@ import { CATALOG, type CatalogEntry } from './effects'
 import { Link, morphFrom } from './router'
 import { POINTER_HINT } from './hint'
 import { Swap } from './Swap'
+import { SiteHeader } from './Chrome'
 
 export function Index() {
   // The hint has one job and it is done the moment you move. Any move over
@@ -14,6 +15,8 @@ export function Index() {
 
   return (
     <main className="index">
+      <SiteHeader />
+
       <header className="hero" onPointerMove={() => setTouched(true)}>
         <Motes
           className="hero-field"
@@ -26,8 +29,12 @@ export function Index() {
         <div className="hero-scrim" aria-hidden="true" />
 
         <div className="rail">
+          {/* No mark here. The bar above carries it now, and at the top of the
+              page — the only place the hero's own mark was ever visible — the
+              two sat in the same column 124px apart and read as a bug. Put
+              `<p className="wordmark">motes</p>` back as the first child to
+              restore it. */}
           <div className="hero-copy">
-            <p className="wordmark">motes</p>
             <h1>The cursor is an input.</h1>
 
             {/* The thesis, stated as the thing that differs: a second argument. */}
