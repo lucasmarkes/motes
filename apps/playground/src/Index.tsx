@@ -25,37 +25,39 @@ export function Index() {
         />
         <div className="hero-scrim" aria-hidden="true" />
 
-        <div className="hero-copy">
-          <p className="wordmark">motes</p>
-          <h1>The cursor is an input.</h1>
+        <div className="rail">
+          <div className="hero-copy">
+            <p className="wordmark">motes</p>
+            <h1>The cursor is an input.</h1>
 
-          {/* The thesis, stated as the thing that differs: a second argument. */}
-          <p className="signature" aria-label="render of time and pointer">
-            <span>render(</span>
-            <span className="sig-dim">time</span>
-            <span>,&nbsp;</span>
-            <span className="sig-hot">pointer</span>
-            <span>)</span>
-          </p>
+            {/* The thesis, stated as the thing that differs: a second argument. */}
+            <p className="signature" aria-label="render of time and pointer">
+              <span>render(</span>
+              <span className="sig-dim">time</span>
+              <span>,&nbsp;</span>
+              <span className="sig-hot">pointer</span>
+              <span>)</span>
+            </p>
 
-          {/* Four sentences at 6, 12, 2 and 12 words. The two-word one is
-              doing the work; it only lands because the one before it runs
-              long. The version this replaced was three matched clauses of
-              roughly equal weight, which is a cadence nobody speaks in. */}
-          <p className="lede">
-            Procedural ASCII backgrounds for the web. Every other one animates
-            from a clock and can’t see your cursor. motes can. Write your own
-            effect and the cursor works in it anyway.
-          </p>
+            {/* Four sentences at 6, 12, 2 and 12 words. The two-word one is
+                doing the work; it only lands because the one before it runs
+                long. The version this replaced was three matched clauses of
+                roughly equal weight, which is a cadence nobody speaks in. */}
+            <p className="lede">
+              Procedural ASCII backgrounds for the web. Every other one animates
+              from a clock and can’t see your cursor. motes can. Write your own
+              effect and the cursor works in it anyway.
+            </p>
 
-          <Install />
+            <Install />
 
-          <p
-            className={`hero-hint ${touched ? 'is-out' : ''}`}
-            aria-hidden={touched}
-          >
-            {POINTER_HINT}
-          </p>
+            <p
+              className={`hero-hint ${touched ? 'is-out' : ''}`}
+              aria-hidden={touched}
+            >
+              {POINTER_HINT}
+            </p>
+          </div>
         </div>
       </header>
 
@@ -65,12 +67,14 @@ export function Index() {
         ))}
       </section>
 
-      <footer className="foot">
-        <span>motes</span>
-        <span>MIT</span>
-        <span>zero runtime dependencies</span>
-        <span>WebGL2</span>
-      </footer>
+      <div className="rail">
+        <footer className="foot">
+          <span>motes</span>
+          <span>MIT</span>
+          <span>zero runtime dependencies</span>
+          <span>WebGL2</span>
+        </footer>
+      </div>
     </main>
   )
 }

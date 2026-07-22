@@ -81,6 +81,18 @@
 
   --tap: 44px;
   --ease: cubic-bezier(0.2, 0, 0, 1);
+
+  /* The rail ---------------------------------------------------------------
+     One vertical line that every piece of content on the page starts from.
+
+     `--rail` is both the page gutter and the inset inside a tile, and that
+     is the whole trick: a tile sitting flush against the content box puts
+     its label exactly `--rail` in, which is where the hero copy already
+     starts. Before this, the page had three different left edges — copy at
+     126, tile labels at 153, the field's box at 100 — and nothing to line an
+     eye up against. Change `--rail` and all three move together. */
+  --page: 1240px;
+  --rail: var(--s3);
 }
 
 * {
@@ -216,9 +228,17 @@ input {
 /* Index: hero ------------------------------------------------------------- */
 
 .index {
-  max-width: 1240px;
+  max-width: var(--page);
   margin: 0 auto;
-  padding: 0 var(--s3) var(--s6);
+  padding-bottom: var(--s6);
+}
+
+/* Anything holding words sits in one of these. The grid deliberately does
+   not: its tiles carry the same inset internally, so they reach the content
+   box while their labels still land on the rail. */
+.rail {
+  width: 100%;
+  padding-inline: var(--rail);
 }
 
 .hero {
@@ -226,10 +246,13 @@ input {
   min-height: min(82vh, 700px);
   display: flex;
   align-items: center;
-  margin: 0 calc(var(--s3) * -1);
-  padding: var(--s6) var(--s3) var(--s5);
+  padding-block: var(--s6) var(--s5);
   overflow: hidden;
   border-bottom: 1px solid var(--rule);
+}
+
+.hero > .rail {
+  position: relative;
 }
 
 .hero-field {
@@ -402,13 +425,15 @@ input {
 
 /* Index: grid ------------------------------------------------------------- */
 
+/* No inline borders. A 1px left edge would push every label one pixel off
+   the rail, which is exactly the kind of near-miss that reads as sloppy
+   without being nameable. The hero's own bottom edge draws the line above. */
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 1px;
   background: var(--rule);
-  border: 1px solid var(--rule);
-  border-top: 0;
+  border-bottom: 1px solid var(--rule);
 }
 
 .tile {
@@ -436,9 +461,11 @@ input {
   height: 100%;
 }
 
+/* The inline inset is the rail itself, so the label of the leftmost tile
+   lands on the same line as the headline above it. */
 .tile-body {
   display: block;
-  padding: var(--s3) var(--s3) var(--s4);
+  padding: var(--s3) var(--rail) var(--s4);
 }
 
 .tile-head {
@@ -1163,9 +1190,15 @@ select {
     top: 58vh;
   }
 
+  /* One value, and the gutter, the tile inset and the grid's overhang all
+     narrow together. */
+  :root {
+    --rail: var(--s2);
+  }
+
   .hero {
     min-height: 0;
-    padding: var(--s5) var(--s2) var(--s4);
+    padding-block: var(--s5) var(--s4);
     flex-direction: column;
     align-items: stretch;
     justify-content: center;
