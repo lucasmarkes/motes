@@ -106,6 +106,10 @@
   --tap: 44px;
   --ease: cubic-bezier(0.2, 0, 0, 1);
 
+  /* The hero pair's height, written down rather than arrived at. See the
+     install row below for why a derived height was not one. */
+  --btn-h: 48px;
+
   /* Two durations for the whole surface, and one reason each. A hover is the
      interface answering a question you asked with the cursor; a press is it
      confirming something you already did, so the press is the faster of the
@@ -549,12 +553,28 @@ input {
 }
 
 /* The install row --------------------------------------------------------
-   Two controls, one height. `stretch` rather than `center` so the pair is the
-   same height by construction — matching two paddings by hand is how they
-   drift by a pixel the first time either side's contents change. */
+   Two controls, one height, one ground, one hover.
+
+   The height is written down. `align-items: stretch` matched the pair only
+   for as long as their contents matched, and their contents are a lowercase
+   command with a descender beside a capitalised word without one — with a
+   star count due to land beside the second of them. A number is the exact
+   kind of content that has no business setting a button's height.
+
+   The ground is the other half of it, and the larger half. Both boxes were a
+   7% white wash laid straight onto the field, which is not a ground: it is a
+   tint over whatever the field is drawing underneath, and the field is never
+   drawing the same thing under both. Measured, the two agreed to the pixel on
+   every edge and still read as misaligned — the left one sat over a band of
+   `#` and `*`, the right one over `.` and `:`, so one looked lit and the
+   other looked flat and the eye called it a step. Now they carry the page's
+   own black at 88% with the wash on top, over a blur. What reaches through is
+   the field's motion, not its density, and it reaches through both equally. */
 .install-row {
   display: flex;
-  align-items: stretch;
+  /* Not `stretch`: the height below is explicit, so there is nothing to
+     stretch to. Centre says what is actually happening. */
+  align-items: center;
   gap: var(--s2);
 }
 
@@ -562,12 +582,19 @@ input {
 .gh-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: var(--s2);
-  padding: var(--s2) var(--s3);
-  min-height: var(--tap);
+  height: var(--btn-h);
+  padding-inline: var(--s3);
   font-family: var(--mono);
   font-size: var(--fs-ui);
-  background: oklch(0.935 0.006 258 / 0.07);
+  background:
+    linear-gradient(
+      oklch(0.935 0.006 258 / 0.07),
+      oklch(0.935 0.006 258 / 0.07)
+    ),
+    oklch(0.108 0.005 71.346 / 0.88);
+  backdrop-filter: blur(9px);
   border: 1px solid var(--rule-strong);
   cursor: pointer;
   transition:
@@ -576,10 +603,29 @@ input {
     scale var(--t-press) var(--ease);
 }
 
+/* The labels are centred on their cap block, not on their line box. Line-box
+   centring puts both baselines in the same place, which sounds right and is
+   what produced the mismatch: `npm i motes` carries 2.34px of ink below the
+   baseline and `GitHub` carries 0.13px, so the two blocks of ink sat 1.1px
+   apart vertically inside boxes that measured identical. Trimming to cap and
+   baseline makes the box the ink, after which centring centres what you can
+   actually see — and lands the icons on it too. */
+@supports (text-box: trim-both cap alphabetic) {
+  .install code,
+  .gh-btn span {
+    text-box: trim-both cap alphabetic;
+  }
+}
+
 .install:hover,
 .gh-btn:hover {
   border-color: oklch(0.935 0.006 258 / 0.5);
-  background: oklch(0.935 0.006 258 / 0.12);
+  background:
+    linear-gradient(
+      oklch(0.935 0.006 258 / 0.13),
+      oklch(0.935 0.006 258 / 0.13)
+    ),
+    oklch(0.108 0.005 71.346 / 0.88);
 }
 
 .install:active,
@@ -592,6 +638,22 @@ input {
   letter-spacing: 0.01em;
 }
 
+/* Icon sizes ---------------------------------------------------------------
+   Two marks that are the same size are not the same size. The copy sheets are
+   drawn as a 1.4px stroke reaching 12.4 units into a 16 box; the GitHub mark
+   is a filled disc that reaches all 16. Rendered at a shared 14px the first
+   showed 10.9px of ink and the second showed 14px, and the row read as one
+   considered button beside one that had had a logo dropped into it.
+
+   So the box is shared and the drawing inside it is not: the outline gets the
+   larger number and the solid mark the smaller one, which is the usual
+   relationship between the two — a filled shape carries more weight per pixel
+   than an outline of the same size. Both land near 11.5px of visible ink. */
+.gh-btn svg {
+  width: 12px;
+  height: 12px;
+}
+
 /* The copy affordance ------------------------------------------------------
    One grid cell holding both marks, so the box is the size of one icon and
    cannot resize as they swap. It is a span, not a button — see Install.tsx.
@@ -602,8 +664,8 @@ input {
 .install-icon {
   display: grid;
   place-items: center;
-  width: 14px;
-  height: 14px;
+  width: 15px;
+  height: 15px;
   color: var(--text-3);
   transition: color var(--t-hover) var(--ease);
 }
@@ -614,6 +676,8 @@ input {
 
 .install-icon svg {
   grid-area: 1 / 1;
+  width: 15px;
+  height: 15px;
   /* Not `--t-hover`: this is one mark becoming another, and a blur needs
      longer than a hover to read as a blur rather than a flicker. All three
      properties run on the same clock — a cross-fade with one leg on a
