@@ -24,6 +24,7 @@ const fail = (msg) => {
   console.error(`  ✗ ${msg}`)
 }
 const pass = (msg) => console.log(`  ✓ ${msg}`)
+const note = (msg) => console.log(`  – ${msg}`)
 
 function run(cmd, args, opts = {}) {
   return execFileSync(cmd, args, { encoding: 'utf8', ...opts })
@@ -83,12 +84,14 @@ function tarballManifest(tgz) {
 
 console.log('\n▸ tarball contents')
 const versions = new Set()
+const names = []
 
 for (const tgz of packed) {
   const manifest = tarballManifest(tgz)
   const files = tarballFiles(tgz)
   const label = manifest.name
   versions.add(manifest.version)
+  names.push(label)
 
   // The Phase 5 landmine.
   const unresolved = Object.entries(manifest.dependencies ?? {}).filter(
@@ -158,11 +161,90 @@ versions.size === 1
   : fail(`version mismatch across packages: ${[...versions].join(', ')}`)
 
 console.log('\n▸ npm auth')
+let whoami = null
 try {
-  const who = run('npm', ['whoami'], { stdio: 'pipe' }).trim()
-  pass(`logged in as ${who}`)
+  whoami = run('npm', ['whoami'], { stdio: 'pipe' }).trim()
+  pass(`logged in as ${whoami}`)
 } catch {
-  console.log('  – not logged in (run `npm login` before publishing)')
+  note('not logged in (run `npm login` before publishing)')
+}
+
+/**
+ * What a gate can and cannot prove about a package name.
+ *
+ * It cannot prove npm will accept it. The similarity check — the E403
+ * "Package name too similar to existing package bytes" that stopped this
+ * release at the irreversible step — runs on the registry when the tarball is
+ * PUT, and no dry run reproduces it. Measured, all three against the real
+ * registry, all three with the name that returns E403:
+ *
+ *   npm 10.8.2 publish --dry-run   → + motes@0.1.0
+ *   npm 11     publish --dry-run   → + motes@0.1.0
+ *   pnpm 10.20 publish --dry-run   → + motes@0.1.0
+ *
+ * `--dry-run` packs and reports; it never asks the registry anything. A 404
+ * on the registry is no better — that only says nobody has claimed the name,
+ * which was true of `motes` right up until npm refused it.
+ *
+ * What a gate can prove is that the name sits outside the check's reach. The
+ * similarity check applies to unscoped names only: `bytes` and `@types/bytes`
+ * both exist on npm — the identical string either side of a scope boundary.
+ * So a name under a scope you can publish to cannot fail this way, and that
+ * is what is checked here: scoped, scope is yours, name is free.
+ *
+ * Scope ownership needs `npm org ls`, not `npm access`. `npm access list
+ * packages @motes` answers `@motes/md: read-write` for a scope owned by
+ * someone else — it reports the package's access level, not your permission.
+ */
+console.log('\n▸ name')
+for (const name of names) {
+  const scope = name.startsWith('@') ? name.slice(1, name.indexOf('/')) : null
+
+  if (!scope) {
+    fail(
+      `${name}: unscoped. npm's similarity check runs only at publish time — ` +
+        'no dry run reproduces it, and an unclaimed name proves nothing. ' +
+        'Publish under a scope you own.',
+    )
+  } else if (!whoami) {
+    note(`${name}: scope @${scope} unverified — not logged in`)
+  } else if (scope === whoami) {
+    pass(`${name}: @${scope} is your own scope`)
+  } else {
+    let members = ''
+    try {
+      members = run('npm', ['org', 'ls', scope], { stdio: 'pipe' })
+    } catch {
+      /* not an org, or no access — handled by the membership test below */
+    }
+    members.split('\n').some((line) => line.trim().split(/\s+/)[0] === whoami)
+      ? pass(`${name}: member of the @${scope} org`)
+      : fail(
+          `${name}: @${scope} is not a scope ${whoami} can publish to. ` +
+            'Scopes are exclusive, and this one is unavailable or belongs to ' +
+            'someone else.',
+        )
+  }
+
+  try {
+    const res = await fetch(`https://registry.npmjs.org/${name.replace('/', '%2f')}`, {
+      signal: AbortSignal.timeout(15_000),
+    })
+    if (res.status === 404) {
+      pass(`${name}: unclaimed on the registry`)
+    } else if (res.ok) {
+      const maintainers = (await res.json()).maintainers ?? []
+      maintainers.some((m) => m.name === whoami)
+        ? pass(`${name}: published, and ${whoami} is a maintainer`)
+        : fail(
+            `${name}: taken by ${maintainers.map((m) => m.name).join(', ') || 'someone else'}`,
+          )
+    } else {
+      fail(`${name}: registry answered ${res.status} — could not check the name`)
+    }
+  } catch (err) {
+    fail(`${name}: could not reach the registry (${err.message})`)
+  }
 }
 
 rmSync(staging, { recursive: true, force: true })
