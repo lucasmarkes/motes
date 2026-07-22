@@ -1,7 +1,11 @@
+![A field of ASCII characters rippling around a moving cursor](https://raw.githubusercontent.com/lucasmarkes/motes/main/assets/hero.gif)
+
 # @motes/react
 
 React wrapper for [motes](https://www.npmjs.com/package/motes) — procedural,
 pointer-reactive ASCII backgrounds for the web.
+
+**[Try it with your own cursor →](https://motes.lucasmarkes.com)**
 
 ```sh
 npm i @motes/react

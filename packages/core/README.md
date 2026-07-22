@@ -1,6 +1,10 @@
+![A field of ASCII characters rippling around a moving cursor](https://raw.githubusercontent.com/lucasmarkes/motes/main/assets/hero.gif)
+
 # motes
 
 Procedural, pointer-reactive ASCII backgrounds for the web.
+
+**[Try it with your own cursor →](https://motes.lucasmarkes.com)**
 
 A grid of monospace characters, generated in a single WebGL2 fragment shader,
 that reacts to the cursor in real time. Zero runtime dependencies.
