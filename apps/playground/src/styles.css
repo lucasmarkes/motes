@@ -115,7 +115,12 @@
   --t-press: 120ms;
 
   /* The rail ---------------------------------------------------------------
-     One vertical line that every piece of content on the page starts from.
+     One vertical line that the page's content starts from — the bar, the tile
+     labels, the footer. The hero is the exception and the only one: its copy
+     is centred on the same column rather than aligned to its edge. A centred
+     hero over a left-aligned grid is two different kinds of thing composed
+     each on its own terms, which is the same argument that lets the field
+     bleed while the copy stays contained.
 
      `--rail` is both the page gutter and the inset inside a tile, and that
      is the whole trick: a tile sitting flush against the content box puts
@@ -403,15 +408,21 @@ input {
   height: 100%;
 }
 
-/* Keeps the copy legible without flattening the field behind it. */
+/* Keeps the copy legible without flattening the field behind it.
+
+   Radial, because the copy is centred. This was a 100deg linear gradient —
+   95% opaque at the left edge, fully clear at the right — which is the right
+   shape for a column of text hanging on the left rail and the wrong one for a
+   column down the middle: centred text over it sits lit on one side and bare
+   on the other. Now the cover is where the words are and the corners are left
+   alone, so the field is still visibly running at all four of them. */
 .hero-scrim {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    100deg,
-    oklch(0.108 0.005 71.346 / 0.95) 0%,
-    oklch(0.108 0.005 71.346 / 0.84) 40%,
-    oklch(0.108 0.005 71.346 / 0.3) 70%,
+  background: radial-gradient(
+    ellipse 78% 62% at 50% 48%,
+    oklch(0.108 0.005 71.346 / 0.92) 0%,
+    oklch(0.108 0.005 71.346 / 0.72) 42%,
     oklch(0.108 0.005 71.346 / 0) 100%
   );
   pointer-events: none;
@@ -436,9 +447,16 @@ input {
   display: flex;
   flex-direction: column;
   /* Not `stretch`: the install is a button and would run the full measure. */
-  align-items: flex-start;
+  align-items: center;
+  text-align: center;
   gap: var(--s3);
   max-width: 62ch;
+  /* The pair that actually moves the column. Without it the 62ch measure sits
+     at the left of a 1240px rail, which is what made the hero read as
+     floating at viewport width while the grid below read as a boxed module —
+     same container, different alignment, and only the alignment was ever the
+     problem. */
+  margin-inline: auto;
   pointer-events: none;
 }
 
