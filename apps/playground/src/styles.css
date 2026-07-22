@@ -382,10 +382,13 @@ input {
 /* One rule: the field bleeds, everything you can read is contained.
    The field is the product, so letterboxing it inside a 1240px column — which
    is what this page used to do, leaving a dead strip of background down each
-   side — argues against the thing it is demonstrating. Nothing else bleeds. */
-.index {
-  padding-bottom: var(--s6);
-}
+   side — argues against the thing it is demonstrating. Nothing else bleeds.
+
+   `.index` had one declaration, `padding-bottom: --s6`, and it is gone: it
+   set the footer's lower edge from two rules away while `.foot` set the upper
+   one, which is how the band ended up 39px on top and 104 underneath with
+   nobody having chosen either. The footer owns its own band now, and this
+   rule had nothing else in it. */
 
 /* Anything holding words sits in one of these. The grid deliberately does
    not: its tiles carry the same inset internally, so they reach the content
@@ -952,11 +955,17 @@ input {
    github / npm / x it used to hold against the credit — with one child left
    there is nothing to lay out. */
 
+/* Symmetric, and on the scale. It was --s4 above and --s6 below — and the
+   --s6 was not even declared here, it was `.index`'s page padding arriving
+   from two rules away, which is how a footer ends up 39px under the grid and
+   104px off the bottom of the page without anyone choosing either number.
+   One declaration now owns both edges, so the band cannot go lopsided again.
+
+   The flex column and its --s3 gap went with it. There has been one child in
+   here since github / npm / x moved to the bar; a gap between one thing and
+   nothing is not spacing, it is a leftover. */
 .foot {
-  display: flex;
-  flex-direction: column;
-  gap: var(--s3);
-  margin-top: var(--s4);
+  padding-block: var(--s5);
 }
 
 .foot-credit {
