@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { DEFAULT_OPTIONS, type MotesOptions } from 'motes'
+import { DEFAULT_OPTIONS, type MotesOptions } from '@lucasmarkes/motes'
 import { POINTER_ACCENT } from './accent'
 import { Effect } from './Effect'
 import { Index } from './Index'

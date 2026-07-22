@@ -5,10 +5,10 @@
  * Builds, tests, packs both packages with pnpm, and inspects the resulting
  * tarballs — then STOPS and prints the publish commands. It never publishes.
  *
- * The check that matters most: npm pack leaves `"motes": "workspace:*"` in
- * @motes/react's manifest, which no consumer can install. pnpm rewrites it to
- * a real range. That shipped silently once during Phase 5 testing; this is
- * the guard.
+ * The check that matters most: npm pack leaves `"@lucasmarkes/motes":
+ * "workspace:*"` in the wrapper's manifest, which no consumer can install.
+ * pnpm rewrites it to a real range. That shipped silently once during Phase 5
+ * testing; this is the guard.
  */
 import { execFileSync } from 'node:child_process'
 import { mkdtempSync, readdirSync, rmSync } from 'node:fs'
@@ -16,6 +16,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 const PACKAGES = ['packages/core', 'packages/react']
+const CORE = '@lucasmarkes/motes'
 
 let failures = 0
 const fail = (msg) => {
@@ -102,10 +103,10 @@ for (const tgz of packed) {
       )
 
   // Core must stay dependency-free.
-  if (label === 'motes') {
+  if (label === CORE) {
     Object.keys(manifest.dependencies ?? {}).length === 0
-      ? pass('motes: zero runtime dependencies')
-      : fail(`motes: expected no dependencies, found ${Object.keys(manifest.dependencies)}`)
+      ? pass(`${label}: zero runtime dependencies`)
+      : fail(`${label}: expected no dependencies, found ${Object.keys(manifest.dependencies)}`)
   }
 
   for (const required of ['package/dist/index.js', 'package/dist/index.cjs', 'package/dist/index.d.ts']) {
@@ -143,11 +144,11 @@ for (const tgz of packed) {
     : fail(`${label}: missing homepage`)
 
   // Shaders are inlined; a consumer must not need a .glsl loader.
-  if (label === 'motes') {
+  if (label === CORE) {
     const bundle = run('tar', ['-xzOf', tgz, 'package/dist/index.js'])
     bundle.includes('pointerForce') && bundle.includes('gl_FragCoord')
-      ? pass('motes: shaders inlined into the bundle')
-      : fail('motes: shader sources missing from the bundle')
+      ? pass(`${label}: shaders inlined into the bundle`)
+      : fail(`${label}: shader sources missing from the bundle`)
   }
 }
 
@@ -180,7 +181,7 @@ console.log(`
     pnpm -C packages/core publish --access public
     pnpm -C packages/react publish --access public
 
-  Order matters: core first, since @motes/react depends on motes@^${version}.
+  Order matters: core first, since the wrapper depends on ${CORE}@^${version}.
 
   Before you run those, confirm:
     · the playground is deployed and the registry URL resolves

@@ -57,7 +57,7 @@ const BASE = resolved.url.replace(/\/+$/, '')
 const itemUrl = (name) => `${BASE}/r/${name}.json`
 
 /** Shared by every item: the two packages the components import. */
-const NPM_DEPS = ['motes', '@motes/react']
+const NPM_DEPS = ['@lucasmarkes/motes', '@lucasmarkes/motes-react']
 
 const BASE_ITEM = 'motes-background'
 

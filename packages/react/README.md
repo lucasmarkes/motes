@@ -1,27 +1,27 @@
 ![A field of ASCII characters rippling around a moving cursor](https://raw.githubusercontent.com/lucasmarkes/motes/main/assets/hero.gif)
 
-# @motes/react
+# @lucasmarkes/motes-react
 
-React wrapper for [motes](https://www.npmjs.com/package/motes) — procedural,
+React wrapper for [motes](https://www.npmjs.com/package/@lucasmarkes/motes) — procedural,
 pointer-reactive ASCII backgrounds for the web.
 
 **[Try it with your own cursor →](https://motes.lucasmarkes.com)**
 
 ```sh
-npm i @motes/react
+npm i @lucasmarkes/motes-react
 ```
 
 ## Usage
 
 ```tsx
-import { Motes } from '@motes/react'
+import { Motes } from '@lucasmarkes/motes-react'
 
 export function Background() {
   return <Motes effect="flow" pointer className="fixed inset-0 -z-10" />
 }
 ```
 
-Every [motes option](https://www.npmjs.com/package/motes) is a prop: `effect`,
+Every [motes option](https://www.npmjs.com/package/@lucasmarkes/motes) is a prop: `effect`,
 `pointer`, `radius`, `force`, `speed`, `density`, `charset`, `accent`, `trail`.
 
 ## Behaviour
@@ -38,8 +38,8 @@ resizes and monitor-to-monitor DPI changes.
 
 ```tsx
 import { useRef } from 'react'
-import { Motes } from '@motes/react'
-import type { MotesInstance } from 'motes'
+import { Motes } from '@lucasmarkes/motes-react'
+import type { MotesInstance } from '@lucasmarkes/motes'
 
 const field = useRef<MotesInstance>(null)
 

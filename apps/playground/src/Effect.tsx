@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Motes } from '@motes/react'
-import type { MotesOptions } from 'motes'
+import { Motes } from '@lucasmarkes/motes-react'
+import type { MotesOptions } from '@lucasmarkes/motes'
 import { Panel } from './Panel'
 import type { CatalogEntry } from './effects'
 import { Link } from './router'

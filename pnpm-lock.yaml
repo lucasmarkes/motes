@@ -17,12 +17,12 @@ importers:
 
   apps/playground:
     dependencies:
-      '@motes/react':
-        specifier: workspace:*
-        version: link:../../packages/react
-      motes:
+      '@lucasmarkes/motes':
         specifier: workspace:*
         version: link:../../packages/core
+      '@lucasmarkes/motes-react':
+        specifier: workspace:*
+        version: link:../../packages/react
       react:
         specifier: ^19.2.8
         version: 19.2.8
@@ -66,7 +66,7 @@ importers:
 
   packages/react:
     dependencies:
-      motes:
+      '@lucasmarkes/motes':
         specifier: workspace:^
         version: link:../core
     devDependencies:

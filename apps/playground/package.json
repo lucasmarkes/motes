@@ -13,8 +13,8 @@
     "registry": "node ../../registry/build.mjs"
   },
   "dependencies": {
-    "@motes/react": "workspace:*",
-    "motes": "workspace:*",
+    "@lucasmarkes/motes": "workspace:*",
+    "@lucasmarkes/motes-react": "workspace:*",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },

@@ -1,4 +1,4 @@
-import { DEFAULT_OPTIONS, type MotesOptions } from 'motes'
+import { DEFAULT_OPTIONS, type MotesOptions } from '@lucasmarkes/motes'
 
 export type Tab = 'core' | 'react'
 
@@ -22,7 +22,7 @@ export function coreSnippet(config: MotesOptions): string {
     .join('')
 
   return (
-    `import { createMotes } from 'motes'\n\n` +
+    `import { createMotes } from '@lucasmarkes/motes'\n\n` +
     `const field = createMotes(canvas, {\n` +
     `  effect: '${config.effect}',\n` +
     `  pointer: ${config.pointer},\n` +
@@ -40,7 +40,7 @@ export function reactSnippet(config: MotesOptions): string {
     .join('')
 
   return (
-    `import { Motes } from '@motes/react'\n\n` +
+    `import { Motes } from '@lucasmarkes/motes-react'\n\n` +
     `<Motes\n` +
     `  effect="${config.effect}"\n` +
     (config.pointer ? `  pointer\n` : `  pointer={false}\n`) +

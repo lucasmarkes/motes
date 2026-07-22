@@ -11,7 +11,7 @@ import {
   DEFAULT_OPTIONS,
   type MotesConfig,
   type MotesInstance,
-} from 'motes'
+} from '@lucasmarkes/motes'
 
 const OPTION_KEYS = [
   'effect',

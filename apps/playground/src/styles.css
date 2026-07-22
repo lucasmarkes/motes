@@ -614,12 +614,20 @@ input {
      stretch to. Centre says what is actually happening. */
   align-items: center;
   justify-content: center;
-  /* Stack rather than squeeze. The two buttons want 309px and a five-figure
-     star count takes that to 361, against 294 of content box on a 320px
-     phone — so flex was shrinking them, `npm i motes` was wrapping to two
-     lines, and with a fixed height those two lines had nowhere to go but
+  /* Stack rather than squeeze. The two buttons want 411px and a five-figure
+     star count takes that to 471, against 294 of content box on a 320px
+     phone — so flex was shrinking them, the install command was wrapping to
+     two lines, and with a fixed height those two lines had nowhere to go but
      out through the bottom of the button. Wrapping is the answer a flex row
-     is supposed to give when it runs out of room. */
+     is supposed to give when it runs out of room.
+
+     Those numbers were 309 and 361 when the command read `npm i motes`, and
+     they moved because the package was renamed to `@lucasmarkes/motes` —
+     which is the argument for wrapping rather than for picking a breakpoint.
+     The width of an install command is not a constant, and the one thing
+     that did not have to change here is this rule. It does run out eventually:
+     the install button alone is 272px, so it sits inside the rail down to a
+     298px viewport and reaches the edge at 272. */
   flex-wrap: wrap;
   gap: var(--s2);
 }
@@ -657,11 +665,18 @@ input {
 
 /* The labels are centred on their cap block, not on their line box. Line-box
    centring puts both baselines in the same place, which sounds right and is
-   what produced the mismatch: `npm i motes` carries 2.34px of ink below the
+   what produced the mismatch: the command carries 2.34px of ink below the
    baseline and `GitHub` carries 0.13px, so the two blocks of ink sat 1.1px
    apart vertically inside boxes that measured identical. Trimming to cap and
    baseline makes the box the ink, after which centring centres what you can
-   actually see — and lands the icons on it too. */
+   actually see — and lands the icons on it too.
+
+   Trimming to a font metric rather than to the glyphs is what makes this
+   survive its own content. `npm i motes` became `npm i @lucasmarkes/motes`,
+   and the `@` took the command's ink ascent from 10.10px to 10.79 — but cap
+   height and the baseline are properties of the typeface, so both label boxes
+   are still 9.48px and both still centre on 460.76 against a button centre of
+   460.77. A hand-tuned nudge would have needed retuning here. */
 @supports (text-box: trim-both cap alphabetic) {
   .install code,
   .gh-btn span {

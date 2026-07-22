@@ -1,4 +1,4 @@
-import { defineEffect } from 'motes'
+import { defineEffect } from '@lucasmarkes/motes'
 
 /**
  * Registered here, in the demo, not in the library — the fourth tile is a real

@@ -1,7 +1,7 @@
 import { createRef, StrictMode } from 'react'
 import { render, cleanup } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { MotesConfig, MotesInstance } from 'motes'
+import type { MotesConfig, MotesInstance } from '@lucasmarkes/motes'
 
 /**
  * The core needs a real WebGL2 context, which jsdom has none of. Mock it and
@@ -17,7 +17,7 @@ const created: Array<{
   destroyed: number
 }> = []
 
-vi.mock('motes', async () => {
+vi.mock('@lucasmarkes/motes', async () => {
   const DEFAULT_OPTIONS = {
     effect: 'flow',
     pointer: true,

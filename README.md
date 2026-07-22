@@ -25,21 +25,21 @@ motes is `render(time, pointer)`. The cursor is a first-class input.
 ## Install
 
 ```sh
-npm i motes          # core, zero runtime dependencies
-npm i @motes/react   # React wrapper
+npm i @lucasmarkes/motes         # core, zero runtime dependencies
+npm i @lucasmarkes/motes-react   # React wrapper
 ```
 
 ## Usage
 
 ```ts
-import { createMotes } from 'motes'
+import { createMotes } from '@lucasmarkes/motes'
 
 const field = createMotes(canvas, { effect: 'flow', pointer: true })
 field.start()
 ```
 
 ```tsx
-import { Motes } from '@motes/react'
+import { Motes } from '@lucasmarkes/motes-react'
 
 <Motes effect="flow" pointer className="fixed inset-0 -z-10" />
 ```
@@ -55,7 +55,7 @@ never an effect itself.
 Adding an effect means writing one GLSL function:
 
 ```ts
-import { defineEffect } from 'motes'
+import { defineEffect } from '@lucasmarkes/motes'
 
 defineEffect('rain', {
   glsl: `
@@ -125,8 +125,8 @@ Requires WebGL2.
 
 | Path | Package | What it is |
 | --- | --- | --- |
-| `packages/core` | `motes` | Renderer, effects, pointer layer |
-| `packages/react` | `@motes/react` | `<Motes />` wrapper |
+| `packages/core` | `@lucasmarkes/motes` | Renderer, effects, pointer layer |
+| `packages/react` | `@lucasmarkes/motes-react` | `<Motes />` wrapper |
 | `apps/playground` | — | Demo site |
 | `registry/` | — | shadcn-compatible copy-paste items |
 

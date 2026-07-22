@@ -1,5 +1,5 @@
 {
-  "name": "motes",
+  "name": "@lucasmarkes/motes",
   "version": "0.1.0",
   "description": "Procedural, pointer-reactive ASCII fields for the web",
   "license": "MIT",

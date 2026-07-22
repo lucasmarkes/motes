@@ -1,6 +1,6 @@
 'use client'
 
-import { Motes, type MotesProps } from '@motes/react'
+import { Motes, type MotesProps } from '@lucasmarkes/motes-react'
 
 export type MotesBackgroundProps = MotesProps
 

@@ -8,5 +8,5 @@ export default defineConfig({
   clean: true,
   treeshake: true,
   sourcemap: true,
-  external: ['react', 'motes'],
+  external: ['react', '@lucasmarkes/motes'],
 })

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Motes } from '@motes/react'
+import { Motes } from '@lucasmarkes/motes-react'
 import { POINTER_ACCENT } from './accent'
 import { CATALOG, type CatalogEntry } from './effects'
 import { Link, morphFrom } from './router'

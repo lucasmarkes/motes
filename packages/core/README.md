@@ -10,13 +10,13 @@ A grid of monospace characters, generated in a single WebGL2 fragment shader,
 that reacts to the cursor in real time. Zero runtime dependencies.
 
 ```sh
-npm i motes
+npm i @lucasmarkes/motes
 ```
 
 ## Usage
 
 ```ts
-import { createMotes } from 'motes'
+import { createMotes } from '@lucasmarkes/motes'
 
 const field = createMotes(canvas, {
   effect: 'flow',   // 'flow' | 'waves' | 'pulse' | your own
@@ -59,7 +59,7 @@ An effect is one GLSL function returning 0 to 1. Write it, and the cursor works
 automatically — you never write pointer code.
 
 ```ts
-import { defineEffect } from 'motes'
+import { defineEffect } from '@lucasmarkes/motes'
 
 defineEffect('rain', {
   glsl: `
@@ -84,11 +84,11 @@ without you asking.
 ## React
 
 ```sh
-npm i @motes/react
+npm i @lucasmarkes/motes-react
 ```
 
 ```tsx
-import { Motes } from '@motes/react'
+import { Motes } from '@lucasmarkes/motes-react'
 
 <Motes effect="flow" pointer className="fixed inset-0 -z-10" />
 ```

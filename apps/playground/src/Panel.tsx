@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { MotesOptions } from 'motes'
+import type { MotesOptions } from '@lucasmarkes/motes'
 import { CATALOG } from './effects'
 import { highlight, snippetFor, type Tab } from './snippet'
 import { navigate } from './router'

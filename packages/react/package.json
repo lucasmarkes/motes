@@ -1,5 +1,5 @@
 {
-  "name": "@motes/react",
+  "name": "@lucasmarkes/motes-react",
   "version": "0.1.0",
   "description": "React wrapper for motes \u2014 procedural, pointer-reactive ASCII fields",
   "license": "MIT",
@@ -29,7 +29,7 @@
     "react": ">=18"
   },
   "dependencies": {
-    "motes": "workspace:^"
+    "@lucasmarkes/motes": "workspace:^"
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.1",

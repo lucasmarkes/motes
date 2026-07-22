@@ -3,7 +3,7 @@ import { CheckIcon, CopyIcon, GitHubIcon } from './icons'
 import { LINKS } from './links'
 import { useStars } from './stars'
 
-const COMMAND = 'npm i motes'
+const COMMAND = 'npm i @lucasmarkes/motes'
 
 /**
  * The command and the repository, side by side and the same height.
@@ -27,7 +27,7 @@ function Install() {
       type="button"
       className="install"
       // The word is what gets copied, so the label says the word. Without
-      // this the button announces "npm i motes" and nothing about what
+      // this the button announces "npm i @lucasmarkes/motes" and nothing about what
       // pressing it does.
       aria-label={`Copy ${COMMAND}`}
       onClick={async () => {
