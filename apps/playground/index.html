@@ -11,6 +11,20 @@
     />
     <!-- Relative only: this page never needs to know its own origin. -->
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
+    <!--
+      Started here rather than when the stylesheet is parsed. Paired with
+      font-display: optional this is what makes the load shift-free: the
+      browser picks one font for the page view and never swaps mid-view, and
+      the preload is what makes the font it picks almost always Archivo.
+    -->
+    <link
+      rel="preload"
+      href="/fonts/archivo-latin-var.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="motes" />
     <meta

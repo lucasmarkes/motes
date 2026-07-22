@@ -11,13 +11,34 @@
    render(time, pointer) read as code without any extra decoration.
 --------------------------------------------------------------------------- */
 
+/* Loading ------------------------------------------------------------------
+   `optional` rather than `swap`. Swap let the page render in the fallback and
+   then reflow to Archivo: measured, the headline changed width by 53px and the
+   install button jumped 10px up the page. `optional` makes the browser commit
+   to one font for the page view, so there is no mid-view swap to shift
+   anything; the preload in index.html is what makes the font it commits to
+   almost always be Archivo. */
 @font-face {
   font-family: 'Archivo';
   src: url('/fonts/archivo-latin-var.woff2') format('woff2-variations');
   font-weight: 100 900;
   font-stretch: 62% 125%;
   font-style: normal;
-  font-display: swap;
+  font-display: optional;
+}
+
+/* And for the view that does land on the fallback, the fallback is cut to
+   Archivo's measurements rather than left at Arial's own. size-adjust matches
+   the average advance (Archivo runs 1.8% narrower); the overrides replace
+   Arial's ascent and descent with Archivo's, so a line box is the same height
+   either way. Measured on the page's own copy, not a pangram. */
+@font-face {
+  font-family: 'Archivo fallback';
+  src: local('Arial'), local('Helvetica'), local('Liberation Sans');
+  size-adjust: 98.17%;
+  ascent-override: 89.44%;
+  descent-override: 21.39%;
+  line-gap-override: 0%;
 }
 
 :root {
@@ -53,7 +74,7 @@
   --rule-strong: oklch(0.935 0.006 258 / 0.3);
 
   /* Type ------------------------------------------------------------------ */
-  --display: 'Archivo', ui-sans-serif, system-ui, sans-serif;
+  --display: 'Archivo', 'Archivo fallback', ui-sans-serif, system-ui, sans-serif;
   --mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
 
   --fs-display: clamp(40px, 6.4vw, 78px);
@@ -84,6 +105,14 @@
 
   --tap: 44px;
   --ease: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Two durations for the whole surface, and one reason each. A hover is the
+     interface answering a question you asked with the cursor; a press is it
+     confirming something you already did, so the press is the faster of the
+     two. There were four values in here before — 120, 140, 160 and 180ms —
+     scattered across controls with nothing distinguishing them. */
+  --t-hover: 140ms;
+  --t-press: 120ms;
 
   /* The rail ---------------------------------------------------------------
      One vertical line that every piece of content on the page starts from.
@@ -180,12 +209,16 @@ input {
   justify-items: start;
 }
 
+/* Not a hover, so not --t-hover: this is one word replacing another, and the
+   blur that bridges them needs longer than a hover to read as a blur. All
+   three properties run together — a cross-fade with one leg on a different
+   clock is just a glitch. */
 .swap > span {
   grid-area: 1 / 1;
   transition:
-    opacity 0.18s var(--ease),
-    scale 0.18s var(--ease),
-    filter 0.18s var(--ease);
+    opacity 180ms var(--ease),
+    scale 180ms var(--ease),
+    filter 180ms var(--ease);
 }
 
 .swap .is-in {
@@ -279,15 +312,29 @@ input {
   color: var(--text);
 }
 
-/* github / npm / x. Text, lowercase, and spaced far enough apart that two of
-   them are never one target. */
+/* github / npm / x. Text, lowercase.
+
+   The padding is the whole reason this looks the way it does. `x` is one
+   lowercase glyph at 11px — a 7px-wide target, which is not a target. 19px
+   either side is what a 7px glyph needs to reach 44, so that is the number:
+   ((44 - 7) / 2), off the cell grid because a glyph's width is not on the
+   cell grid either. The links then tile edge to edge rather than sitting in
+   a gap, which is what keeps two of them from ever overlapping, and the
+   negative margin pulls the outermost padding back off so the text itself
+   still starts and ends on the rail. */
 .out-links {
+  --out-pad: 19px;
   display: flex;
   align-items: center;
-  gap: var(--s3);
+  gap: 0;
+  margin-inline: calc(var(--out-pad) * -1);
   font-family: var(--mono);
   font-size: var(--fs-micro);
   letter-spacing: 0.08em;
+}
+
+.out-links a {
+  padding-inline: var(--out-pad);
 }
 
 .site-mark,
@@ -299,7 +346,7 @@ input {
   min-height: var(--tap);
   color: var(--text);
   opacity: 0.55;
-  transition: opacity 0.14s var(--ease);
+  transition: opacity var(--t-hover) var(--ease);
 }
 
 .site-mark {
@@ -484,9 +531,9 @@ input {
   border: 1px solid var(--rule-strong);
   cursor: pointer;
   transition:
-    border-color 0.16s var(--ease),
-    background 0.16s var(--ease),
-    scale 0.12s var(--ease);
+    border-color var(--t-hover) var(--ease),
+    background var(--t-hover) var(--ease),
+    scale var(--t-press) var(--ease);
 }
 
 .install:hover {
@@ -593,7 +640,7 @@ input {
   display: flex;
   flex-direction: column;
   background: var(--canvas);
-  transition: background 0.18s var(--ease);
+  transition: background var(--t-hover) var(--ease);
 }
 
 .tile:hover,
@@ -645,8 +692,8 @@ input {
 .tile-go {
   color: var(--text-3);
   transition:
-    translate 0.18s var(--ease),
-    color 0.18s var(--ease);
+    translate var(--t-hover) var(--ease),
+    color var(--t-hover) var(--ease);
 }
 
 .tile:hover .tile-go {
@@ -716,13 +763,13 @@ input {
   position: relative;
   color: var(--text);
   opacity: 0.55;
-  transition: opacity 0.14s var(--ease);
+  transition: opacity var(--t-hover) var(--ease);
 }
 
 .foot-credit a::after {
   content: '';
   position: absolute;
-  inset: -14px -6px;
+  inset: -15px -6px;
 }
 
 .foot-credit a:hover {
@@ -827,7 +874,7 @@ input {
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--text-3);
-  transition: color 0.16s var(--ease);
+  transition: color var(--t-hover) var(--ease);
 }
 
 .back:hover {
@@ -998,9 +1045,9 @@ input {
   border-inline-end: 1px solid var(--line);
   cursor: pointer;
   transition:
-    background 0.14s var(--ease),
-    color 0.14s var(--ease),
-    scale 0.12s var(--ease);
+    background var(--t-hover) var(--ease),
+    color var(--t-hover) var(--ease),
+    scale var(--t-press) var(--ease);
 }
 
 .seg button:last-child {
@@ -1035,9 +1082,9 @@ input {
   cursor: pointer;
   text-align: start;
   transition:
-    border-color 0.16s var(--ease),
-    background 0.16s var(--ease),
-    scale 0.12s var(--ease);
+    border-color var(--t-hover) var(--ease),
+    background var(--t-hover) var(--ease),
+    scale var(--t-press) var(--ease);
 }
 
 .toggle:active {
@@ -1085,7 +1132,7 @@ input {
   width: calc(var(--cell) * 2);
   height: var(--cell);
   background: var(--line);
-  transition: background 0.18s var(--ease);
+  transition: background var(--t-hover) var(--ease);
 }
 
 .toggle.on .track {
@@ -1098,7 +1145,7 @@ input {
   inset-inline-start: 2px;
   width: calc(var(--cell) - 4px);
   background: var(--paper);
-  transition: translate 0.18s var(--ease);
+  transition: translate var(--t-hover) var(--ease);
 }
 
 .toggle.on .track i {
@@ -1138,7 +1185,7 @@ input {
   margin-bottom: 0;
   /* Turning interaction off makes radius and force irrelevant; fading rather
      than snapping shows the toggle causing it. */
-  transition: opacity 160ms var(--ease);
+  transition: opacity var(--t-hover) var(--ease);
 }
 
 .slider.is-disabled {
@@ -1223,7 +1270,7 @@ select {
   border: 1px solid var(--line);
   background: none;
   cursor: pointer;
-  transition: scale 0.12s var(--ease);
+  transition: scale var(--t-press) var(--ease);
 }
 
 .swatch::after {
@@ -1264,9 +1311,9 @@ select {
   color: var(--ink-3);
   cursor: pointer;
   transition:
-    color 0.14s var(--ease),
-    box-shadow 0.14s var(--ease),
-    scale 0.12s var(--ease);
+    color var(--t-hover) var(--ease),
+    box-shadow var(--t-hover) var(--ease),
+    scale var(--t-press) var(--ease);
 }
 
 .code .tabs button:hover {
