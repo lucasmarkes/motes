@@ -4,19 +4,25 @@ import { CATALOG } from './effects'
 import { highlight, snippetFor, type Tab } from './snippet'
 import { navigate } from './router'
 import { Swap } from './Swap'
-
-const CHARSETS = [
-  { value: ' .:-=+*#%@', label: 'classic' },
-  { value: ' .·:+*oO0@', label: 'dots' },
-  { value: ' ░▒▓█', label: 'blocks' },
-  { value: " .'^\"~=xX", label: 'hairline' },
-]
+import { Slider } from './controls/Slider'
+import { CharsetSelect } from './controls/CharsetSelect'
+import { AccentSwatches } from './controls/AccentSwatches'
 
 interface PanelProps {
   config: MotesOptions
   onChange: (patch: Partial<MotesOptions>) => void
 }
 
+/**
+ * Four groups, and the grouping is the argument.
+ *
+ * These were eight controls in a flat column, spaced identically, so the only
+ * way to know that pointer radius belongs to the interaction toggle was to
+ * turn the toggle off and notice two things fade. Grouped by what each control
+ * does to the field — the pointer, the field itself, how it looks — that fade
+ * becomes legible as cause and effect, because the things that dim are the
+ * rest of the block the toggle is in.
+ */
 export function Panel({ config, onChange }: PanelProps) {
   const [tab, setTab] = useState<Tab>('react')
   const [copied, setCopied] = useState(false)
@@ -38,104 +44,110 @@ export function Panel({ config, onChange }: PanelProps) {
       {/* Only the controls scroll. The snippet stays pinned to the foot of
           the panel, so it never has to be hunted for after a tweak. */}
       <div className="panel-scroll">
-      <section className="panel-block">
-        <p className="eyebrow">effect</p>
-        <div className="seg" role="group" aria-label="Effect">
-          {CATALOG.map((entry) => (
-            <button
-              key={entry.id}
-              type="button"
-              className={entry.id === config.effect ? 'on' : ''}
-              aria-pressed={entry.id === config.effect}
-              onClick={() => navigate(`/${entry.id}`)}
-            >
-              {entry.title}
-            </button>
-          ))}
-        </div>
-      </section>
+        <section className="group" aria-label="Effect">
+          <p className="eyebrow">effect</p>
+          <div className="seg" role="group" aria-label="Effect">
+            {CATALOG.map((entry) => (
+              <button
+                key={entry.id}
+                type="button"
+                className={entry.id === config.effect ? 'on' : ''}
+                aria-pressed={entry.id === config.effect}
+                onClick={() => navigate(`/${entry.id}`)}
+              >
+                {entry.title}
+              </button>
+            ))}
+          </div>
+        </section>
 
-      {/* The hero control: this flip is the whole pitch. */}
-      <section className="panel-block">
-        <button
-          type="button"
-          className={`toggle ${config.pointer ? 'on' : ''}`}
-          aria-pressed={config.pointer}
-          onClick={() => onChange({ pointer: !config.pointer })}
-        >
-          <span className="toggle-text">
-            <span className="toggle-label">interaction</span>
-            <span className="toggle-state">
-              {config.pointer ? 'pointer-reactive' : 'ambient only'}
+        <section className="group" aria-label="Pointer">
+          <p className="eyebrow">pointer</p>
+
+          {/* The hero control: this flip is the whole pitch. */}
+          <button
+            type="button"
+            className={`toggle ${config.pointer ? 'on' : ''}`}
+            aria-pressed={config.pointer}
+            onClick={() => onChange({ pointer: !config.pointer })}
+          >
+            <span className="toggle-text">
+              <span className="toggle-label">interaction</span>
+              <span className="toggle-state">
+                {config.pointer ? 'pointer-reactive' : 'ambient only'}
+              </span>
             </span>
-          </span>
-          <span className="track" aria-hidden="true">
-            <i />
-          </span>
-        </button>
-      </section>
+            <span className="track" aria-hidden="true">
+              <i />
+            </span>
+          </button>
 
-      <Slider
-        label="pointer radius" unit="px"
-        value={config.radius} min={40} max={360} step={1}
-        disabled={!config.pointer}
-        onChange={(radius) => onChange({ radius })}
-        format={(v) => v.toFixed(0)}
-      />
-      <Slider
-        label="pointer force"
-        value={config.force} min={0} max={3} step={0.1}
-        disabled={!config.pointer}
-        onChange={(force) => onChange({ force })}
-        format={(v) => v.toFixed(1)}
-      />
-      <Slider
-        label="density" unit="px"
-        value={config.density} min={8} max={22} step={1}
-        onChange={(density) => onChange({ density })}
-        format={(v) => v.toFixed(0)}
-      />
-      <Slider
-        label="speed"
-        value={config.speed} min={0} max={3} step={0.1}
-        onChange={(speed) => onChange({ speed })}
-        format={(v) => v.toFixed(1)}
-      />
-      <Slider
-        label="persistence"
-        value={config.trail} min={0} max={1} step={0.01}
-        onChange={(trail) => onChange({ trail })}
-        format={(v) => v.toFixed(2)}
-      />
-
-      <section className="panel-block">
-        <label className="eyebrow" htmlFor="charset">charset</label>
-        <select
-          id="charset"
-          value={config.charset}
-          onChange={(e) => onChange({ charset: e.target.value })}
-        >
-          {CHARSETS.map((c) => (
-            <option key={c.label} value={c.value}>
-              {c.label}   {c.value.trim()}
-            </option>
-          ))}
-        </select>
-      </section>
-
-      <section className="panel-block row-inline">
-        <label className="eyebrow" htmlFor="accent">accent</label>
-        <span className="accent-field">
-          <span className="hex">{config.accent}</span>
-          <input
-            id="accent"
-            type="color"
-            className="swatch"
-            value={config.accent}
-            onChange={(e) => onChange({ accent: e.target.value })}
+          <Slider
+            label="radius"
+            unit="px"
+            value={config.radius}
+            min={40}
+            max={360}
+            step={1}
+            disabled={!config.pointer}
+            onChange={(radius) => onChange({ radius })}
+            format={(v) => v.toFixed(0)}
           />
-        </span>
-      </section>
+          <Slider
+            label="force"
+            value={config.force}
+            min={0}
+            max={3}
+            step={0.1}
+            disabled={!config.pointer}
+            onChange={(force) => onChange({ force })}
+            format={(v) => v.toFixed(1)}
+          />
+        </section>
+
+        <section className="group" aria-label="Field">
+          <p className="eyebrow">field</p>
+          <Slider
+            label="density"
+            unit="px"
+            value={config.density}
+            min={8}
+            max={22}
+            step={1}
+            onChange={(density) => onChange({ density })}
+            format={(v) => v.toFixed(0)}
+          />
+          <Slider
+            label="speed"
+            value={config.speed}
+            min={0}
+            max={3}
+            step={0.1}
+            onChange={(speed) => onChange({ speed })}
+            format={(v) => v.toFixed(1)}
+          />
+          <Slider
+            label="persistence"
+            value={config.trail}
+            min={0}
+            max={1}
+            step={0.01}
+            onChange={(trail) => onChange({ trail })}
+            format={(v) => v.toFixed(2)}
+          />
+        </section>
+
+        <section className="group" aria-label="Look">
+          <p className="eyebrow">look</p>
+          <CharsetSelect
+            value={config.charset}
+            onChange={(charset) => onChange({ charset })}
+          />
+          <AccentSwatches
+            value={config.accent}
+            onChange={(accent) => onChange({ accent })}
+          />
+        </section>
       </div>
 
       <section className="code">
@@ -167,44 +179,5 @@ export function Panel({ config, onChange }: PanelProps) {
         </pre>
       </section>
     </aside>
-  )
-}
-
-interface SliderProps {
-  label: string
-  unit?: string
-  value: number
-  min: number
-  max: number
-  step: number
-  disabled?: boolean
-  onChange: (v: number) => void
-  format: (v: number) => string
-}
-
-function Slider({
-  label, unit, value, min, max, step, disabled, onChange, format,
-}: SliderProps) {
-  const id = `slider-${label.replace(/\s+/g, '-')}`
-  return (
-    <section className={`panel-block slider ${disabled ? 'is-disabled' : ''}`}>
-      <label className="lab" htmlFor={id}>
-        <span>{label}</span>
-        <b>
-          {format(value)}
-          {unit ? <em>{unit}</em> : null}
-        </b>
-      </label>
-      <input
-        id={id}
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        disabled={disabled}
-        onChange={(e) => onChange(parseFloat(e.target.value))}
-      />
-    </section>
   )
 }

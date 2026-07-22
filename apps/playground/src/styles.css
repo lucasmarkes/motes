@@ -1067,11 +1067,24 @@ input {
     0 24px 56px oklch(0 0 0 / 0.34);
 }
 
+/* The controls scroll, and the cut says so.
+   There is no viewport height at which all four groups always fit — at 1000px
+   they do, at 900 they are 27px over, at 800 far more — so this is a scroll
+   region at every size and the only question is what the bottom edge looks
+   like. Clipped square, it read as a rendering fault: the charset ramp was
+   sliced through the middle of its glyphs.
+
+   The mask fades the last 20px, and the padding underneath it is the same
+   20px, so when everything does fit the faded band contains nothing and no
+   control is dimmed for no reason. Scrolled anywhere else, whatever is
+   arriving fades in rather than being guillotined. */
 .panel-scroll {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
+  padding-bottom: 20px;
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 20px), transparent 100%);
 }
 
 .panel-scroll::-webkit-scrollbar {
@@ -1089,29 +1102,40 @@ input {
   border-top: 1px solid var(--line);
 }
 
+/* No bottom margin: the group's own gap is what separates the eyebrow from
+   the first control, and having both meant every group opened with 10px of
+   air where every other step in the panel is 6.5. */
 .panel .eyebrow {
   color: var(--ink-2);
-  margin-bottom: 4px;
 }
 
-/* Tight, because the code block at the foot of the panel is the payoff and
-   it has to stay above the fold at 900px. */
-.panel-block {
-  margin-bottom: var(--s2);
+/* Groups ------------------------------------------------------------------
+   Four of them — effect, pointer, field, look — with a hairline between and
+   a cell of air either side of it. Inside a group the controls sit half that
+   distance apart, so the grouping is carried by the rhythm and the rule is
+   only confirming what the spacing already said.
+
+   Everything used to be one flat column at a uniform --s2, which is how eight
+   controls end up looking like a settings dump: no control appeared to have
+   anything to do with any other, including the two that visibly dim when the
+   toggle above them is switched off. */
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  padding-block: var(--s1);
+}
+
+.group + .group {
+  border-top: 1px solid var(--line);
+}
+
+.group:first-child {
+  padding-top: 0;
 }
 
 .panel .rule {
   margin: var(--s2) 0;
-}
-
-.row-inline {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.row-inline .eyebrow {
-  margin-bottom: 0;
 }
 
 .seg {
@@ -1238,6 +1262,12 @@ input {
   translate: var(--cell) 0;
 }
 
+/* Sliders ------------------------------------------------------------------
+   The label carries the name and the value; the band under it carries the
+   track. Both are draggable, and they do different things — the band is
+   absolute (grab anywhere, the thumb comes to you) and the label is relative
+   (push the number the way your hand is going). */
+
 .lab {
   display: flex;
   justify-content: space-between;
@@ -1246,12 +1276,23 @@ input {
   font-size: var(--fs-fine);
   letter-spacing: 0.01em;
   color: var(--ink-2);
-  margin-bottom: 2px;
+  /* The whole range in 300px of travel. `ew-resize` is the only advertisement
+     this gets — a hint line would cost more panel than the feature is worth. */
+  cursor: ew-resize;
+  user-select: none;
+  touch-action: none;
+  transition: color var(--t-hover) var(--ease);
+}
+
+.lab:hover {
+  color: var(--ink);
 }
 
 .lab b {
   font-weight: 500;
   color: var(--ink);
+  /* The value changes every frame of a drag; proportional digits would make
+     the number jitter its own width while you read it. */
   font-variant-numeric: tabular-nums;
 }
 
@@ -1261,14 +1302,7 @@ input {
   margin-inline-start: 2px;
 }
 
-.slider .lab {
-  margin-bottom: 0;
-}
-
-/* The 40px input already carries ~19px of air either side of its 2px track,
-   so an extra block margin between sliders only pushes controls off the fold. */
-.panel-block.slider {
-  margin-bottom: 0;
+.slider {
   /* Turning interaction off makes radius and force irrelevant; fading rather
      than snapping shows the toggle causing it. */
   transition: opacity var(--t-hover) var(--ease);
@@ -1278,99 +1312,270 @@ input {
   opacity: 0.4;
 }
 
-/* The visible track is 2px. The control is 40px, so it can actually be
-   grabbed — the input was previously only as tall as its own track, and a
-   click anywhere in the band now jumps the thumb. */
-input[type='range'] {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  height: 40px;
-  background: none;
-  cursor: pointer;
-}
-
-input[type='range']:disabled {
+.slider.is-disabled .lab {
   cursor: not-allowed;
 }
 
-input[type='range']::-webkit-slider-runnable-track {
-  height: 2px;
+/* 40px of grabbable band around a 1px line. The line is what you read; the
+   band is what you hit, and a click anywhere in it brings the thumb to you.
+
+   This was 32 for a while, on the argument that the label above is a second
+   target for the same value so the pair clears 40 together. The audit called
+   it and the audit was right: a control's own hit box is what a hit box is,
+   and the panel scrolls anyway, so the height was never actually paid for. */
+.track-hit {
+  position: relative;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  /* Otherwise a drag on touch scrolls the panel instead of moving the value. */
+  touch-action: none;
+}
+
+.slider.is-disabled .track-hit {
+  cursor: not-allowed;
+}
+
+.track-line {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 1px;
   background: var(--line);
 }
 
-input[type='range']::-moz-range-track {
-  height: 2px;
-  background: var(--line);
+.track-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  display: block;
+  background: var(--ink-3);
 }
 
-input[type='range']::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 12px;
+/* A bar, not a circle — 2px wide, which is as wide as the value is precise.
+   It scales on Y alone: widening a 2px bar to signal hover would just blur
+   it, and a control that reads as an instrument should get taller when you
+   take hold of it, not fatter. */
+.thumb {
+  position: absolute;
+  top: 50%;
+  display: block;
+  width: 2px;
   height: 12px;
-  margin-top: -5px;
+  translate: -50% -50%;
   background: var(--ink);
-  cursor: pointer;
+  transition: scale var(--t-hover) var(--ease);
 }
 
-input[type='range']::-moz-range-thumb {
-  width: 12px;
-  height: 12px;
-  border: 0;
-  border-radius: 0;
-  background: var(--ink);
-  cursor: pointer;
+.track-hit:hover .thumb {
+  scale: 1 1.35;
 }
 
-select {
+.track-hit[data-drag] .thumb {
+  scale: 1 1.6;
+}
+
+/* The ring goes on the band, not on the line inside it. Ringing the child
+   looked tidier and meant the focused element itself drew nothing, which is
+   what any tool — or audit — inspecting the focused element will look for. */
+.track-hit:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: -2px;
+}
+
+/* Charset ------------------------------------------------------------------ */
+
+.pick {
+  position: relative;
+}
+
+.pick-trigger,
+.pick-opt {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
   width: 100%;
   min-height: 40px;
   padding: 0 var(--s1);
   font-family: var(--mono);
-  /* 16px on mobile: iOS Safari zooms the page for anything smaller. */
-  font-size: 16px;
+  font-size: var(--fs-fine);
+  text-align: start;
   background: var(--paper-2);
   border: 1px solid var(--line);
+  color: var(--ink);
+  cursor: pointer;
+  transition:
+    background var(--t-hover) var(--ease),
+    border-color var(--t-hover) var(--ease);
+}
+
+.pick-trigger:hover,
+.pick-opt:hover {
+  background: var(--paper);
+  border-color: var(--ink-3);
+}
+
+.pick-trigger:active {
+  scale: 0.99;
+}
+
+.pick-name {
+  color: var(--ink-2);
+  min-width: 7ch;
+}
+
+/* The reason this control exists. Letter-spaced so the ramp reads as a ramp
+   rather than a word, and at the ink the field's own brightest cells use. */
+.ramp {
+  flex: 1;
+  color: var(--ink);
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.pick-chev {
+  width: 6px;
+  height: 6px;
+  border-right: 1px solid var(--ink-3);
+  border-bottom: 1px solid var(--ink-3);
+  rotate: 45deg;
+  translate: 0 -2px;
+  transition: translate var(--t-hover) var(--ease);
+}
+
+.pick-trigger[aria-expanded='true'] .pick-chev {
+  translate: 0 1px;
+}
+
+/* Absolutely positioned, so four ramps cost the panel no height at all. */
+.pick-list {
+  position: absolute;
+  z-index: 3;
+  inset-inline: 0;
+  top: calc(100% + 2px);
+  list-style: none;
+  background: var(--paper);
+  border: 1px solid var(--ink-3);
+  box-shadow:
+    0 1px 1px oklch(0 0 0 / 0.08),
+    0 8px 20px oklch(0 0 0 / 0.14);
+  /* From the trigger it belongs to, not from its own middle. 150ms is inside
+     the dropdown budget, and 0.97 rather than 0 because nothing arrives from
+     nothing. */
+  transform-origin: top center;
+  animation: pick-in 150ms var(--ease) both;
+}
+
+@keyframes pick-in {
+  from {
+    opacity: 0;
+    scale: 1 0.97;
+  }
+  to {
+    opacity: 1;
+    scale: 1 1;
+  }
+}
+
+.pick-opt {
+  border: 0;
+  background: none;
+}
+
+.pick-opt.is-active {
+  background: var(--paper-2);
+}
+
+.pick-opt.is-on .pick-name {
+  color: var(--ink);
+}
+
+/* Accent ------------------------------------------------------------------- */
+
+/* The readout sits under the row, not beside it. Beside it, the hex ate 60 of
+   the panel's 286px and squeezed the seven cells to 33 wide — under the floor,
+   to display six characters that are not a control. */
+.accent {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+/* Tiled, not spaced. Seven 44px targets with padding around each would overlap
+   in 286px of panel, and a target that steals its neighbour's edge is worse
+   than a small one. At flex: 1 across the full width every cell is 44 tall and
+   40.8 wide, with its boundaries exactly where they appear to be. */
+.swatches {
+  display: flex;
+  width: 100%;
+  border: 1px solid var(--line);
+}
+
+.swatch {
+  position: relative;
+  flex: 1;
+  display: grid;
+  place-items: center;
+  min-height: var(--tap);
+  padding: 0;
+  background: none;
+  border: 0;
   cursor: pointer;
 }
 
-.accent-field {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--s1);
+.chip {
+  width: 18px;
+  height: 18px;
+  transition: scale var(--t-hover) var(--ease);
+}
+
+.swatch:hover .chip {
+  scale: 1.15;
+}
+
+.swatch:active .chip {
+  scale: 0.96;
+}
+
+/* Selection is a ring drawn around the cell, not a tick inside the chip: a
+   glyph on top of a colour is a second vocabulary in a row that is otherwise
+   nothing but colour. */
+.swatch[aria-checked='true']::after,
+.swatch-custom.is-on::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  outline: 1px solid var(--ink);
+  outline-offset: 1px;
+}
+
+/* The door to every other colour. Drawn as an outline because it is not a
+   colour itself until you have picked one. */
+.swatch-custom .chip-custom {
+  border: 1px dashed var(--ink-3);
+}
+
+/* The native picker still does the work; it just no longer sets the tone of
+   the panel. Zero-sized rather than display:none so it stays focusable and
+   the label's click still opens it. */
+.swatch-custom input[type='color'] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
 }
 
 .hex {
   font-family: var(--mono);
-  font-size: var(--fs-fine);
+  font-size: var(--fs-micro);
   color: var(--ink-2);
   font-variant-numeric: tabular-nums;
-}
-
-/* 28×18 visible, extended to a 44×44 target by the pseudo-element. */
-.swatch {
-  position: relative;
-  width: 30px;
-  height: 20px;
-  padding: 0;
-  border: 1px solid var(--line);
-  background: none;
-  cursor: pointer;
-  transition: scale var(--t-press) var(--ease);
-}
-
-.swatch::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: var(--tap);
-  height: var(--tap);
-  translate: -50% -50%;
-}
-
-.swatch:active {
-  scale: 0.96;
 }
 
 /* Code --------------------------------------------------------------------*/
@@ -1520,10 +1725,17 @@ select {
     overflow: visible;
   }
 
-  /* Desktop trades slider height for keeping the snippet in view; on touch
-     there is no such fold, and a thumb needs the full 44px. */
-  input[type='range'] {
+  /* Desktop trades band height for keeping the snippet in view; on touch
+     there is no such fold, and a thumb needs the full 44px. The label is a
+     drag target too, so it takes the same floor rather than staying a 15px
+     line of text under a finger. */
+  .track-hit {
     height: var(--tap);
+  }
+
+  .lab {
+    min-height: var(--tap);
+    align-items: center;
   }
 
   .hint {
