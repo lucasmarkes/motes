@@ -93,6 +93,14 @@
      eye up against. Change `--rail` and all three move together. */
   --page: 1240px;
   --rail: var(--s3);
+
+  /* The fold ---------------------------------------------------------------
+     The hero is sized so the first row of tile art ends exactly on the fold.
+     The rule that matters is not where the cut lands but what it can land in:
+     art, never a label. The hero cannot be shorter than its own copy, so on a
+     short window it overruns and the cut moves up into the art — abstract, no
+     wrong place to cut. It can never move down into the text. */
+  --tile-art: 180px;
 }
 
 * {
@@ -250,10 +258,12 @@ input {
    different things, each closed on its own terms. */
 .hero {
   position: relative;
-  min-height: min(82vh, 700px);
+  min-height: calc(100svh - var(--tile-art));
   display: flex;
   align-items: center;
-  padding-block: var(--s6) var(--s5);
+  /* Scales with the window so the copy still clears the fold on a short one.
+     The clamps floor at the rhythm's own steps, never between them. */
+  padding-block: clamp(var(--s4), 11svh, var(--s6)) clamp(var(--s3), 7svh, var(--s5));
   overflow: hidden;
 }
 
@@ -459,7 +469,7 @@ input {
 .tile-field {
   display: block;
   position: relative;
-  height: 180px;
+  height: var(--tile-art);
   overflow: hidden;
   border-bottom: 1px solid var(--rule);
 }
@@ -1204,9 +1214,9 @@ select {
     --rail: var(--s2);
   }
 
+  /* min-height is deliberately not reset: the fold rule holds on a phone too,
+     where the single column makes the first tile's art the fold's edge. */
   .hero {
-    min-height: 0;
-    padding-block: var(--s5) var(--s4);
     flex-direction: column;
     align-items: stretch;
     justify-content: center;
