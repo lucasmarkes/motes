@@ -4,8 +4,8 @@ import { POINTER_ACCENT } from './accent'
 import { CATALOG, type CatalogEntry } from './effects'
 import { Link, morphFrom } from './router'
 import { POINTER_HINT } from './hint'
-import { Swap } from './Swap'
 import { SiteHeader, SiteFooter } from './Chrome'
+import { InstallRow } from './Install'
 
 export function Index() {
   // The hint has one job and it is done the moment you move. Any move over
@@ -63,7 +63,7 @@ export function Index() {
                 note about the thing above it. It also arrives as one thing in
                 the entrance, which is what it is. */}
             <div className="hero-action">
-              <Install />
+              <InstallRow />
 
               {/* Not the badge row reborn. Two facts, placed at the one moment
                   either of them is a live question — while somebody is looking
@@ -128,30 +128,5 @@ function Tile({ entry }: { entry: CatalogEntry }) {
         <span className="tile-blurb">{entry.blurb}</span>
       </span>
     </Link>
-  )
-}
-
-function Install() {
-  const [copied, setCopied] = useState(false)
-  const command = 'npm i motes'
-
-  return (
-    <button
-      type="button"
-      className="install"
-      onClick={async () => {
-        try {
-          await navigator.clipboard.writeText(command)
-          setCopied(true)
-          window.setTimeout(() => setCopied(false), 1400)
-        } catch {
-          // Clipboard unavailable; the command is selectable either way.
-        }
-      }}
-    >
-      <span className="prompt" aria-hidden="true">$</span>
-      <code>{command}</code>
-      <Swap className="install-state" on="copied" off="copy" active={copied} />
-    </button>
   )
 }

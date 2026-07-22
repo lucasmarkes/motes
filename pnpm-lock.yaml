@@ -39,12 +39,18 @@ importers:
       '@vitejs/plugin-react':
         specifier: ^6.0.3
         version: 6.0.3(vite@8.1.5(esbuild@0.27.7))
+      jsdom:
+        specifier: ^29.1.1
+        version: 29.1.1
       typescript:
         specifier: 5.9.3
         version: 5.9.3
       vite:
         specifier: ^8.1.5
         version: 8.1.5(esbuild@0.27.7)
+      vitest:
+        specifier: ^4.1.10
+        version: 4.1.10(jsdom@29.1.1)(vite@8.1.5(esbuild@0.27.7))
 
   packages/core:
     devDependencies:

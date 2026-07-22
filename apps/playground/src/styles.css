@@ -548,7 +548,18 @@ input {
   text-wrap: pretty;
 }
 
-.install {
+/* The install row --------------------------------------------------------
+   Two controls, one height. `stretch` rather than `center` so the pair is the
+   same height by construction — matching two paddings by hand is how they
+   drift by a pixel the first time either side's contents change. */
+.install-row {
+  display: flex;
+  align-items: stretch;
+  gap: var(--s2);
+}
+
+.install,
+.gh-btn {
   display: inline-flex;
   align-items: center;
   gap: var(--s2);
@@ -565,17 +576,15 @@ input {
     scale var(--t-press) var(--ease);
 }
 
-.install:hover {
+.install:hover,
+.gh-btn:hover {
   border-color: oklch(0.935 0.006 258 / 0.5);
   background: oklch(0.935 0.006 258 / 0.12);
 }
 
-.install:active {
+.install:active,
+.gh-btn:active {
   scale: 0.96;
-}
-
-.install .prompt {
-  color: var(--text-3);
 }
 
 .install code {
@@ -583,12 +592,69 @@ input {
   letter-spacing: 0.01em;
 }
 
-.install-state {
-  font-size: var(--fs-micro);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+/* The copy affordance ------------------------------------------------------
+   One grid cell holding both marks, so the box is the size of one icon and
+   cannot resize as they swap. It is a span, not a button — see Install.tsx.
+
+   Dimmer than the command it sits beside, and it comes up to full strength
+   with the box. An icon at the same weight as the text competes with it for
+   a job the text is already doing. */
+.install-icon {
+  display: grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
   color: var(--text-3);
-  margin-inline-start: var(--s1);
+  transition: color var(--t-hover) var(--ease);
+}
+
+.install:hover .install-icon {
+  color: var(--text);
+}
+
+.install-icon svg {
+  grid-area: 1 / 1;
+  /* Not `--t-hover`: this is one mark becoming another, and a blur needs
+     longer than a hover to read as a blur rather than a flicker. All three
+     properties run on the same clock — a cross-fade with one leg on a
+     different one is a glitch. */
+  transition:
+    opacity 180ms var(--ease),
+    scale 180ms var(--ease),
+    filter 180ms var(--ease);
+}
+
+.install-icon .is-in {
+  opacity: 1;
+  scale: 1;
+  filter: blur(0);
+}
+
+/* Nothing arrives from nothing: 0.25, not 0. */
+.install-icon .is-out {
+  opacity: 0;
+  scale: 0.25;
+  filter: blur(4px);
+}
+
+/* Beside the name, and quieter than it — the number is a fact about the
+   repository, not the thing you came to click. Tabular so it cannot change
+   width between one visit's count and the next's. */
+.gh-count {
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Announced, not shown. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 /* The two facts that survived the badge row. A footnote to the command above
