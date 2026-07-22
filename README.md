@@ -41,7 +41,7 @@ field.start()
 ```tsx
 import { Motes } from '@lucasmarkes/motes-react'
 
-<Motes effect="flow" pointer className="fixed inset-0 -z-10" />
+<Motes effect="flow" pointer className="fixed inset-0 -z-10 h-full w-full pointer-events-none" />
 ```
 
 Sizing comes from CSS. Give the canvas a box and the field follows it, across

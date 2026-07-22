@@ -45,7 +45,7 @@ export function reactSnippet(config: MotesOptions): string {
     `  effect="${config.effect}"\n` +
     (config.pointer ? `  pointer\n` : `  pointer={false}\n`) +
     extras +
-    `  className="fixed inset-0 -z-10"\n` +
+    `  className="fixed inset-0 -z-10 h-full w-full pointer-events-none"\n` +
     `/>\n`
   )
 }

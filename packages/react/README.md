@@ -17,7 +17,13 @@ npm i @lucasmarkes/motes-react
 import { Motes } from '@lucasmarkes/motes-react'
 
 export function Background() {
-  return <Motes effect="flow" pointer className="fixed inset-0 -z-10" />
+  return (
+    <Motes
+      effect="flow"
+      pointer
+      className="fixed inset-0 -z-10 h-full w-full pointer-events-none"
+    />
+  )
 }
 ```
 
@@ -33,6 +39,16 @@ your tree. Unknown props — `className`, `style`, `aria-*`, `id`, event handler
 
 Sizing comes from CSS. Give the canvas a box and the field follows it, across
 resizes and monitor-to-monitor DPI changes.
+
+Give it a real box, though. `<canvas>` is a replaced element with an intrinsic
+300×150 size, so pinning alone — `fixed inset-0`, `absolute inset-0` — leaves it
+at 300×150 in the corner: with `width: auto` the inset equation is
+over-constrained and the size wins. Add `h-full w-full` (or `width: 100%;
+height: 100%`) and it fills the box you pinned it to.
+
+The field reads the pointer from `window` and hit-tests the canvas box, so
+`pointer-events: none` keeps clicks flowing to whatever sits on top without
+costing you any reactivity.
 
 ## Ref
 
