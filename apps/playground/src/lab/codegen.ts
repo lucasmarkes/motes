@@ -41,7 +41,13 @@ export function generateField(config: StageConfig): string {
     // that curls and licks.
     emit('')
     emit(`  // TURBULENCE — domain warp, amount ${f(turbulence)}`)
-    emit('  vec2 warp = vec2(fbm(p * 0.03 + 17.0), fbm(p * 0.03 - t * 0.10));')
+    // Both components carry a time term, on different axes and rates, so the
+    // warp scrolls in x as well as y. A frozen x-warp is why noise sits still
+    // instead of licking side to side.
+    emit('  vec2 warp = vec2(')
+    emit('    fbm(p * 0.03 + vec2(t * 0.15, 11.0)),')
+    emit('    fbm(p * 0.03 + vec2(4.0, t * 0.13))')
+    emit('  );')
     emit(`  p += (warp - 0.5) * ${f(turbulence * 4)};`)
   }
 
@@ -113,6 +119,9 @@ function maskLines(mask: Exclude<Mask, 'none'>, falloff: number): string[] {
       return [`float m = pow(clamp(1.0 - cell.y / u_grid.y, 0.0, 1.0), ${p});`, 'v *= m;']
     case 'center':
       return [
+        // Distance is normalized by half-height, so the source stays a circle on
+        // any aspect instead of stretching into an ellipse. On a wide viewport
+        // that leaves the sides dark — deliberate: a pulse is round.
         `float m = pow(clamp(1.0 - length(cell - u_grid * 0.5) / (u_grid.y * 0.5), 0.0, 1.0), ${p});`,
         'v *= m;',
       ]

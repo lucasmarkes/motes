@@ -33,6 +33,15 @@ export function listEffects(): string[] {
   return [...effects.keys()]
 }
 
+/**
+ * Unregister an effect. Returns whether the name was present. Used to prune the
+ * uniquely-named effects the Lab compiles on every edit, so the registry does
+ * not grow for the length of a session. A no-op for an unknown name.
+ */
+export function removeEffect(name: EffectName): boolean {
+  return effects.delete(name)
+}
+
 defineEffect('flow', { glsl: flowGlsl })
 defineEffect('waves', { glsl: wavesGlsl })
 defineEffect('pulse', { glsl: pulseGlsl })

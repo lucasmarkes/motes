@@ -3,6 +3,7 @@ import { DEFAULT_OPTIONS, type MotesOptions } from '@lucasmarkes/motes'
 import { POINTER_ACCENT } from './accent'
 import { Effect } from './Effect'
 import { Index } from './Index'
+import { Lab } from './lab/Lab'
 import { entryFor } from './effects'
 import { usePath } from './router'
 
@@ -16,6 +17,11 @@ export function App() {
 
   const path = usePath()
   const id = path.replace(/^\/+|\/+$/g, '')
+
+  // The Lab is its own route, not a catalog entry — it composes effects rather
+  // than being one. (Header nav and the "04 yours" tile land in Phase 5.)
+  if (id === 'lab') return <Lab />
+
   const entry = id ? entryFor(id) : undefined
 
   if (!entry) return <Index />
