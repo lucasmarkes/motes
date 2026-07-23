@@ -1675,6 +1675,9 @@ input {
   overflow: hidden;
 }
 
+/* A down-caret built from two borders. `rotate` and `translate` are separate
+   properties now, so the −2px optical centring can stay put while the caret
+   turns: 45deg points it down, and 180° past that (225deg) points it up. */
 .pick-chev {
   width: 6px;
   height: 6px;
@@ -1682,11 +1685,11 @@ input {
   border-bottom: 1px solid var(--ink-3);
   rotate: 45deg;
   translate: 0 -2px;
-  transition: translate var(--t-hover) var(--ease);
+  transition: rotate var(--t-hover) var(--ease);
 }
 
 .pick-trigger[aria-expanded='true'] .pick-chev {
-  translate: 0 1px;
+  rotate: 225deg;
 }
 
 /* Absolutely positioned, so four ramps cost the panel no height at all. */
