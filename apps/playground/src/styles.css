@@ -1852,12 +1852,15 @@ input {
     border-color var(--t-hover) var(--ease);
 }
 
-/* A constant inset hairline so the white end of the row is visible on paper.
-   On selection it gives way to the double inset ring below, both drawn inside
-   the tile, so the tile's own size and weight stay put. */
+/* One border on every chip, not just the white one, so the row reads as five
+   like objects rather than one outlined and four bare. At 0.14 it is plain
+   against the paper on the light end and all but gone on the dark, but the
+   geometry is identical across the row, which is the point. box-sizing keeps
+   the border inside the 26×22, and the selection ring below draws inside it —
+   border at the outer edge, panel-coloured gap then ink within. */
 .swatch {
-  border: 0;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+  box-sizing: border-box;
+  border: 1px solid rgba(0, 0, 0, 0.14);
 }
 
 /* Behind a hover query: on a touch screen `:hover` sticks to the last-tapped
