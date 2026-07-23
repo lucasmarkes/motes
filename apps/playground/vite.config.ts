@@ -1,7 +1,7 @@
 import react from '@vitejs/plugin-react'
 // From vitest, not vite: vite's own `defineConfig` has no `test` key in its
 // type, so the config below only typechecks against this one.
-import { defineConfig, type Plugin } from 'vitest/config'
+import { configDefaults, defineConfig, type Plugin } from 'vitest/config'
 import { resolveBase } from '../../scripts/base-url.mjs'
 
 /**
@@ -41,5 +41,12 @@ export default defineConfig({
   // rather than layout — a cache with a TTL and four ways to fail, none of
   // which a screenshot can prove. Everything else on this page is verified by
   // measuring the rendered page.
-  test: { environment: 'jsdom' },
+  // jsdom for `stars.ts` alone (above). The Lab's GLSL compile gate
+  // (src/lab/compile.test.ts) drives a real browser via Playwright, so it
+  // stays out of the fast unit run — same split as the `test:browser` script —
+  // and runs on demand through `test:glsl`.
+  test: {
+    environment: 'jsdom',
+    exclude: [...configDefaults.exclude, 'src/lab/compile.test.ts'],
+  },
 })
