@@ -271,14 +271,15 @@ input {
   font-synthesis: none;
 }
 
-/* Small uppercase labels need positive tracking to stop feeling crowded.
-   One class, rather than the eight near-identical copies this page had. */
+/* Set in sentence case, not caps — all-caps at this size reads as a template
+   default rather than a considered label. 11px, muted, and no tracking: the
+   positive letter-spacing only existed to keep the caps from crowding, and
+   sentence case has no such need. One class, rather than the eight
+   near-identical copies this page had. */
 .eyebrow {
   display: block;
   font-family: var(--mono);
   font-size: var(--fs-micro);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
   color: var(--text-3);
 }
 
@@ -1193,8 +1194,6 @@ input {
   padding-inline-end: var(--s2);
   font-family: var(--mono);
   font-size: var(--fs-micro);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
   color: var(--text-3);
   transition: color var(--t-hover) var(--ease);
 }
@@ -1450,9 +1449,7 @@ input {
   display: block;
   font-family: var(--mono);
   font-size: var(--fs-micro);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--ink);
+  color: var(--ink-2);
 }
 
 .toggle-state {
@@ -1830,8 +1827,6 @@ input {
   padding: 0;
   font-family: var(--mono);
   font-size: var(--fs-micro);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
   background: none;
   border: 0;
   box-shadow: inset 0 -2px 0 transparent;

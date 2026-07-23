@@ -27,7 +27,7 @@ export function Effect({ entry, config, onChange }: EffectProps) {
 
       <header className="stage-head">
         <Link to="/" className="back">
-          <span aria-hidden="true">←</span> all effects
+          <span aria-hidden="true">←</span> All effects
         </Link>
         <h1>{entry.title}</h1>
         <code className={`stage-tag ${entry.custom ? 'is-yours' : ''}`}>

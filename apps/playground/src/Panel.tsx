@@ -45,7 +45,7 @@ export function Panel({ config, onChange }: PanelProps) {
           the panel, so it never has to be hunted for after a tweak. */}
       <div className="panel-scroll">
         <section className="group" aria-label="Effect">
-          <p className="eyebrow">effect</p>
+          <p className="eyebrow">Effect</p>
           <div className="seg" role="group" aria-label="Effect">
             {CATALOG.map((entry) => (
               <button
@@ -62,7 +62,7 @@ export function Panel({ config, onChange }: PanelProps) {
         </section>
 
         <section className="group" aria-label="Pointer">
-          <p className="eyebrow">pointer</p>
+          <p className="eyebrow">Pointer</p>
 
           {/* The hero control: this flip is the whole pitch. */}
           <button
@@ -72,7 +72,7 @@ export function Panel({ config, onChange }: PanelProps) {
             onClick={() => onChange({ pointer: !config.pointer })}
           >
             <span className="toggle-text">
-              <span className="toggle-label">interaction</span>
+              <span className="toggle-label">Interaction</span>
               <span className="toggle-state">
                 {config.pointer ? 'pointer-reactive' : 'ambient only'}
               </span>
@@ -106,7 +106,7 @@ export function Panel({ config, onChange }: PanelProps) {
         </section>
 
         <section className="group" aria-label="Field">
-          <p className="eyebrow">field</p>
+          <p className="eyebrow">Field</p>
           <Slider
             label="density"
             unit="px"
@@ -138,7 +138,7 @@ export function Panel({ config, onChange }: PanelProps) {
         </section>
 
         <section className="group" aria-label="Look">
-          <p className="eyebrow">look</p>
+          <p className="eyebrow">Look</p>
           <CharsetSelect
             value={config.charset}
             onChange={(charset) => onChange({ charset })}
@@ -161,11 +161,11 @@ export function Panel({ config, onChange }: PanelProps) {
               className={t === tab ? 'on' : ''}
               onClick={() => setTab(t)}
             >
-              {t}
+              {t === 'react' ? 'React' : 'Core'}
             </button>
           ))}
           <button type="button" className="copy" onClick={copy}>
-            <Swap on="copied" off="copy" active={copied} />
+            <Swap on="Copied" off="Copy" active={copied} />
           </button>
         </div>
         <pre>
