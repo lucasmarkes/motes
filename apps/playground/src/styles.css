@@ -108,7 +108,7 @@
 
   /* The hero pair's height, written down rather than arrived at. See the
      install row below for why a derived height was not one. */
-  --btn-h: 48px;
+  --btn-h: 42px;
 
   /* Two durations for the whole surface, and one reason each. A hover is the
      interface answering a question you asked with the cursor; a press is it
@@ -516,14 +516,15 @@ input {
   margin-top: var(--s2);
 }
 
-/* The command and its footnote, one cell apart. Everything else in the stack
-   is three cells or five; a footnote at the stack's own gap would read as the
-   next item rather than as a note on the one above it. */
+/* The command row and its footnote. The pair of raised 42px chips is a heavier
+   object than the single command line this footnote used to sit under, so at
+   the old half-cell gap it read as crowded against their bottom edge. 22px
+   gives it the air to settle as its own quiet line. */
 .hero-action {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--s1);
+  gap: 22px;
 }
 
 @supports (text-box: trim-both cap alphabetic) {
@@ -629,7 +630,9 @@ input {
      the install button alone is 272px, so it sits inside the rail down to a
      298px viewport and reaches the edge at 272. */
   flex-wrap: wrap;
-  gap: var(--s2);
+  /* 10px, not a cell: joined any tighter the pair reads as one broken
+     segmented control; a full cell floats them apart. */
+  gap: 10px;
 }
 
 .install,
@@ -650,16 +653,21 @@ input {
   font-size: var(--fs-ui);
   background:
     linear-gradient(
-      oklch(0.935 0.006 258 / 0.07),
-      oklch(0.935 0.006 258 / 0.07)
+      rgba(255, 255, 255, 0.055),
+      rgba(255, 255, 255, 0.055)
     ),
     oklch(0.108 0.005 71.346 / 0.88);
   backdrop-filter: blur(9px);
-  border: 1px solid var(--rule-strong);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 10px;
+  /* The inner top edge is the whole trick: a 1px inset highlight reads as a
+     surface catching light from above and lifts the chip off the field —
+     without a drop shadow, which over a moving field would only muddy it. */
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
   cursor: pointer;
   transition:
-    border-color var(--t-hover) var(--ease),
-    background var(--t-hover) var(--ease),
+    border-color 150ms var(--ease),
+    background 150ms var(--ease),
     scale var(--t-press) var(--ease);
 }
 
@@ -686,11 +694,11 @@ input {
 
 .install:hover,
 .gh-btn:hover {
-  border-color: oklch(0.935 0.006 258 / 0.5);
+  border-color: rgba(255, 255, 255, 0.16);
   background:
     linear-gradient(
-      oklch(0.935 0.006 258 / 0.13),
-      oklch(0.935 0.006 258 / 0.13)
+      rgba(255, 255, 255, 0.09),
+      rgba(255, 255, 255, 0.09)
     ),
     oklch(0.108 0.005 71.346 / 0.88);
 }
@@ -768,6 +776,16 @@ input {
   filter: blur(4px);
 }
 
+/* A hairline between the label and the count, so the number reads as its own
+   field rather than a second word in the name. Shorter than the cap height on
+   either side of it — a full-height rule would read as a wall. */
+.gh-divider {
+  flex: none;
+  width: 1px;
+  height: 15px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
 /* Beside the name, and quieter than it — the number is a fact about the
    repository, not the thing you came to click. Tabular so it cannot change
    width between one visit's count and the next's. */
@@ -789,22 +807,21 @@ input {
 }
 
 /* The two facts that survived the badge row. A footnote to the command above
-   it, so it is set like a footnote: no border, no uppercase, no tracking, and
-   the quietest ink on the page. The row it replaced was uppercase at 0.16em
-   in a bordered strip, which is a lot of voice for "this has no dependencies". */
-/* --text-2, not --text-3. The scrim was only half of why this line could not
-   be read. --text-3 is luminance 0.233 and the darkest ground this page owns
-   is the canvas at 0.009, which caps the line at 4.76:1 before the field
-   contributes anything at all — an 11px line that needs 4.5:1 was living on a
-   quarter of a stop, and against the field it measured 4.03. On --text-2 the
-   same worst frame gives 6.4.
-
-   Quiet is a job for size and family, both of which this line already has. It
-   cannot also be a job for a colour with no room left in it. */
+   it, set almost like one: no border, no uppercase, and only a hair of tracking
+   — 0.04em, nothing like the 0.16em bordered strip it replaced, which was a lot
+   of voice for "this has no dependencies". */
+/* Its ink has room to give, but not much. --text-3 is luminance 0.233 and the
+   darkest ground this page owns is the canvas at 0.009, which caps the line at
+   4.76:1 before the field contributes anything — and against the field it
+   measured 4.03, under the 4.5:1 an 11px line needs. --text-2 clears it at 6.4,
+   so this sits a touch below that (L 0.69, ~5.5) to read as the quieter line
+   while staying well off the floor. The rest of the quiet is the size and the
+   tracking, not a colour spent down to nothing. */
 .hero-meta {
   font-family: var(--mono);
   font-size: var(--fs-micro);
-  color: var(--text-2);
+  color: oklch(0.69 0.012 258);
+  letter-spacing: 0.04em;
 }
 
 /* A line, not a badge.
@@ -843,7 +860,14 @@ input {
 
 /* No inline borders. A 1px left edge would push every label one pixel off
    the rail, which is exactly the kind of near-miss that reads as sloppy
-   without being nameable. The hero's own bottom edge draws the line above. */
+   without being nameable. The hero's own bottom edge draws the line above.
+
+   Rounded as one slab, to echo the hero buttons without becoming them. The
+   radius and the clip live on the grid, so only the four outer corners curve
+   while every internal hairline stays straight. Rounding each tile was the
+   other reading and it fights this model — the 1px gap rules would bleed around
+   every corner. Riding the clip on the grid also keeps it off the tiles, so
+   none of them gains the side border the rail alignment above cannot afford. */
 .grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -852,6 +876,8 @@ input {
   margin-inline: auto;
   background: var(--rule);
   border-block: 1px solid var(--rule);
+  border-radius: 10px;
+  overflow: hidden;
 }
 
 @media (min-width: 601px) and (max-width: 900px) {

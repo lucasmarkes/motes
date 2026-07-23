@@ -35,7 +35,7 @@ function Install() {
           await navigator.clipboard.writeText(COMMAND)
           setManual(false)
           setCopied(true)
-          window.setTimeout(() => setCopied(false), 1500)
+          window.setTimeout(() => setCopied(false), 1400)
         } catch {
           // Denied, insecure context, or no Clipboard API. Every one of those
           // used to be swallowed here, which left the button doing visibly
@@ -98,9 +98,12 @@ function GitHubButton() {
           reads as a verdict on the project instead of a fact about its age,
           and it is the same render path as a request that failed. */}
       {stars === null ? null : (
-        <span className="gh-count" aria-hidden="true">
-          {stars.toLocaleString('en-US')}
-        </span>
+        <>
+          <span className="gh-divider" aria-hidden="true" />
+          <span className="gh-count" aria-hidden="true">
+            {stars.toLocaleString('en-US')}
+          </span>
+        </>
       )}
     </a>
   )
