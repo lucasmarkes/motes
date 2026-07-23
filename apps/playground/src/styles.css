@@ -1582,38 +1582,38 @@ input {
   position: relative;
   display: block;
   width: 100%;
-  height: 1px;
-  background: var(--line);
+  height: 3px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 2px;
 }
 
 .track-fill {
   position: absolute;
   inset: 0 auto 0 0;
   display: block;
-  background: var(--ink-3);
+  background: var(--ink);
+  border-radius: 2px;
 }
 
-/* A bar, not a circle — 2px wide, which is as wide as the value is precise.
-   It scales on Y alone: widening a 2px bar to signal hover would just blur
-   it, and a control that reads as an instrument should get taller when you
-   take hold of it, not fatter. */
+/* A bar, not a circle — 8x15, radius 2px, so it reads as a handle you take
+   hold of rather than a dot that floats on the line. It scales on Y alone:
+   a control that reads as an instrument should get taller when you grab it,
+   not fatter. */
 .thumb {
   position: absolute;
   top: 50%;
   display: block;
-  width: 2px;
-  height: 12px;
+  width: 8px;
+  height: 15px;
   translate: -50% -50%;
   background: var(--ink);
-  transition: scale var(--t-hover) var(--ease);
+  border-radius: 2px;
+  transition: scale var(--t-press) var(--ease);
 }
 
-.track-hit:hover .thumb {
-  scale: 1 1.35;
-}
-
+.track-hit:hover .thumb,
 .track-hit[data-drag] .thumb {
-  scale: 1 1.6;
+  scale: 1 1.2;
 }
 
 /* The ring goes on the band, not on the line inside it. Ringing the child
