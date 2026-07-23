@@ -152,6 +152,10 @@ export function AccentSwatches({ value, onChange }: Props) {
 
   const hueColor = hsvToHex({ h: hsv.h, s: 100, v: 100 })
 
+  // The picker is the active source when the value belongs to none of the
+  // swatches — then the "+" chip, not a swatch, wears the selection ring.
+  const custom = !ACCENTS.some((a) => a.hex.toLowerCase() === value.toLowerCase())
+
   return (
     <div className="accent">
       <div className="swatches" role="radiogroup" aria-label="Accent">
@@ -172,7 +176,7 @@ export function AccentSwatches({ value, onChange }: Props) {
             door to all of them. */}
         <button
           type="button"
-          className={`swatch-add${open ? ' is-open' : ''}`}
+          className={`swatch-add${open ? ' is-open' : ''}${custom ? ' is-on' : ''}`}
           aria-expanded={open}
           aria-label="Custom colour"
           onClick={() => setOpen((o) => !o)}
