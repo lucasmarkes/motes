@@ -66,6 +66,14 @@ Both warnings are development-only and compile out of production builds. If the
 layout is deliberate, pass `data-motes-quiet` — the component forwards it to the
 canvas: `<Motes data-motes-quiet … />`.
 
+There is one occlusion case the field does **not** warn about: an `absolute`
+negative-z field nested in a positioned parent that has its own opaque
+background and does not establish a stacking context — the parent paints over
+it. The `fixed inset-0` snippet at the top is immune. If you must nest under
+`absolute`, give the parent `isolation: isolate` or move its background.
+Detecting it would mean reimplementing the CSS stacking-context algorithm, whose
+wrong answer is a false positive.
+
 ## Ref
 
 ```tsx

@@ -110,6 +110,13 @@ field detects each and prints a one-time console warning with the exact fix.
 Both warnings are development-only and compile out of production builds. Silence
 a deliberate layout with `<canvas data-motes-quiet>`.
 
+Not warned about, but the same family: an `absolute` negative-z canvas nested in
+a positioned parent that has its own opaque background and does not establish a
+stacking context — the parent paints over it. `fixed` (its containing block is
+the viewport) sidesteps this; if you must nest, give the parent `isolation:
+isolate` or move its background. Detecting it reliably would mean reimplementing
+the stacking-context algorithm, whose wrong answer is a false positive.
+
 ## Notes
 
 Requires WebGL2. Pointer events are read from the window and hit-tested against

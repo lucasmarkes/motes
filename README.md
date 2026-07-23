@@ -143,6 +143,18 @@ Both warnings are development-only and compile out of production builds. If a
 layout is deliberate, silence its warning with `<canvas data-motes-quiet>` — the
 React wrapper forwards the attribute.
 
+One sibling of the second trap the field does **not** warn about: an `absolute`
+negative-z canvas nested inside a *positioned parent that has its own opaque
+background and does not establish a stacking context* — the parent's background
+paints over it. The `fixed` snippet above is immune, because its containing
+block is the viewport, not the parent. If you must nest under `absolute`, give
+that parent a stacking context (`isolation: isolate`) so the negative z-index
+resolves inside it, move its background elsewhere, or layer content above with a
+positive z-index. This one is documented rather than detected on purpose:
+telling it apart from a correct layout would mean reimplementing the CSS
+stacking-context algorithm, and its wrong answer is a false positive — the one
+failure the diagnostic can't afford.
+
 ## Packages
 
 | Path | Package | What it is |
