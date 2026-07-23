@@ -1295,6 +1295,9 @@ input {
   background: var(--paper);
   color: var(--ink);
   padding: 18px;
+  /* The largest surface, so the largest radius on the scale — everything it
+     holds now rounds to 4-5px; the container that holds them takes 8px. */
+  border-radius: 8px;
   /* Captured as its own group. Left in the root snapshot it gets pulled into
      the root fade and drops to ~10% luminance mid-transition — the brightest
      thing on screen blinking out and back. */
@@ -1793,7 +1796,15 @@ input {
 .accent {
   display: flex;
   flex-direction: column;
-  gap: var(--s1);
+  /* Swatch row down to the picker card. */
+  gap: 10px;
+}
+
+/* A step wider than the group's half-cell to set the swatch row off from the
+   select above it — the row and the card below are one control, and this is
+   the seam before it. Overrides the group's shared * + * rhythm. */
+.group > .accent {
+  margin-top: 12px;
 }
 
 /* Five neutral quick picks and a door to the rest. Spaced, not tiled: each is
@@ -1839,7 +1850,7 @@ input {
 /* Outline plus offset, never a border swap. The ring sits off the tile so it
    cannot change the swatch's size or weight the way a thickened edge would. */
 .swatch.is-on {
-  outline: 2px solid var(--ink);
+  outline: 1.5px solid var(--ink);
   outline-offset: 2px;
 }
 
@@ -1863,12 +1874,17 @@ input {
 }
 
 /* The picker, inline in the panel and built from its own parts — mono foot,
-   4px radii, the same borders the controls above it use. No OS dialog. */
+   4px radii, the same borders the controls above it use. No OS dialog.
+   A card of its own — white, a hairline border, 6px corners — so the seam
+   from the swatch row is a surface stepping forward, not a naked margin. */
 .picker {
   display: flex;
   flex-direction: column;
-  gap: var(--s1);
-  padding-top: 2px;
+  gap: 10px;
+  padding: 10px;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.14);
+  border-radius: 6px;
 }
 
 .sv-area {
@@ -1925,7 +1941,7 @@ input {
 .picker-foot {
   display: flex;
   align-items: center;
-  gap: var(--s1);
+  gap: 8px;
 }
 
 .preview-swatch {
