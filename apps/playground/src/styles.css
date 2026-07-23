@@ -1471,15 +1471,18 @@ input {
   color: var(--ink);
 }
 
-/* A cell that slides one cell, not a pill switch — the page has no other
-   rounded corner, and a moving square is the field's own vocabulary. */
+/* A 30×17 pill with a 13px knob. The knob is inset 2px on every side, so its
+   diameter falls out of the height and the slide is what's left: 30 − 13 − 4
+   = 13px. 160ms is a touch slower than a hover — the throw wants to read as a
+   thrown switch, not a state that merely blinked over. */
 .track {
   flex: none;
   position: relative;
-  width: calc(var(--cell) * 2);
-  height: var(--cell);
+  width: 30px;
+  height: 17px;
   background: var(--line);
-  transition: background var(--t-hover) var(--ease);
+  border-radius: 999px;
+  transition: background 160ms var(--ease);
 }
 
 .toggle.on .track {
@@ -1490,13 +1493,14 @@ input {
   position: absolute;
   inset-block: 2px;
   inset-inline-start: 2px;
-  width: calc(var(--cell) - 4px);
+  width: 13px;
+  border-radius: 50%;
   background: var(--paper);
-  transition: translate var(--t-hover) var(--ease);
+  transition: translate 160ms var(--ease);
 }
 
 .toggle.on .track i {
-  translate: var(--cell) 0;
+  translate: 13px 0;
 }
 
 /* Sliders ------------------------------------------------------------------
