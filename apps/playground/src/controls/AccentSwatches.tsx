@@ -63,6 +63,38 @@ function hexToHsv(hex: string): Hsv {
   return { h, s: s * 100, v: max * 100 }
 }
 
+// The check on the selected swatch has to read against the swatch's own colour,
+// so pick its ink from that colour's perceived luminance rather than hardcoding
+// one per chip: dark ink on the light end, panel-white on the dark. ITU-601
+// weights, threshold at the midpoint — mid grey lands just light enough to take
+// the dark check, which holds more contrast on it than white would.
+function checkInk(hex: string): string {
+  const m = /^#?([0-9a-fA-F]{6})$/.exec(hex.trim())
+  if (!m?.[1]) return 'var(--paper)'
+  const int = parseInt(m[1], 16)
+  const r = (int >> 16) & 255
+  const g = (int >> 8) & 255
+  const b = int & 255
+  const luma = (r * 299 + g * 587 + b * 114) / 1000
+  return luma >= 128 ? 'var(--ink)' : 'var(--paper)'
+}
+
+// A short, centred check. 12px, drawn on the swatch so it never clips.
+function Check({ color }: { color: string }) {
+  return (
+    <svg className="swatch-check" viewBox="0 0 12 12" aria-hidden="true" style={{ color }}>
+      <path
+        d="M2.5 6.5 5 9l4.5-5.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
 /**
  * Pick a colour without leaving the panel.
  *
@@ -153,24 +185,29 @@ export function AccentSwatches({ value, onChange }: Props) {
   const hueColor = hsvToHex({ h: hsv.h, s: 100, v: 100 })
 
   // The picker is the active source when the value belongs to none of the
-  // swatches — then the "+" chip, not a swatch, wears the selection ring.
+  // swatches — then the "+" chip, not a swatch, carries the on state.
   const custom = !ACCENTS.some((a) => a.hex.toLowerCase() === value.toLowerCase())
 
   return (
     <div className="accent">
       <div className="swatches" role="radiogroup" aria-label="Accent">
-        {ACCENTS.map((a) => (
-          <button
-            key={a.hex}
-            type="button"
-            role="radio"
-            aria-checked={a.hex.toLowerCase() === value.toLowerCase()}
-            aria-label={a.label}
-            className={`swatch${a.hex.toLowerCase() === value.toLowerCase() ? ' is-on' : ''}`}
-            style={{ background: a.hex }}
-            onClick={() => onChange(a.hex)}
-          />
-        ))}
+        {ACCENTS.map((a) => {
+          const on = a.hex.toLowerCase() === value.toLowerCase()
+          return (
+            <button
+              key={a.hex}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              aria-label={a.label}
+              className={`swatch${on ? ' is-on' : ''}`}
+              style={{ background: a.hex }}
+              onClick={() => onChange(a.hex)}
+            >
+              {on ? <Check color={checkInk(a.hex)} /> : null}
+            </button>
+          )
+        })}
 
         {/* The way out. Dashed, not filled — it is not a colour, it is the
             door to all of them. */}

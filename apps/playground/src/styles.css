@@ -1821,12 +1821,13 @@ input {
   gap: 8px;
 }
 
-/* Look kept the same 8px step through its own stack — label to select, select
-   to swatch row — so it reads at the density of Pointer and Field above it
-   rather than breathing wider than either. Overrides the group's shared
-   * + * rhythm for this section only. */
+/* One step through the whole stack — label to select, select to swatch row —
+   set to 12px so the swatches sit clear of the select and read as their own
+   control rather than as a tail of it. Both gaps move together, so the section
+   keeps a single rhythm instead of three different measures. Overrides the
+   group's shared * + * for this section only. */
 .group[aria-label='Look'] > * + * {
-  margin-top: 8px;
+  margin-top: 12px;
 }
 
 /* Five neutral quick picks and a door to the rest. Spaced, not tiled: each is
@@ -1856,10 +1857,11 @@ input {
    like objects rather than one outlined and four bare. At 0.14 it is plain
    against the paper on the light end and all but gone on the dark, but the
    geometry is identical across the row, which is the point. box-sizing keeps
-   the border inside the 26×22, and the selection ring below draws inside it —
-   border at the outer edge, panel-coloured gap then ink within. */
+   the border inside the 26×22; the selection check is drawn centred within. */
 .swatch {
   box-sizing: border-box;
+  display: grid;
+  place-items: center;
   border: 1px solid rgba(0, 0, 0, 0.14);
 }
 
@@ -1878,14 +1880,24 @@ input {
   scale: 0.96;
 }
 
-/* Drawn inside the tile, not around it: a panel-coloured gap then ink reads
-   exactly like an offset outline, but can never clip against the scroll
-   container the swatch row sits flush against. */
-.swatch.is-on,
+/* Selection is a check drawn on the swatch, not a ring around it. A ring had to
+   thread a gap between the fill and the border, which vanished on white where
+   the gap and the paper were the same colour; the check states "chosen" outright
+   and, sitting inside the tile, can never clip against the scroll container. Its
+   colour is chosen per swatch from that swatch's own luminance (see the button),
+   so it stays legible on white and on near-black alike. The outer border stays. */
+.swatch-check {
+  width: 12px;
+  height: 12px;
+  pointer-events: none;
+}
+
+/* The "+" has no fill to carry a check, so its active state reads through the
+   border and glyph instead — the same ink emphasis the hover and open states
+   use, held on while the picker is the source. */
 .swatch-add.is-on {
-  box-shadow:
-    inset 0 0 0 2px #f6f5f2,
-    inset 0 0 0 3.5px #1a1815;
+  border-color: var(--ink);
+  color: var(--ink);
 }
 
 /* The door to every other colour: dashed, because it is not a colour itself
