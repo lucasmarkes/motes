@@ -1320,14 +1320,30 @@ input {
   overscroll-behavior: contain;
   padding-bottom: 20px;
   mask-image: linear-gradient(to bottom, #000 calc(100% - 20px), transparent 100%);
+  /* Firefox: thin, and a thumb low enough in contrast to sit under the
+     controls rather than beside them. */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.14) transparent;
 }
 
+/* A 5px overlay-style bar: no track, a rounded low-contrast thumb, and a
+   touch more ink only while the cursor is on it. The panel is 322px of
+   controls — the scrollbar's job is to be reachable, not to be seen. */
 .panel-scroll::-webkit-scrollbar {
-  width: 6px;
+  width: 5px;
+}
+
+.panel-scroll::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .panel-scroll::-webkit-scrollbar-thumb {
-  background: var(--line);
+  background: rgba(0, 0, 0, 0.14);
+  border-radius: 999px;
+}
+
+.panel-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.24);
 }
 
 /* Pinned to the foot of the panel. */
