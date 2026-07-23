@@ -1,6 +1,6 @@
 {
   "name": "@lucasmarkes/motes",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Procedural, pointer-reactive ASCII fields for the web",
   "license": "MIT",
   "type": "module",
@@ -33,6 +33,7 @@
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:browser": "node test/diagnostics.browser.mjs",
     "clean": "rm -rf dist .turbo"
   },
   "devDependencies": {

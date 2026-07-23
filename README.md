@@ -121,6 +121,28 @@ reproduces the reference calibration exactly.
 
 Requires WebGL2.
 
+## Troubleshooting
+
+Two CSS traps turn a working renderer into a blank page. Both look like a bug in
+motes; neither is. In development the field detects each one and prints a
+one-time console warning naming the exact fix — this is what those say.
+
+**The field sits tiny in a corner.** `<canvas>` is a replaced element with an
+intrinsic 300×150 size, so pinning alone — `fixed inset-0`, `absolute inset-0` —
+does not stretch it: with `width: auto` the inset equation is over-constrained
+and the intrinsic size wins. Add `h-full w-full` (or `width: 100%; height:
+100%`) and it fills the box you pinned it to.
+
+**The field draws but nothing shows, behind a negative z-index.** Once `<html>`
+*and* `<body>` both carry a background colour, `<body>`'s stops propagating to
+the viewport and paints as an ordinary block background — above anything at a
+negative z-index. Keep the background on exactly one of them, or drop the
+negative z-index and stack your content above instead.
+
+Both warnings are development-only and compile out of production builds. If a
+layout is deliberate, silence its warning with `<canvas data-motes-quiet>` — the
+React wrapper forwards the attribute.
+
 ## Packages
 
 | Path | Package | What it is |

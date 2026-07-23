@@ -50,6 +50,22 @@ The field reads the pointer from `window` and hit-tests the canvas box, so
 `pointer-events: none` keeps clicks flowing to whatever sits on top without
 costing you any reactivity.
 
+## Troubleshooting
+
+Two CSS traps turn a working renderer into a blank page. In development the
+field detects each and prints a one-time console warning with the exact fix.
+
+- **Field is tiny in a corner.** Pinning alone does not stretch a `<canvas>`
+  past its intrinsic 300×150 — add `h-full w-full` (see *Behaviour* above).
+- **Field draws but nothing shows, behind `-z-10`.** When `<html>` and `<body>`
+  both carry a background colour, `<body>`'s stops propagating to the viewport
+  and paints above a negative z-index. Keep the background on exactly one of
+  them, or drop the negative z-index.
+
+Both warnings are development-only and compile out of production builds. If the
+layout is deliberate, pass `data-motes-quiet` — the component forwards it to the
+canvas: `<Motes data-motes-quiet … />`.
+
 ## Ref
 
 ```tsx

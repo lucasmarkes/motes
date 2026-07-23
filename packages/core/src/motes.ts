@@ -1,5 +1,6 @@
 import { buildGlyphAtlas, validateCharset } from './atlas'
 import { parseHexColor, type RGB } from './color'
+import { diagnose } from './diagnostics'
 import { getEffect, listEffects } from './effects/registry'
 import { createRenderer, type Renderer } from './renderer/gl'
 import { createPointer, type PointerController } from './renderer/pointer'
@@ -17,6 +18,39 @@ const MAX_DPR = 2
  * the field would smear into a solid wash. Ported from the prototype.
  */
 const MIN_FADE = 0.08
+
+/**
+ * How long to wait, after a box is first measured, before running diagnostics.
+ * Tailwind's JIT, Vite's dev style injection, and web fonts all land after
+ * first paint, so a mount-time check false-positives constantly. Every resize
+ * re-arms this, so late CSS resets the clock instead of tripping it. Waiting
+ * costs nothing; a false positive costs the whole feature.
+ */
+const ARM_DELAY_MS = 1000
+
+// The diagnostics gate reads process.env.NODE_ENV as a bare literal so a
+// consumer's bundler can substitute and dead-code-eliminate it. TypeScript
+// needs to believe `process` exists; the runtime guard below handles the case
+// where it does not.
+declare const process: { env: Record<string, string | undefined> }
+
+/**
+ * Diagnostics are development-only. A bundler replaces the literal
+ * `process.env.NODE_ENV` → `"production" !== "production"` → `false`, and the
+ * whole diagnostic path is eliminated from production builds. But `process` is
+ * undefined in raw browser ESM — a CDN `<script type="module">` user — where
+ * touching it throws a ReferenceError, fatal for a zero-dependency browser
+ * library. The read is wrapped so that user still gets help. Writing
+ * `process.env?.NODE_ENV` instead would defeat the bundler substitution, which
+ * matches the exact literal. Evaluated once, at module load.
+ */
+const NOISY = (() => {
+  try {
+    return process.env.NODE_ENV !== 'production'
+  } catch {
+    return true
+  }
+})()
 
 /** Monospace advance is roughly 0.6em, so cells are taller than they are wide. */
 function cellSize(density: number): { w: number; h: number } {
@@ -82,6 +116,51 @@ export function createMotes(
   let startTime = 0
   let lastTime = 0
 
+  // Diagnostics fire at most once per instance, after the box has held still
+  // for ARM_DELAY_MS. `armed` is the pending timer; every measure() re-arms it.
+  let diagnosed = false
+  let armed: ReturnType<typeof setTimeout> | null = null
+
+  /**
+   * Read the live box and stacking context, and hand pure measurements to
+   * `diagnose`. The DOM read lives here because jsdom has no layout engine —
+   * the logic it feeds is unit-tested, this glue is covered in the browser.
+   */
+  function runDiagnostics(): void {
+    if (diagnosed || destroyed) return
+    diagnosed = true
+
+    const cs = getComputedStyle(canvas)
+    const root = document.documentElement
+    // The containing block the inset resolves against: the offsetParent for an
+    // absolute canvas, the viewport (documentElement) for a fixed one.
+    const container = (canvas.offsetParent as HTMLElement | null) ?? root
+
+    const result = diagnose({
+      clientWidth: canvas.clientWidth,
+      clientHeight: canvas.clientHeight,
+      position: cs.position,
+      left: cs.left,
+      right: cs.right,
+      top: cs.top,
+      bottom: cs.bottom,
+      zIndex: cs.zIndex,
+      containerWidth: container.clientWidth,
+      containerHeight: container.clientHeight,
+      htmlBg: getComputedStyle(root).backgroundColor,
+      bodyBg: getComputedStyle(document.body).backgroundColor,
+      quiet: canvas.hasAttribute('data-motes-quiet'),
+    })
+
+    if (result) console.warn(result.message)
+  }
+
+  function armDiagnostics(): void {
+    if (!NOISY || diagnosed) return
+    if (armed) clearTimeout(armed)
+    armed = setTimeout(runDiagnostics, ARM_DELAY_MS)
+  }
+
   function rebuildAtlas(): void {
     const { w, h } = cellSize(options.density)
     renderer.setAtlas(buildGlyphAtlas(options.charset, w, h, dpr))
@@ -106,6 +185,9 @@ export function createMotes(
     renderer.resize(Math.floor(cssW * dpr), Math.floor(cssH * dpr))
     // The box just moved or changed size; the pointer hit-test depends on it.
     pointer.refreshRect()
+    // Non-zero box in hand: (re-)arm diagnostics. Late CSS that resizes the
+    // canvas lands here through the ResizeObserver and resets the clock.
+    armDiagnostics()
     return dprChanged
   }
 
@@ -243,6 +325,8 @@ export function createMotes(
       running = false
       cancelAnimationFrame(raf)
       raf = 0
+      if (armed) clearTimeout(armed)
+      armed = null
       observer.disconnect()
       dprQuery?.removeEventListener('change', onDprChange)
       dprQuery = null

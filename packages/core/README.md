@@ -93,6 +93,23 @@ import { Motes } from '@lucasmarkes/motes-react'
 <Motes effect="flow" pointer className="fixed inset-0 -z-10 h-full w-full pointer-events-none" />
 ```
 
+## Troubleshooting
+
+Two CSS traps turn a working renderer into a blank page. In development the
+field detects each and prints a one-time console warning with the exact fix.
+
+- **Field is tiny in a corner.** `<canvas>` has an intrinsic 300×150 size, so
+  pinning alone (`fixed inset-0`) does not stretch it — `width: auto` leaves the
+  inset equation over-constrained and the intrinsic size wins. Add `width: 100%;
+  height: 100%`.
+- **Field draws but nothing shows, behind a negative z-index.** When `<html>`
+  and `<body>` both have a background colour, `<body>`'s stops propagating to
+  the viewport and paints above a negative z-index. Keep the background on
+  exactly one of them, or drop the negative z-index.
+
+Both warnings are development-only and compile out of production builds. Silence
+a deliberate layout with `<canvas data-motes-quiet>`.
+
 ## Notes
 
 Requires WebGL2. Pointer events are read from the window and hit-tested against
