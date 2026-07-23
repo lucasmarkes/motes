@@ -18,6 +18,14 @@ import { join } from 'node:path'
 const PACKAGES = ['packages/core', 'packages/react']
 const CORE = '@lucasmarkes/motes'
 
+// CI runs this gate on every PR to catch a bad manifest edit before it ever
+// reaches a tag. Those runs are unauthenticated and have no business touching
+// the registry, so --static skips the two sections that reach the network:
+// npm auth and the registry name check. Everything that validates the built
+// tarballs — workspace: ranges, core's dependency-freedom, inlined shaders,
+// matched versions — still runs.
+const STATIC = process.argv.includes('--static') || process.env.MOTES_GATE_STATIC === '1'
+
 let failures = 0
 const fail = (msg) => {
   failures++
@@ -162,11 +170,15 @@ versions.size === 1
 
 console.log('\n▸ npm auth')
 let whoami = null
-try {
-  whoami = run('npm', ['whoami'], { stdio: 'pipe' }).trim()
-  pass(`logged in as ${whoami}`)
-} catch {
-  note('not logged in (run `npm login` before publishing)')
+if (STATIC) {
+  note('skipped (--static): this run has no registry access')
+} else {
+  try {
+    whoami = run('npm', ['whoami'], { stdio: 'pipe' }).trim()
+    pass(`logged in as ${whoami}`)
+  } catch {
+    note('not logged in (run `npm login` before publishing)')
+  }
 }
 
 /**
@@ -197,6 +209,9 @@ try {
  * someone else — it reports the package's access level, not your permission.
  */
 console.log('\n▸ name')
+if (STATIC) {
+  note('skipped (--static): registry name check needs network + auth')
+} else
 for (const name of names) {
   const scope = name.startsWith('@') ? name.slice(1, name.indexOf('/')) : null
 

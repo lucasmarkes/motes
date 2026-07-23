@@ -1,0 +1,78 @@
+name: Publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+  # Required for npm provenance: the OIDC token npm exchanges for a signed
+  # attestation of where and how these tarballs were built.
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    # Gates the job behind the protected `release` environment: a required
+    # reviewer must approve before any step runs, and NPM_TOKEN is scoped to
+    # this environment so a tag push alone can't reach the registry.
+    environment: release
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      # registry-url writes an .npmrc wired to NODE_AUTH_TOKEN, so both the
+      # gate's `npm whoami` and the publish below authenticate with NPM_TOKEN.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # Refuse to publish unless the pushed tag matches BOTH manifests. The gate
+      # separately proves the two packages share one version; this ties that
+      # version to the tag that triggered the run.
+      - name: Verify tag matches manifest versions
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          CORE="$(node -p "require('./packages/core/package.json').version")"
+          REACT="$(node -p "require('./packages/react/package.json').version")"
+          echo "tag=$TAG  core=$CORE  react=$REACT"
+          if [ "$TAG" != "$CORE" ] || [ "$TAG" != "$REACT" ]; then
+            echo "::error::Tag v$TAG does not match manifest versions (core=$CORE, react=$REACT). Refusing to publish."
+            exit 1
+          fi
+          echo "VERSION=$TAG" >> "$GITHUB_ENV"
+
+      # The full gate: build, typecheck, test, pack, inspect the tarballs, and —
+      # because this run is authenticated — the npm auth and registry-name
+      # checks too. It packs but never publishes. If anything fails, the job
+      # stops before a single tarball reaches the registry.
+      - name: Release gate (full)
+        run: pnpm run release
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # pnpm pack rewrites the wrapper's `workspace:^` to a real `^$VERSION`
+      # range — the resolution npm itself cannot do. We then hand those exact
+      # tarballs to `npm publish`, which pnpm@10.20 can't do with provenance but
+      # npm can. Core first: the wrapper depends on @lucasmarkes/motes@^$VERSION.
+      - name: Publish with provenance
+        run: |
+          STAGING="$(mktemp -d)"
+          pnpm -C packages/core pack --pack-destination "$STAGING"
+          pnpm -C packages/react pack --pack-destination "$STAGING"
+
+          CORE_TGZ="$STAGING/lucasmarkes-motes-${VERSION}.tgz"
+          REACT_TGZ="$STAGING/lucasmarkes-motes-react-${VERSION}.tgz"
+
+          npm publish "$CORE_TGZ"  --provenance --access public
+          npm publish "$REACT_TGZ" --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

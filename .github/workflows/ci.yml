@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A newer push to the same branch/PR cancels the in-flight run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Corepack activates the exact pnpm pinned in package.json's
+      # packageManager field (pnpm@10.20.0) — no version drift with local.
+      - name: Enable Corepack
+        run: corepack enable
+
+      # engines.node is ">=18"; 20 is the active LTS that satisfies it and
+      # matches the local toolchain. cache:pnpm keys the store on the lockfile.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      # The full unit suite: 30 core + 14 react + 13 playground, all headless
+      # (node / jsdom). No browser install needed — see note below.
+      - name: Test
+        run: pnpm test
+
+      # The release gate's static half: no unresolved workspace: ranges, core
+      # stays dependency-free, shaders are inlined, versions match across
+      # packages. --static skips the auth + registry-name checks that need a
+      # network and a token. Run via pnpm so the gate's own "under pnpm" guard
+      # passes. build/typecheck/test inside the gate replay from the turbo
+      # cache the steps above populated, so this adds pack + tarball inspection,
+      # not a second full run. A bad manifest edit fails the PR here instead of
+      # surfacing at publish time.
+      - name: Release gate (static checks)
+        run: pnpm run release --static

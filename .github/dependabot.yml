@@ -1,0 +1,10 @@
+version: 2
+updates:
+  # GitHub Actions only. This is where silent staleness and supply-chain risk
+  # live — a pinned action can drift for months without anyone noticing. The
+  # npm ecosystem is deliberately omitted: core is zero-dependency and the rest
+  # is devDependencies, so weekly type-bump PRs would be noise, not signal.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
