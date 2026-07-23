@@ -1373,21 +1373,28 @@ input {
   margin: var(--s2) 0;
 }
 
+/* A recessed track with the active choice as a filled pill riding inside it,
+   rather than three bordered cells. The 2px of padding is the inset that
+   makes the track read as carved into the paper; the pill's radius is the
+   track's less that padding, so its corners sit concentric with the track's. */
 .seg {
   display: flex;
-  border: 1px solid var(--line);
+  gap: 2px;
+  padding: 2px;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 5px;
 }
 
 .seg button {
   flex: 1;
-  min-height: 40px;
+  min-height: 30px;
   padding: 0;
   font-family: var(--mono);
   font-size: var(--fs-fine);
-  background: var(--paper-2);
+  background: transparent;
   color: var(--ink-2);
   border: 0;
-  border-inline-end: 1px solid var(--line);
+  border-radius: 3px;
   cursor: pointer;
   transition:
     background var(--t-hover) var(--ease),
@@ -1395,13 +1402,10 @@ input {
     scale var(--t-press) var(--ease);
 }
 
-.seg button:last-child {
-  border-inline-end: 0;
-}
-
-.seg button:hover {
+/* Only the inactive items respond to hover — the active pill is already the
+   darkest thing here, so a hover state on it would only be noise. */
+.seg button:not(.on):hover {
   color: var(--ink);
-  background: var(--paper);
 }
 
 .seg button:active {
