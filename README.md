@@ -139,6 +139,9 @@ pnpm test
 pnpm dev        # playground at localhost:5173
 ```
 
+Adding an effect, the repo layout, and the golden rule that keeps every effect
+pointer-blind: [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
 Publishing runs through a gate that builds, tests, packs, and inspects the
 tarballs before printing the publish commands:
 
