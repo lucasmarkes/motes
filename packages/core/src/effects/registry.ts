@@ -34,14 +34,28 @@ export function listEffects(): string[] {
 }
 
 /**
- * Unregister an effect. Returns whether the name was present. Used to prune the
- * uniquely-named effects the Lab compiles on every edit, so the registry does
- * not grow for the length of a session. A no-op for an unknown name.
+ * Unregister an effect. Returns whether the name was present; a no-op for an
+ * unknown name. Removing a built-in would break the library at runtime for
+ * every consumer, so it is refused unless you pass `{ override: true }`.
+ *
+ * Used to prune the uniquely-named effects the Lab compiles on every edit, so
+ * the registry does not grow for the length of a session. It frees no GPU
+ * resources: the compiled program is owned by the renderer and released when
+ * the effect is swapped out or the instance is destroyed, not here.
  */
-export function removeEffect(name: EffectName): boolean {
+export function removeEffect(name: EffectName, options?: { override?: boolean }): boolean {
+  if (BUILTINS.has(name) && !options?.override) {
+    throw new Error(
+      `[motes] removeEffect("${name}"): "${name}" is a built-in effect; pass { override: true } to remove it anyway`,
+    )
+  }
   return effects.delete(name)
 }
 
 defineEffect('flow', { glsl: flowGlsl })
 defineEffect('waves', { glsl: wavesGlsl })
 defineEffect('pulse', { glsl: pulseGlsl })
+
+// The shipped names, snapshotted from exactly what was registered above, so the
+// protected set can never drift from the built-ins it guards.
+const BUILTINS = new Set(effects.keys())
