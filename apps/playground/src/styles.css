@@ -1284,7 +1284,11 @@ input {
   right: var(--s2);
   bottom: var(--s2);
   z-index: 6;
-  width: 322px;
+  /* Wide enough that the React snippet's longest line — the import, and the
+     className string as it wraps — never breaks a token. At 12px mono the
+     import runs ~48 characters; this clears it with a few to spare, so
+     word-break stays the last resort it is meant to be. */
+  width: 430px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1327,7 +1331,7 @@ input {
 }
 
 /* A 5px overlay-style bar: no track, a rounded low-contrast thumb, and a
-   touch more ink only while the cursor is on it. The panel is 322px of
+   touch more ink only while the cursor is on it. The panel is 430px of
    controls — the scrollbar's job is to be reachable, not to be seen. */
 .panel-scroll::-webkit-scrollbar {
   width: 5px;
@@ -1404,9 +1408,9 @@ input {
 }
 
 /* A recessed track with the active choice as a filled pill riding inside it,
-   rather than three bordered cells. The 2px of padding is the inset that
-   makes the track read as carved into the paper; the pill's radius is the
-   track's less that padding, so its corners sit concentric with the track's. */
+   rather than three bordered cells. The 2px of padding is the inset that makes
+   the track read as carved into the paper; the track rounds to 5px and the
+   pill inside it to 4px, on the panel's shared radius scale. */
 .seg {
   display: flex;
   gap: 2px;
@@ -1424,7 +1428,7 @@ input {
   background: transparent;
   color: var(--ink-2);
   border: 0;
-  border-radius: 3px;
+  border-radius: 4px;
   cursor: pointer;
   transition:
     background var(--t-hover) var(--ease),
@@ -1464,6 +1468,7 @@ input {
   padding: var(--s1) var(--s2);
   background: var(--paper-2);
   border: 1px solid var(--line);
+  border-radius: 5px;
   cursor: pointer;
   text-align: start;
   transition:
@@ -1685,6 +1690,7 @@ input {
   text-align: start;
   background: var(--paper-2);
   border: 1px solid var(--line);
+  border-radius: 5px;
   color: var(--ink);
   cursor: pointer;
   transition:
@@ -1743,6 +1749,10 @@ input {
   list-style: none;
   background: var(--paper);
   border: 1px solid var(--ink-3);
+  border-radius: 5px;
+  /* Clips the option rows to the menu's rounded corners, so the top and
+     bottom options do not square off the box they sit in. */
+  overflow: hidden;
   box-shadow:
     0 1px 1px oklch(0 0 0 / 0.08),
     0 8px 20px oklch(0 0 0 / 0.14);
@@ -1766,6 +1776,7 @@ input {
 
 .pick-opt {
   border: 0;
+  border-radius: 0;
   background: none;
 }
 
@@ -1796,8 +1807,9 @@ input {
 
 .swatch,
 .swatch-add {
-  flex: 1;
-  min-height: 26px;
+  flex: none;
+  width: 26px;
+  height: 22px;
   padding: 0;
   border-radius: 4px;
   cursor: pointer;
@@ -1862,7 +1874,7 @@ input {
 .sv-area {
   position: relative;
   width: 100%;
-  height: 104px;
+  height: 100px;
   border-radius: 4px;
   cursor: crosshair;
   touch-action: none;
@@ -2035,6 +2047,7 @@ input {
   background: var(--ink);
   padding: var(--s2);
   overflow-x: auto;
+  border-radius: 5px;
   font-size: var(--fs-code);
   line-height: 1.7;
 }
