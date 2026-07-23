@@ -1930,7 +1930,7 @@ input {
   font-size: var(--fs-micro);
   background: none;
   border: 0;
-  box-shadow: inset 0 -2px 0 transparent;
+  box-shadow: inset 0 -1.5px 0 transparent;
   color: var(--ink-3);
   cursor: pointer;
   transition:
@@ -1949,7 +1949,7 @@ input {
 
 .code .tabs button.on {
   color: var(--ink);
-  box-shadow: inset 0 -2px 0 var(--ink);
+  box-shadow: inset 0 -1.5px 0 var(--ink);
 }
 
 /* Matches `.code .tabs button`'s specificity — a bare `.code .copy` loses to
@@ -1957,12 +1957,48 @@ input {
 .code .tabs button.copy {
   margin-inline-start: auto;
   padding-inline: var(--s2);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s1);
   color: var(--ink-2);
 }
 
-/* Right-anchored against the panel edge, so the shorter label ends flush. */
+/* Icon then label now, left to right, so the label reads from the icon. */
 .code .tabs button.copy .swap {
-  justify-items: end;
+  justify-items: start;
+}
+
+/* The copy mark, stacked on the check it becomes — one cell, both svgs on
+   top of each other, so the button's width never moves as they cross-fade.
+   180ms and a blur, longer than a hover: one mark becoming another, not a
+   state that blinked. The copied state reverts after 1.4s from Panel.tsx. */
+.copy-icon {
+  display: grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+}
+
+.copy-icon svg {
+  grid-area: 1 / 1;
+  width: 14px;
+  height: 14px;
+  transition:
+    opacity 180ms var(--ease),
+    scale 180ms var(--ease),
+    filter 180ms var(--ease);
+}
+
+.copy-icon .is-in {
+  opacity: 1;
+  scale: 1;
+  filter: blur(0);
+}
+
+.copy-icon .is-out {
+  opacity: 0;
+  scale: 0.25;
+  filter: blur(4px);
 }
 
 .code pre {
@@ -1976,7 +2012,12 @@ input {
 .code code {
   font-family: var(--mono);
   color: oklch(0.74 0.008 258);
-  white-space: pre;
+  /* Wrap rather than clip: a long className used to run off the right edge and
+     under the panel's shadow, out of reach because the block does not scroll
+     on its own. pre-wrap keeps the indentation; word-break lets a single long
+     token fold instead of forcing the overflow back. */
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 /* Four steps of lightness carrying what four hues used to, ranked by what the

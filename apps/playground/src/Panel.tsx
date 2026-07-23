@@ -3,6 +3,7 @@ import type { MotesOptions } from '@lucasmarkes/motes'
 import { CATALOG } from './effects'
 import { highlight, snippetFor, type Tab } from './snippet'
 import { navigate } from './router'
+import { CheckIcon, CopyIcon } from './icons'
 import { Swap } from './Swap'
 import { Slider } from './controls/Slider'
 import { CharsetSelect } from './controls/CharsetSelect'
@@ -165,6 +166,10 @@ export function Panel({ config, onChange }: PanelProps) {
             </button>
           ))}
           <button type="button" className="copy" onClick={copy}>
+            <span className="copy-icon" aria-hidden="true">
+              <CopyIcon className={copied ? 'is-out' : 'is-in'} />
+              <CheckIcon className={copied ? 'is-in' : 'is-out'} />
+            </span>
             <Swap on="Copied" off="Copy" active={copied} />
           </button>
         </div>
