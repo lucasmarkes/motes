@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import type { MotesOptions } from '@lucasmarkes/motes'
 import { CATALOG } from './effects'
 import { highlight, snippetFor, type Tab } from './snippet'
@@ -27,8 +27,30 @@ interface PanelProps {
 export function Panel({ config, onChange }: PanelProps) {
   const [tab, setTab] = useState<Tab>('react')
   const [copied, setCopied] = useState(false)
+  const tabsRef = useRef<HTMLDivElement>(null)
+
+  // The underline is one line that slides between two labels of unequal width,
+  // so it has to be measured rather than assumed. It rides on transform alone —
+  // a 1px base translated to the active tab and scaled to its width — so the
+  // slide stays on the GPU and never animates layout. Runs before paint, so the
+  // first frame already has it placed; the transition only bites on a change.
+  useLayoutEffect(() => {
+    const list = tabsRef.current
+    const active = list?.querySelector<HTMLElement>('[role="tab"].on')
+    if (!list || !active) return
+    list.style.setProperty('--u-x', `${active.offsetLeft}px`)
+    list.style.setProperty('--u-w', `${active.offsetWidth}`)
+  }, [tab])
 
   const code = snippetFor(tab, config)
+
+  // The active cell's index drives the sliding pill below. Clamped, because a
+  // config can carry an effect that is not in the catalog — the pill then rests
+  // under the first cell, which is also what the buttons fall back to.
+  const activeEffect = Math.max(
+    0,
+    CATALOG.findIndex((entry) => entry.id === config.effect),
+  )
 
   async function copy() {
     try {
@@ -47,7 +69,16 @@ export function Panel({ config, onChange }: PanelProps) {
       <div className="panel-scroll">
         <section className="group" aria-label="Effect">
           <p className="eyebrow">Effect</p>
-          <div className="seg" role="group" aria-label="Effect">
+          <div
+            className="seg"
+            role="group"
+            aria-label="Effect"
+            style={
+              { '--seg-n': CATALOG.length, '--seg-i': activeEffect } as CSSProperties
+            }
+          >
+            {/* One pill that rides between the cells, behind the labels. */}
+            <span className="seg-pill" aria-hidden="true" />
             {CATALOG.map((entry) => (
               <button
                 key={entry.id}
@@ -152,7 +183,7 @@ export function Panel({ config, onChange }: PanelProps) {
       </div>
 
       <section className="code">
-        <div className="tabs" role="tablist" aria-label="Code">
+        <div className="tabs" role="tablist" aria-label="Code" ref={tabsRef}>
           {(['react', 'core'] as Tab[]).map((t) => (
             <button
               key={t}
@@ -172,6 +203,8 @@ export function Panel({ config, onChange }: PanelProps) {
             </span>
             <Swap on="Copied" off="Copy" active={copied} />
           </button>
+          {/* Slides under the active tab; measured in the layout effect above. */}
+          <span className="tab-underline" aria-hidden="true" />
         </div>
         <pre>
           <code>

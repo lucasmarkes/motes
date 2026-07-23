@@ -1415,6 +1415,7 @@ input {
    the track read as carved into the paper; the track rounds to 5px and the
    pill inside it to 4px, on the panel's shared radius scale. */
 .seg {
+  position: relative;
   display: flex;
   gap: 2px;
   padding: 2px;
@@ -1422,7 +1423,27 @@ input {
   border-radius: 5px;
 }
 
+/* The active choice is one object that moves, not a fill that fades in under
+   the new cell while fading out under the old. The eye follows a single pill
+   from where it was to where it's going; a crossfade only ever shows two.
+   Cells are equal-width flex, so the geometry is pure arithmetic: the pill is
+   one cell wide, and each step is a cell plus the 2px gap — expressed as a
+   percentage of the pill's own width so it needs no measuring. */
+.seg-pill {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 2px;
+  width: calc((100% - 4px - (var(--seg-n) - 1) * 2px) / var(--seg-n));
+  background: var(--ink);
+  border-radius: 4px;
+  transform: translateX(calc(var(--seg-i) * (100% + 2px)));
+  transition: transform 180ms var(--ease);
+}
+
 .seg button {
+  position: relative;
+  z-index: 1;
   flex: 1;
   min-height: 30px;
   padding: 0;
@@ -1434,7 +1455,6 @@ input {
   border-radius: 4px;
   cursor: pointer;
   transition:
-    background var(--t-hover) var(--ease),
     color var(--t-hover) var(--ease),
     scale var(--t-press) var(--ease);
 }
@@ -1455,8 +1475,9 @@ input {
   outline-offset: -2px;
 }
 
+/* The fill is the sliding pill behind it now; the active cell only lifts its
+   label to read against the ink. */
 .seg button.on {
-  background: var(--ink);
   color: var(--paper);
 }
 
@@ -1839,8 +1860,14 @@ input {
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
 }
 
-.swatch:hover {
-  scale: 1.08;
+/* Behind a hover query: on a touch screen `:hover` sticks to the last-tapped
+   tile, which would leave a swatch frozen at 1.08 until something else was
+   tapped. The press scale below stays ungated — it keys off :active, which
+   touch fires and releases correctly. */
+@media (hover: hover) and (pointer: fine) {
+  .swatch:hover {
+    scale: 1.08;
+  }
 }
 
 .swatch:active,
@@ -1977,10 +2004,29 @@ input {
 /* Code --------------------------------------------------------------------*/
 
 .code .tabs {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--s2);
   margin-bottom: var(--s1);
+}
+
+/* The active mark is one underline that travels, not a box-shadow fading out
+   under one tab and in under the other. A 1px base pinned to the row's foot,
+   translated to the active tab and scaled to its width from the left edge —
+   transform only, so it rides the GPU and drops the old paint-property fade.
+   The x/width come from the layout effect in Panel; the fallbacks place it
+   under the first tab for the frame before that runs. */
+.tab-underline {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 1px;
+  height: 1.5px;
+  background: var(--ink);
+  transform-origin: left center;
+  transform: translateX(var(--u-x, 0)) scaleX(var(--u-w, 40));
+  transition: transform 180ms var(--ease);
 }
 
 .code .tabs button {
@@ -1992,12 +2038,10 @@ input {
   font-size: var(--fs-micro);
   background: none;
   border: 0;
-  box-shadow: inset 0 -1.5px 0 transparent;
   color: var(--ink-3);
   cursor: pointer;
   transition:
     color var(--t-hover) var(--ease),
-    box-shadow var(--t-hover) var(--ease),
     scale var(--t-press) var(--ease);
 }
 
@@ -2009,9 +2053,9 @@ input {
   scale: 0.96;
 }
 
+/* The underline is the travelling mark now; the active tab only lifts to ink. */
 .code .tabs button.on {
   color: var(--ink);
-  box-shadow: inset 0 -1.5px 0 var(--ink);
 }
 
 /* Matches `.code .tabs button`'s specificity — a bare `.code .copy` loses to
@@ -2280,6 +2324,15 @@ input {
   .toggle.on .track i,
   .pick-trigger[aria-expanded='true'] .pick-chev {
     translate: none;
+  }
+
+  /* The segmented pill and the tab underline carry their position in
+     `transform`, so it can't be nulled like the travel above — nulling it
+     would drop both back to the first cell. Cut the slide instead: they still
+     land on the active choice, they just stop travelling there. */
+  .seg-pill,
+  .tab-underline {
+    transition: none;
   }
 
   /* The field's own transition is a magnification; without it the two pages
