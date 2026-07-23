@@ -1,15 +1,14 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import type { MotesOptions } from '@lucasmarkes/motes'
 import { CATALOG } from './effects'
-import { highlight, snippetFor, type Tab } from './snippet'
+import { snippetFor, type Tab } from './snippet'
 import { navigate } from './router'
-import { CheckIcon, CopyIcon } from './icons'
-import { Swap } from './Swap'
 import { Slider } from './controls/Slider'
 import { Segmented } from './controls/Segmented'
 import { Toggle } from './controls/Toggle'
 import { CharsetSelect } from './controls/CharsetSelect'
 import { AccentSwatches } from './controls/AccentSwatches'
+import { CodeOutput } from './controls/CodeOutput'
 
 interface PanelProps {
   config: MotesOptions
@@ -28,33 +27,6 @@ interface PanelProps {
  */
 export function Panel({ config, onChange }: PanelProps) {
   const [tab, setTab] = useState<Tab>('react')
-  const [copied, setCopied] = useState(false)
-  const tabsRef = useRef<HTMLDivElement>(null)
-
-  // The underline is one line that slides between two labels of unequal width,
-  // so it has to be measured rather than assumed. It rides on transform alone —
-  // a 1px base translated to the active tab and scaled to its width — so the
-  // slide stays on the GPU and never animates layout. Runs before paint, so the
-  // first frame already has it placed; the transition only bites on a change.
-  useLayoutEffect(() => {
-    const list = tabsRef.current
-    const active = list?.querySelector<HTMLElement>('[role="tab"].on')
-    if (!list || !active) return
-    list.style.setProperty('--u-x', `${active.offsetLeft}px`)
-    list.style.setProperty('--u-w', `${active.offsetWidth}`)
-  }, [tab])
-
-  const code = snippetFor(tab, config)
-
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(code)
-      setCopied(true)
-      window.setTimeout(() => setCopied(false), 1400)
-    } catch {
-      // Clipboard unavailable; the code is selectable either way.
-    }
-  }
 
   return (
     <aside className="panel" aria-label="Field controls">
@@ -150,40 +122,15 @@ export function Panel({ config, onChange }: PanelProps) {
         </section>
       </div>
 
-      <section className="code">
-        <div className="tabs" role="tablist" aria-label="Code" ref={tabsRef}>
-          {(['react', 'core'] as Tab[]).map((t) => (
-            <button
-              key={t}
-              type="button"
-              role="tab"
-              aria-selected={t === tab}
-              className={t === tab ? 'on' : ''}
-              onClick={() => setTab(t)}
-            >
-              {t === 'react' ? 'React' : 'Core'}
-            </button>
-          ))}
-          <button type="button" className="copy" onClick={copy}>
-            <span className="copy-icon" aria-hidden="true">
-              <CopyIcon className={copied ? 'is-out' : 'is-in'} />
-              <CheckIcon className={copied ? 'is-in' : 'is-out'} />
-            </span>
-            <Swap on="Copied" off="Copy" active={copied} />
-          </button>
-          {/* Slides under the active tab; measured in the layout effect above. */}
-          <span className="tab-underline" aria-hidden="true" />
-        </div>
-        <pre>
-          <code>
-            {highlight(code).map((token, i) => (
-              <span key={i} className={`t-${token.kind}`}>
-                {token.text}
-              </span>
-            ))}
-          </code>
-        </pre>
-      </section>
+      <CodeOutput
+        tabs={[
+          { id: 'react', label: 'React' },
+          { id: 'core', label: 'Core' },
+        ]}
+        active={tab}
+        onTab={(id) => setTab(id as Tab)}
+        code={snippetFor(tab, config)}
+      />
     </aside>
   )
 }

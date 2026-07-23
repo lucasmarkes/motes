@@ -1,14 +1,21 @@
-import type { MotesOptions } from '@lucasmarkes/motes'
+import { useState } from 'react'
 import { Slider } from '../controls/Slider'
 import { Segmented, type SegOption } from '../controls/Segmented'
 import { Toggle } from '../controls/Toggle'
 import { CharsetSelect } from '../controls/CharsetSelect'
 import { AccentSwatches } from '../controls/AccentSwatches'
-import type { Flow, Mask, Pattern, PresetName, StageConfig } from './pipeline'
-
-/** Everything the Lab lets you set except the field itself — the field is
- *  composed from the pipeline, not chosen from a list. */
-export type Look = Omit<MotesOptions, 'effect'>
+import { CodeOutput } from '../controls/CodeOutput'
+import {
+  DEFAULT_NAME,
+  type Flow,
+  type LabConfig,
+  type Look,
+  type Mask,
+  type Pattern,
+  type PresetName,
+  type StageConfig,
+} from './pipeline'
+import { labSource, type LabTab } from './source'
 
 const PRESET_OPTIONS: readonly SegOption<PresetName>[] = [
   { value: 'fire', label: 'fire' },
@@ -47,7 +54,16 @@ interface LabPanelProps {
   onStage: (patch: Partial<StageConfig>) => void
   look: Look
   onLook: (patch: Partial<Look>) => void
+  /** The full composition, for the two-file output at the foot of the panel. */
+  config: LabConfig
+  /** The raw name as typed — sanitized only when it reaches the generated code. */
+  onName: (name: string) => void
 }
+
+const OUTPUT_TABS = [
+  { id: 'effects', label: 'effects.ts' },
+  { id: 'app', label: 'App.tsx' },
+] as const
 
 /**
  * The composer, one group per pipeline stage.
@@ -71,7 +87,11 @@ export function LabPanel({
   onStage,
   look,
   onLook,
+  config,
+  onName,
 }: LabPanelProps) {
+  const [tab, setTab] = useState<LabTab>('effects')
+
   return (
     <aside className="panel" aria-label="Pipeline controls">
       <div className="panel-scroll">
@@ -222,7 +242,36 @@ export function LabPanel({
           <CharsetSelect value={look.charset} onChange={(charset) => onLook({ charset })} />
           <AccentSwatches value={look.accent} onChange={(accent) => onLook({ accent })} />
         </section>
+
+        <section className="group" aria-label="Name">
+          <p className="eyebrow">Name</p>
+          {/* Names the effect in both output files. Kept raw as you type —
+              sanitized only where it lands in code — so the field doesn't fight
+              the keystroke; an empty box still generates 'mine'. */}
+          <label className="name-field">
+            <span className="name-label">effect</span>
+            <input
+              type="text"
+              className="name-input"
+              value={config.name}
+              spellCheck={false}
+              autoComplete="off"
+              maxLength={24}
+              placeholder={DEFAULT_NAME}
+              onChange={(e) => onName(e.target.value)}
+              aria-label="Effect name"
+            />
+          </label>
+        </section>
       </div>
+
+      <CodeOutput
+        tabs={OUTPUT_TABS}
+        active={tab}
+        onTab={(id) => setTab(id as LabTab)}
+        code={labSource(tab, config)}
+        label="Output files"
+      />
     </aside>
   )
 }

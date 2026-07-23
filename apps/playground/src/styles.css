@@ -2016,6 +2016,46 @@ input {
   border-color: var(--ink-3);
 }
 
+/* Name --------------------------------------------------------------------
+   The one field you type into rather than drag, so it reads as a line of code
+   waiting for a word: a dim `effect` prefix, then a monospace box that becomes
+   the name in both output files. It sits at the foot of the controls, right
+   above the code it feeds. */
+
+.name-field {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+}
+
+.name-label {
+  flex: none;
+  font-family: var(--mono);
+  font-size: var(--fs-fine);
+  color: var(--ink-3);
+}
+
+.name-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 26px;
+  padding: 0 var(--s1);
+  font-family: var(--mono);
+  font-size: var(--fs-fine);
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--ink);
+}
+
+.name-input:hover {
+  border-color: var(--ink-3);
+}
+
+.name-input::placeholder {
+  color: var(--ink-3);
+}
+
 /* Code --------------------------------------------------------------------*/
 
 .code .tabs {
@@ -2125,7 +2165,13 @@ input {
 .code pre {
   background: var(--ink);
   padding: var(--s2);
-  overflow-x: auto;
+  /* Bounded, with its own scroll. The effect panel's snippet is ten lines and
+     never reaches this; the Lab's generated field is forty-plus, and left
+     unbounded it grew the pinned block until it swallowed the panel and the
+     controls above it collapsed to a sliver. Capped, the code takes a fixed
+     share of the panel and the composer keeps its room. */
+  max-height: 40vh;
+  overflow: auto;
   border-radius: 5px;
   font-size: var(--fs-code);
   line-height: 1.7;
