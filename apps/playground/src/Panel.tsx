@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import type { MotesOptions } from '@lucasmarkes/motes'
 import { CATALOG } from './effects'
 import { highlight, snippetFor, type Tab } from './snippet'
@@ -6,6 +6,8 @@ import { navigate } from './router'
 import { CheckIcon, CopyIcon } from './icons'
 import { Swap } from './Swap'
 import { Slider } from './controls/Slider'
+import { Segmented } from './controls/Segmented'
+import { Toggle } from './controls/Toggle'
 import { CharsetSelect } from './controls/CharsetSelect'
 import { AccentSwatches } from './controls/AccentSwatches'
 
@@ -44,14 +46,6 @@ export function Panel({ config, onChange }: PanelProps) {
 
   const code = snippetFor(tab, config)
 
-  // The active cell's index drives the sliding pill below. Clamped, because a
-  // config can carry an effect that is not in the catalog — the pill then rests
-  // under the first cell, which is also what the buttons fall back to.
-  const activeEffect = Math.max(
-    0,
-    CATALOG.findIndex((entry) => entry.id === config.effect),
-  )
-
   async function copy() {
     try {
       await navigator.clipboard.writeText(code)
@@ -69,50 +63,24 @@ export function Panel({ config, onChange }: PanelProps) {
       <div className="panel-scroll">
         <section className="group" aria-label="Effect">
           <p className="eyebrow">Effect</p>
-          <div
-            className="seg"
-            role="group"
-            aria-label="Effect"
-            style={
-              { '--seg-n': CATALOG.length, '--seg-i': activeEffect } as CSSProperties
-            }
-          >
-            {/* One pill that rides between the cells, behind the labels. */}
-            <span className="seg-pill" aria-hidden="true" />
-            {CATALOG.map((entry) => (
-              <button
-                key={entry.id}
-                type="button"
-                className={entry.id === config.effect ? 'on' : ''}
-                aria-pressed={entry.id === config.effect}
-                onClick={() => navigate(`/${entry.id}`)}
-              >
-                {entry.title}
-              </button>
-            ))}
-          </div>
+          <Segmented
+            label="Effect"
+            options={CATALOG.map((entry) => ({ value: entry.id, label: entry.title }))}
+            value={config.effect}
+            onChange={(id) => navigate(`/${id}`)}
+          />
         </section>
 
         <section className="group" aria-label="Pointer">
           <p className="eyebrow">Pointer</p>
 
           {/* The hero control: this flip is the whole pitch. */}
-          <button
-            type="button"
-            className={`toggle ${config.pointer ? 'on' : ''}`}
-            aria-pressed={config.pointer}
-            onClick={() => onChange({ pointer: !config.pointer })}
-          >
-            <span className="toggle-text">
-              <span className="toggle-label">Interaction</span>
-              <span className="toggle-state">
-                {config.pointer ? 'pointer-reactive' : 'ambient only'}
-              </span>
-            </span>
-            <span className="track" aria-hidden="true">
-              <i />
-            </span>
-          </button>
+          <Toggle
+            label="Interaction"
+            state={config.pointer ? 'pointer-reactive' : 'ambient only'}
+            on={config.pointer}
+            onChange={(pointer) => onChange({ pointer })}
+          />
 
           <Slider
             label="radius"
