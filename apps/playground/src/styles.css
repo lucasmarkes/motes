@@ -1737,89 +1737,167 @@ input {
 
 /* Accent ------------------------------------------------------------------- */
 
-/* The readout sits under the row, not beside it. Beside it, the hex ate 60 of
-   the panel's 286px and squeezed the seven cells to 33 wide — under the floor,
-   to display six characters that are not a control. */
 .accent {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
+  gap: var(--s1);
 }
 
-/* Tiled, not spaced. Seven 44px targets with padding around each would overlap
-   in 286px of panel, and a target that steals its neighbour's edge is worse
-   than a small one. At flex: 1 across the full width every cell is 44 tall and
-   40.8 wide, with its boundaries exactly where they appear to be. */
+/* Five neutral quick picks and a door to the rest. Spaced, not tiled: each is
+   a rounded tile carrying its own colour, so a hairline gap reads as five
+   objects while a shared edge would read as one swatch cut into fifths. */
 .swatches {
   display: flex;
+  gap: 6px;
   width: 100%;
-  border: 1px solid var(--line);
 }
 
-.swatch {
-  position: relative;
+.swatch,
+.swatch-add {
   flex: 1;
-  display: grid;
-  place-items: center;
-  min-height: var(--tap);
+  min-height: 26px;
   padding: 0;
-  background: none;
-  border: 0;
+  border-radius: 4px;
   cursor: pointer;
+  transition:
+    scale var(--t-press) var(--ease),
+    color var(--t-hover) var(--ease),
+    border-color var(--t-hover) var(--ease);
 }
 
-.chip {
-  width: 18px;
-  height: 18px;
-  transition: scale var(--t-hover) var(--ease);
+/* A constant inset hairline so the white end of the row is visible on paper.
+   It never changes on selection — selection is the outline below, offset off
+   the tile, so the tile's own size and weight stay put. */
+.swatch {
+  border: 0;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
 }
 
-.swatch:hover .chip {
-  scale: 1.15;
+.swatch:hover {
+  scale: 1.08;
 }
 
-.swatch:active .chip {
+.swatch:active,
+.swatch-add:active {
   scale: 0.96;
 }
 
-/* Selection is a ring drawn around the cell, not a tick inside the chip: a
-   glyph on top of a colour is a second vocabulary in a row that is otherwise
-   nothing but colour. */
-.swatch[aria-checked='true']::after,
-.swatch-custom.is-on::after {
-  content: '';
-  position: absolute;
-  inset: 3px;
-  outline: 1px solid var(--ink);
-  outline-offset: 1px;
+/* Outline plus offset, never a border swap. The ring sits off the tile so it
+   cannot change the swatch's size or weight the way a thickened edge would. */
+.swatch.is-on {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
 }
 
-/* The door to every other colour. Drawn as an outline because it is not a
-   colour itself until you have picked one. */
-.swatch-custom .chip-custom {
-  border: 1px dashed var(--ink-3);
-}
-
-/* The native picker still does the work; it just no longer sets the tone of
-   the panel. Zero-sized rather than display:none so it stays focusable and
-   the label's click still opens it. */
-.swatch-custom input[type='color'] {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0;
-  border: 0;
-  padding: 0;
-  cursor: pointer;
-}
-
-.hex {
+/* The door to every other colour: dashed, because it is not a colour itself
+   until you pick one. */
+.swatch-add {
+  display: grid;
+  place-items: center;
   font-family: var(--mono);
-  font-size: var(--fs-micro);
-  color: var(--ink-2);
+  font-size: 14px;
+  line-height: 1;
+  background: transparent;
+  border: 1px dashed var(--ink-3);
+  color: var(--ink-3);
+}
+
+.swatch-add:hover,
+.swatch-add.is-open {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+/* The picker, inline in the panel and built from its own parts — mono foot,
+   4px radii, the same borders the controls above it use. No OS dialog. */
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  padding-top: 2px;
+}
+
+.sv-area {
+  position: relative;
+  width: 100%;
+  height: 104px;
+  border-radius: 4px;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.sv-dot {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  translate: -50% -50%;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55);
+  pointer-events: none;
+}
+
+.hue-strip {
+  position: relative;
+  width: 100%;
+  height: 9px;
+  border-radius: 5px;
+  background: linear-gradient(
+    to right,
+    #f00 0%,
+    #ff0 17%,
+    #0f0 33%,
+    #0ff 50%,
+    #00f 67%,
+    #f0f 83%,
+    #f00 100%
+  );
+  cursor: pointer;
+  touch-action: none;
+}
+
+.hue-handle {
+  position: absolute;
+  top: 50%;
+  width: 4px;
+  height: 13px;
+  translate: -50% -50%;
+  border-radius: 2px;
+  background: #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+
+.picker-foot {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+}
+
+.preview-swatch {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+
+.hex-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 26px;
+  padding: 0 var(--s1);
+  font-family: var(--mono);
+  font-size: var(--fs-fine);
   font-variant-numeric: tabular-nums;
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--ink);
+}
+
+.hex-input:hover {
+  border-color: var(--ink-3);
 }
 
 /* Code --------------------------------------------------------------------*/

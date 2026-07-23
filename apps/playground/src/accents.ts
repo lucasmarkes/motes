@@ -1,40 +1,32 @@
 /**
- * Six near-whites, warm to cool, for the pointer.
+ * Five neutrals, white to near-black, as the quick picks for the pointer.
  *
- * A temperature axis, not a palette. Lightness is constant — every value
- * renders between L 0.933 and 0.935, so no swatch is brighter than another
- * and the row changes only what the cursor's core feels like, never how much
- * of the field it lights.
- *
- * Chroma tops out at 0.030 because that is what fits. sRGB's gamut narrows
- * sharply toward white on the blue side: at this lightness the ceiling at hue
- * 258 is 0.0318, against 0.0442 at hue 70. The cool end is what binds the
- * whole ramp, and the warm end is held to the same number so the axis stays
- * symmetric rather than lopsided in the direction the gamut happened to allow.
- *
- * Below about chroma 0.008, 8-bit hex quantisation moves the rendered hue by
- * several degrees — the two inner steps land at 59.6° and 264.5° rather than
- * 70° and 258°. At that chroma the difference is invisible; it is recorded
- * here so the round-trip does not later read as a bug.
+ * A greyscale row, not a palette: these are the choices you reach for without
+ * thinking, and the dashed chip beside them opens the picker for everything
+ * else. Neutral on purpose — the one chromatic value the page ships is the
+ * default in accent.ts, and a coloured swatch row would compete with it. If
+ * you want a hue, you say so in the picker.
  */
 export interface Accent {
   hex: string
   label: string
 }
 
-/** The cool end, named because accent.ts ships it as the default. */
-const COOLEST = '#ddeafe'
+/** The field's default accent, unchanged by the swatch row above it. The
+ *  renderer resolves grey everywhere and mixes only the pointer toward this,
+ *  so a cool near-white leaves the cursor as the one thing with a temperature.
+ *  See accent.ts for the full rationale. */
+const DEFAULT = '#ddeafe'
 
 // Deliberately not annotated `readonly Accent[]`: the annotation would erase
 // the tuple and, under `noUncheckedIndexedAccess`, make every index possibly
-// undefined at each of the four call sites.
+// undefined at the call site.
 export const ACCENTS = [
-  { hex: '#f7e6d4', label: 'warmest' }, // oklch(0.934 0.030  70)
-  { hex: '#f1e7dd', label: 'warmer' }, //  oklch(0.933 0.017  68)
-  { hex: '#ece8e5', label: 'warm' }, //    oklch(0.933 0.006  60)
-  { hex: '#e7e9ed', label: 'cool' }, //    oklch(0.934 0.006 265)
-  { hex: '#e2eaf6', label: 'cooler' }, //  oklch(0.935 0.018 258)
-  { hex: COOLEST, label: 'coolest' }, //   oklch(0.933 0.031 259)
+  { hex: '#ffffff', label: 'white' },
+  { hex: '#cfcfcf', label: 'light grey' },
+  { hex: '#808080', label: 'mid grey' },
+  { hex: '#3f3f3f', label: 'dark grey' },
+  { hex: '#111111', label: 'near-black' },
 ] as const satisfies readonly Accent[]
 
-export const DEFAULT_ACCENT = COOLEST
+export const DEFAULT_ACCENT = DEFAULT
