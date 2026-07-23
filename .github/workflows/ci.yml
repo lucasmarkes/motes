@@ -26,7 +26,7 @@ jobs:
 
       # engines.node is ">=18"; 20 is the active LTS that satisfies it and
       # matches the local toolchain. cache:pnpm keys the store on the lockfile.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 20
           cache: pnpm
