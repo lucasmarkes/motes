@@ -19,11 +19,18 @@ core-surface change it drove is.
   renderer and released when the effect is swapped out or the instance is
   destroyed, not here.
 
-<!--
-  Phase 5 (defineEffect hardening — throw-on-builtin with { override: true },
-  dev-warn on overwrite, HMR warn-only-on-diff) lands in this same 0.2.0 and
-  should be added above before the tag is cut.
--->
+### Changed
+
+- **`defineEffect` now guards the two name collisions that used to pass
+  silently.** Redefining a built-in (`flow`, `waves`, `pulse`) throws unless you
+  pass `{ override: true }` — the same protection `removeEffect` gives them,
+  since either one swaps the field out from under every consumer asking for it
+  by name. Redefining one of *your own* names with a *changed* definition warns
+  once in development (probably an accidental collision) but still applies —
+  advisory, not a veto. Re-registering an identical definition stays silent, so
+  StrictMode and HMR re-runs cost nothing. A missing name or a snippet without a
+  `float field(vec2 cell, float t)` throws, as before. All warnings compile out
+  of production.
 
 ## 0.1.3 — 2026-07-23
 

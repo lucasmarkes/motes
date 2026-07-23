@@ -106,10 +106,12 @@ function Tile({ entry }: { entry: CatalogEntry }) {
   return (
     <Link
       ref={tile}
-      to={`/${entry.id}`}
+      to={entry.href ?? `/${entry.id}`}
       className={`tile ${held ? 'is-held' : ''}`}
       // This preview is a small-scale render of the very stage being opened,
-      // so it grows into it rather than being cut away.
+      // so it grows into it rather than being cut away. The custom tile opens
+      // the Lab, whose preview reuses `.stage` and the same morph name, so even
+      // there the small field grows into the full one.
       onActivate={() => morphFrom(field.current)}
     >
       <span className="tile-field" ref={field}>

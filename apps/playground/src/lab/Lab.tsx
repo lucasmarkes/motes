@@ -43,17 +43,23 @@ function sameStage(a: StageConfig, b: StageConfig): boolean {
 
 const PRESET_NAMES = Object.keys(PRESETS) as PresetName[]
 
-/** Decode the opening composition from the URL once, at module scope, so the
- *  initial render already matches the link — no post-mount flash of the default
- *  field before the shared config lands. Guarded for non-browser (test) loads. */
-const INITIAL_CONFIG =
-  typeof window === 'undefined' ? DEFAULT_CONFIG : decodeConfig(window.location.search)
+/** The opening composition, read from the URL at the moment the Lab mounts.
+ *  A lazy initializer, not a module constant: the Lab is reached by client-side
+ *  navigation (the index's "yours" tile links to /lab with the rain preset in
+ *  the query), so the search string only carries the shared config once that
+ *  navigation has happened — a value frozen at module load would always be the
+ *  default. Reading it here also means the first render already matches the
+ *  link, with no flash of the default field. Guarded for non-browser tests. */
+function initialConfig() {
+  return typeof window === 'undefined' ? DEFAULT_CONFIG : decodeConfig(window.location.search)
+}
 
 export function Lab() {
   const [error, setError] = useState<string | null>(null)
-  const [stage, setStage] = useState<StageConfig>(INITIAL_CONFIG.stage)
-  const [look, setLook] = useState<Look>(INITIAL_CONFIG.look)
-  const [name, setName] = useState<string>(INITIAL_CONFIG.name)
+  const [initial] = useState(initialConfig)
+  const [stage, setStage] = useState<StageConfig>(initial.stage)
+  const [look, setLook] = useState<Look>(initial.look)
+  const [name, setName] = useState<string>(initial.name)
 
   // Derived, not stored: the preset row lights up whenever the pipeline equals a
   // preset again — including right after loading one — and goes dark the moment

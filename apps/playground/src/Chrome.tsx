@@ -1,4 +1,5 @@
 import { LINKS, AUTHOR } from './links'
+import { Link } from './router'
 
 /** Off-site, so a new tab — the field on the page you came from stays alive. */
 export function Out({ href, children }: { href: string; children: string }) {
@@ -9,10 +10,18 @@ export function Out({ href, children }: { href: string; children: string }) {
   )
 }
 
-/** github / npm / x, in that order, wherever they appear. */
+/**
+ * lab / github / npm / x, in that order.
+ *
+ * `lab` is the one internal destination, so it routes in place rather than
+ * opening a tab — but it takes the same mono, the same padding, the same dimmed
+ * weight as the three out-links beside it. It is a place to go, not a claim to
+ * emphasise, so it gets no more ink than github does.
+ */
 export function OutLinks() {
   return (
-    <nav className="out-links" aria-label="motes elsewhere">
+    <nav className="out-links" aria-label="motes navigation">
+      <Link to="/lab">lab</Link>
       <Out href={LINKS.github}>github</Out>
       <Out href={LINKS.npm}>npm</Out>
       <Out href={LINKS.x}>x</Out>
