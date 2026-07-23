@@ -1357,12 +1357,26 @@ input {
 .group {
   display: flex;
   flex-direction: column;
-  gap: var(--s1);
   padding-block: var(--s1);
 }
 
+/* Margin-based rhythm rather than one flex gap, so the eyebrow-to-control and
+   toggle-to-slider steps can hold a cell's half while consecutive sliders
+   tighten below. */
+.group > * + * {
+  margin-top: var(--s1);
+}
+
+/* ~15px between slider rows, read off the drawn line to the next label: the
+   band below is 30px, so its lower half plus this step lands there. Denser
+   than the half-cell the rest of the group uses — a column of sliders wants
+   to read as one instrument, not as separate settings. */
+.slider + .slider {
+  margin-top: 2px;
+}
+
 .group + .group {
-  border-top: 1px solid var(--line);
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .group:first-child {
@@ -1557,16 +1571,14 @@ input {
   cursor: not-allowed;
 }
 
-/* 40px of grabbable band around a 1px line. The line is what you read; the
-   band is what you hit, and a click anywhere in it brings the thumb to you.
-
-   This was 32 for a while, on the argument that the label above is a second
-   target for the same value so the pair clears 40 together. The audit called
-   it and the audit was right: a control's own hit box is what a hit box is,
-   and the panel scrolls anyway, so the height was never actually paid for. */
+/* 30px of grabbable band around the track. The band was 40 for the hit-box
+   audit, on the principle that a control's own box is what a hit box is; the
+   rebuild's vertical rhythm pulls it back to 30 so a column of sliders reads
+   dense rather than airy. The label above stays a second, full-size target
+   for the same value, so the pair still clears 40 together. */
 .track-hit {
   position: relative;
-  height: 40px;
+  height: 30px;
   display: flex;
   align-items: center;
   cursor: pointer;
