@@ -1426,6 +1426,12 @@ input {
   scale: 0.96;
 }
 
+/* The ring hugs the pill rather than the default 3px stand-off, which would
+   break out past the recessed track around it. */
+.seg button:focus-visible {
+  outline-offset: -2px;
+}
+
 .seg button.on {
   background: var(--ink);
   color: var(--paper);
@@ -1448,6 +1454,14 @@ input {
     border-color var(--t-hover) var(--ease),
     background var(--t-hover) var(--ease),
     scale var(--t-press) var(--ease);
+}
+
+/* A hover the resting toggle did not have: the border lifts toward ink to
+   preview the on-state it is one press from. Only while off — on, the border
+   is already at full ink and a hover has nothing left to say. */
+.toggle:not(.on):hover {
+  border-color: var(--ink-3);
+  background: var(--paper);
 }
 
 .toggle:active {
