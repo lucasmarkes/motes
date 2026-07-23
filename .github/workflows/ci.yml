@@ -17,7 +17,7 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Corepack activates the exact pnpm pinned in package.json's
       # packageManager field (pnpm@10.20.0) — no version drift with local.

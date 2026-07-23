@@ -19,7 +19,7 @@ jobs:
     # this environment so a tag push alone can't reach the registry.
     environment: release
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Enable Corepack
         run: corepack enable
