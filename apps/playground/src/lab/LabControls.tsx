@@ -150,9 +150,10 @@ export function LabControls({
       </label>
 
       <div className="controls-pipe">
-        <span className="tier-tag" aria-hidden="true">
-          effects.ts
-        </span>
+        <p className="tier-head">
+          <span className="tier-name">Pipeline</span>
+          <span className="tier-file">compiles to effects.ts</span>
+        </p>
 
         <section className="pcol" aria-label="Pattern">
           <p className="pcol-head">
@@ -252,9 +253,10 @@ export function LabControls({
       <hr className="controls-rule" />
 
       <div className="controls-look">
-        <span className="tier-tag" aria-hidden="true">
-          App.tsx
-        </span>
+        <p className="tier-head">
+          <span className="tier-name">Presentation</span>
+          <span className="tier-file">live props in App.tsx</span>
+        </p>
 
         {/* How the field looks. */}
         <div className="look-group" aria-label="Look">

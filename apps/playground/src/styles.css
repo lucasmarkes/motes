@@ -2483,23 +2483,33 @@ input {
   letter-spacing: 0.01em;
 }
 
-/* The tier's file, marked as lightly as it can be read — same mono, same ink as
-   the code panel's tabs, so the tie between this tier and that file is made
-   without drawing a second thing to look at. Sits in a lane at the tier's top,
-   clear of the controls, aligned right under the panel it names. */
-.tier-tag {
-  position: absolute;
-  top: 0;
-  right: 0;
+/* The tier header: a section label, leading-aligned and in-flow, that names
+   what the tier is — not a floating filename read as a stray artifact. The
+   group name is stated first and read as a heading; the file it maps to trails
+   it, subordinate, so the tie to the code panel's tabs stays legible without
+   the filename standing alone. In-flow, so it takes the top lane the tier used
+   to reserve as padding (removed below) rather than adding to the budget. */
+.tier-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0 var(--s1);
+  /* No bottom margin: the tier is a flex column, so its own gap sets the
+     distance to the first control. A margin would stack on top of that gap. */
+  margin: 0;
+}
+
+.tier-name {
+  font-family: var(--mono);
+  font-size: var(--fs-fine);
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+
+.tier-file {
   font-family: var(--mono);
   font-size: var(--fs-micro);
-  /* Collapse the line-box to the glyph: at the default line-height the tag
-     paints ~18px tall and, in the look tier's 10px lane, spills onto the
-     charset select below it. The lane can't grow — the rail is exact-fit and
-     the layout test forbids scroll — so the tag shrinks to fit instead. */
-  line-height: 1;
   color: var(--ink-3);
-  pointer-events: none;
 }
 
 /* Pipeline tier, upright: the four stages stacked, each folding its one value
@@ -2509,7 +2519,6 @@ input {
   display: flex;
   flex-direction: column;
   gap: var(--s2);
-  padding-top: 16px;
 }
 
 .pcol {
@@ -2570,7 +2579,6 @@ input {
   display: flex;
   flex-direction: column;
   gap: var(--s1);
-  padding-top: 10px;
 }
 
 .look-group {
@@ -2672,11 +2680,13 @@ input {
 
   .controls-pipe {
     gap: var(--s1);
-    padding-top: 10px;
   }
 
-  .controls-look {
-    padding-top: 10px;
+  /* The two tier headers now stand in-flow where a reserved lane used to sit;
+     close the look grid's row gap a touch to keep the whole rail inside its
+     no-scroll budget at this height, with a little slack to spare. */
+  .look-group {
+    row-gap: 2px;
   }
 }
 
