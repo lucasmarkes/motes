@@ -212,7 +212,7 @@ export function LabDock({
             label="turbulence"
             value={stage.turbulence}
             min={0}
-            max={4}
+            max={3}
             step={0.1}
             onChange={(turbulence) => onStage({ turbulence })}
             format={one}

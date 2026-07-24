@@ -19,7 +19,8 @@ export type Flow = 'up' | 'down' | 'still'
 export type Mask = 'bottom' | 'top' | 'center' | 'none'
 
 export interface StageConfig {
-  /** Domain-warp amount, 0..4. 0 disables the stage entirely. */
+  /** Domain-warp amount, 0..3. 0 disables the stage entirely. The warp falls off
+   *  toward the mask's source, so it is laminar where the field is fed. */
   turbulence: number
   pattern: Pattern
   flow: Flow
@@ -44,13 +45,13 @@ export const PRESETS: Record<PresetName, StageConfig> = {
   // The mask anchors the noise to the bottom edge; without it, fire is
   // impossible — noise is uniform and never reads as flame.
   fire: {
-    turbulence: 1.4,
+    turbulence: 2.7,
     pattern: 'fbm',
     flow: 'up',
     speed: 1.4,
     mask: 'bottom',
-    falloff: 2.4,
-    contrast: 1.5,
+    falloff: 1.3,
+    contrast: 1.2,
     flicker: true,
   },
   // lanes + flow down fast + no mask + high contrast.
