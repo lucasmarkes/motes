@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type RefObject } from 'react'
 import { Link } from '../router'
-import { LabPreview } from './LabPreview'
+import type { FieldHandle } from '../Field'
+import { useLabField } from './useLabField'
 import { LabControls } from './LabControls'
 import { CodeOutput } from '../controls/CodeOutput'
 import {
@@ -72,7 +73,7 @@ function initialConfig() {
   return typeof window === 'undefined' ? DEFAULT_CONFIG : decodeConfig(window.location.search)
 }
 
-export function Lab() {
+export function Lab({ fieldRef }: { fieldRef: RefObject<FieldHandle | null> }) {
   const [error, setError] = useState<string | null>(null)
   const [initial] = useState(initialConfig)
   const [stage, setStage] = useState<StageConfig>(initial.stage)
@@ -107,6 +108,11 @@ export function Lab() {
     window.history.replaceState(null, '', url)
   }, [config])
 
+  // Drive the shared field: borrow the instance App keeps above the router,
+  // live-compile the pipeline into it, and hand it back on the way out. The
+  // preview is not a canvas of the Lab's own — it is the one field, composed.
+  useLabField(fieldRef, stage, look, setError)
+
   // The code slide-over (below 1600px) closes on Escape or a click outside it.
   // Listeners live only while it is open; above 1600px the panel is a column and
   // codeOpen has no visual effect, so a stray close is harmless.
@@ -140,14 +146,6 @@ export function Lab() {
   return (
     <div className="lab-shell">
       <div className="lab-field-wrap" inert={codeOpen}>
-        <LabPreview
-          stage={stage}
-          look={look}
-          onError={setError}
-          className="lab-field"
-          aria-label="lab preview field"
-        />
-
         <header className="stage-head">
           <Link to="/" className="back">
             <span aria-hidden="true">←</span> All effects

@@ -1110,25 +1110,45 @@ input {
   opacity: 1;
 }
 
+/* The one field ----------------------------------------------------------- */
+
+/* A single canvas, fixed behind the whole app and kept for its lifetime (see
+   App.tsx / Field.tsx). Every route but the index draws into this same layer, so
+   navigation repoints the running field in place instead of cutting between two
+   contexts. It never takes the pointer itself — the chrome above it does, and the
+   library hit-tests the cursor against this box regardless of what is stacked over
+   it — so the crosshair lives on the route containers, not here. */
+.app-field {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  touch-action: none;
+  pointer-events: none;
+  /* Paired with the tile preview the visitor clicked (see router.tsx), so the
+     small field grows into the full one; effect-to-effect and effect-to-Lab keep
+     the same running layer, so those need no transition at all. */
+  view-transition-name: motes-field;
+}
+
+/* On the index the hero and five tiles are their own fields; this layer is
+   hidden and stopped behind them, and it drops the morph name so a tile click is
+   the only element carrying it — two at once would abort the transition. */
+.app-field.is-index {
+  opacity: 0;
+  view-transition-name: none;
+}
+
 /* Effect page ------------------------------------------------------------- */
 
 .stage-shell {
   position: fixed;
   inset: 0;
   overflow: hidden;
-}
-
-.stage {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  /* The field is the layer behind; the shell is transparent chrome over it, and
+     the bare field reads as a crosshair everywhere a control does not sit. */
   cursor: crosshair;
-  touch-action: none;
-  /* Paired with the tile preview the visitor clicked (see router.tsx), so
-     the small field grows into the full one. Switching effects from the
-     panel matches this name on both sides and cross-fades in place. */
-  view-transition-name: motes-field;
 }
 
 ::view-transition-group(motes-field),
@@ -2256,7 +2276,8 @@ input {
   position: fixed;
   inset: 0;
   overflow: hidden;
-  background: var(--canvas);
+  /* No surface of its own: the one field (see App.tsx) is the layer behind, and
+     the shell is transparent chrome floating over it, as the effect page is. */
   /* The code rail's width, named once. The controls rail clears it by hand
      (right: calc(--code-rail + two gaps)) and the slide-over reuses it below
      1600 — three sites that must agree, so the number lives in one. */
@@ -2270,18 +2291,9 @@ input {
   position: absolute;
   inset: 0;
   overflow: hidden;
-}
-
-.lab-field {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  /* The field runs behind as the one fixed layer; this transparent wrap only
+     carries the title and the crosshair over the bare field. */
   cursor: crosshair;
-  touch-action: none;
-  /* Paired with the tile preview the visitor clicked (see router.tsx), so the
-     small field grows into the full one. */
-  view-transition-name: motes-field;
 }
 
 /* Ground for the title, as on the effect page — a corner scrim, not a box, so
@@ -2753,10 +2765,12 @@ input {
     flex-direction: column;
   }
 
-  .stage-shell .stage {
-    position: relative;
-    inset: auto;
-    height: 62vh;
+  /* The field is no longer an element in this column — it is the fixed layer
+     behind the whole app. Push the panel down a screenful so the head still
+     stands over open field, the field showing through, before the controls
+     arrive; the field itself stays put behind as you scroll. */
+  .stage-shell {
+    gap: 62vh;
   }
 
   .stage-shell::before {
