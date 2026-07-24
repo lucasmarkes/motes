@@ -128,16 +128,6 @@ export function Lab() {
         ) : null}
       </div>
 
-      <div className="lab-code">
-        <CodeOutput
-          tabs={OUTPUT_TABS}
-          active={tab}
-          onTab={(id) => setTab(id as LabTab)}
-          code={labSource(tab, config)}
-          label="Output files"
-        />
-      </div>
-
       <LabControls
         stage={stage}
         onStage={(patch) => setStage((prev) => ({ ...prev, ...patch }))}
@@ -149,6 +139,16 @@ export function Lab() {
         config={config}
         onName={setName}
       />
+
+      <div className="lab-code">
+        <CodeOutput
+          tabs={OUTPUT_TABS}
+          active={tab}
+          onTab={(id) => setTab(id as LabTab)}
+          code={labSource(tab, config)}
+          label="Output files"
+        />
+      </div>
     </div>
   )
 }

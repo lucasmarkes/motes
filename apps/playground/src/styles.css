@@ -2250,11 +2250,9 @@ input {
   position: fixed;
   inset: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
-  grid-template-rows: minmax(0, 1fr) auto;
-  grid-template-areas:
-    'field code'
-    'dock  dock';
+  grid-template-columns: minmax(0, 1fr) 420px 380px;
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-areas: 'field controls code';
   gap: var(--s2);
   padding: var(--s2);
   background: var(--canvas);
@@ -2335,16 +2333,16 @@ input {
   max-height: none;
 }
 
-/* Dock ---------------------------------------------------------------------
-   The pipeline along the foot, spanning the width. Two tiers, and the split is
-   the argument: the four columns compile to the GLSL of effects.ts, the strip
-   below is the props on <Motes> in App.tsx. Read top to bottom, the dock is
-   what you are making, then how it is shown. */
-.lab-dock {
-  grid-area: dock;
+/* The controls rail: the pipeline stood upright. Full height, and sized so its
+   content never needs to scroll — the height budget is a requirement, checked
+   in Playwright. Two tiers, split by the hairline: the stages compile to the
+   GLSL of effects.ts, the look and pointer are props on <Motes> in App.tsx. */
+.lab-controls {
+  grid-area: controls;
   display: flex;
   flex-direction: column;
   gap: var(--s2);
+  min-height: 0;
   padding: var(--s2) 18px;
   background: var(--paper);
   color: var(--ink);
@@ -2355,20 +2353,15 @@ input {
     0 24px 56px oklch(0 0 0 / 0.34);
 }
 
-/* Start-from row: the presets on the left, the effect name pushed to the far
-   right, where it reads as the composition's title rather than a control. */
-.dock-top {
+.controls-presets {
   display: flex;
   align-items: center;
   gap: var(--s2);
   flex-wrap: wrap;
 }
 
-.preset-row {
-  display: flex;
-  align-items: center;
-  gap: var(--s2);
-  flex-wrap: wrap;
+.controls-name {
+  width: 100%;
 }
 
 .preset-lead {
@@ -2433,11 +2426,6 @@ input {
   letter-spacing: 0.01em;
 }
 
-.dock-top .name-field {
-  margin-inline-start: auto;
-  width: 220px;
-}
-
 /* The tier's file, marked as lightly as it can be read — same mono, same ink as
    the code panel's tabs, so the tie between this tier and that file is made
    without drawing a second thing to look at. Sits in a lane at the tier's top,
@@ -2452,15 +2440,13 @@ input {
   pointer-events: none;
 }
 
-/* Pipeline tier: four columns, and the room to not be cramped. Each stage's one
-   value rides in its header rather than a labelled row of its own. */
-.dock-pipe {
+/* Pipeline tier, upright: the four stages stacked, each folding its one value
+   into its header row rather than a labelled row of its own. */
+.controls-pipe {
   position: relative;
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  column-gap: var(--s3);
-  row-gap: var(--s1);
-  align-items: start;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
   padding-top: 16px;
 }
 
@@ -2507,80 +2493,69 @@ input {
   margin-top: 2px;
 }
 
-/* Look/pointer tier: subordinate to the pipeline — this is dressing, not
-   composition — so it sits smaller and tighter under a hairline. Two groups,
-   split by concern: how the field looks, then how it responds. */
-.dock-rule {
+.controls-rule {
   height: 0;
   margin: 0;
   border: 0;
   border-top: 1px solid var(--line);
 }
 
-.dock-look {
+/* Look/pointer tier: subordinate dressing under the hairline, upright. Each
+   group is a two-column grid so the strip fits the rail's height without
+   scrolling. */
+.controls-look {
   position: relative;
   display: flex;
-  align-items: flex-start;
-  gap: var(--s2);
-  padding-top: 16px;
+  flex-direction: column;
+  gap: var(--s1);
+  padding-top: 10px;
 }
 
 .look-group {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--s2);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px var(--s2);
+  align-items: start;
 }
 
-/* The divider between looks and responds: one is the field's appearance, the
-   other its behaviour, and the line says they are different questions. */
-.look-responds {
-  padding-inline-start: var(--s2);
-  border-inline-start: 1px solid var(--line);
-}
-
-.look-cell {
-  flex: none;
-  width: 132px;
-}
-
-.look-cell-charset {
-  width: 184px;
-}
-
-.look-cell-accent {
+/* The charset menu and the interaction toggle each own their row; the paired
+   sliders sit two-up beneath them. */
+.look-cell-charset,
+.look-cell-accent,
+.look-cell-toggle {
+  grid-column: 1 / -1;
   width: auto;
 }
 
-.look-cell-toggle {
-  width: 190px;
+.look-cell {
+  width: auto;
 }
 
-/* Subordinate sizing: the strip's labels drop a step and its tracks pull in, so
-   a glance reads the pipeline first and this second. */
-.dock-look .lab {
+.controls-look .lab {
   font-size: var(--fs-micro);
 }
 
-.dock-look .track-hit {
+.controls-look .track-hit {
   height: 26px;
 }
 
-/* The interaction switch is the panel's hero control; down here it is one row
-   of the dressing, so it loses the tap-height floor and reads at the strip's
-   scale. */
-.dock-look .toggle {
+.controls-look .toggle {
   min-height: 34px;
   padding: 6px var(--s1);
   gap: var(--s1);
 }
 
-.dock-look .toggle-label,
-.dock-look .toggle-state {
+.controls-look .toggle-label,
+.controls-look .toggle-state {
   font-size: var(--fs-micro);
 }
 
-.dock-look .pick-trigger {
+.controls-look .pick-trigger {
   min-height: 34px;
+}
+
+.look-responds {
+  padding-top: 4px;
 }
 
 /* Responsive --------------------------------------------------------------*/

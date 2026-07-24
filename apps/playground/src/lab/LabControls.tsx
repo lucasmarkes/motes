@@ -83,59 +83,57 @@ export function LabControls({
   const edited = activePreset === '' && basePreset !== ''
 
   return (
-    <section className="lab-dock" aria-label="Pipeline">
-      <div className="dock-top">
-        <div className="preset-row" role="group" aria-label="Start from a preset">
-          <span className="preset-lead">Start from</span>
-          <div className="chips">
-            {PRESET_ORDER.map((name) => {
-              // Three states from one source, the stage: filled when the pipeline
-              // is exactly this preset, ink-outlined when it began here and has
-              // since been edited, muted otherwise. Clicking any chip loads it —
-              // which is also how the edited chip resets to where it started.
-              const on = activePreset === name
-              const anchor = edited && basePreset === name
-              const cls = `chip${on ? ' is-on' : ''}${anchor ? ' is-edited' : ''}`
-              return (
-                <button
-                  key={name}
-                  type="button"
-                  className={cls}
-                  aria-pressed={on}
-                  onClick={() => onPreset(name)}
-                >
-                  {name}
-                </button>
-              )
-            })}
-          </div>
-          {edited ? (
-            <span className="edited-flag" aria-live="polite">
-              · edited
-            </span>
-          ) : null}
+    <section className="lab-controls" aria-label="Pipeline">
+      <div className="controls-presets" role="group" aria-label="Start from a preset">
+        <span className="preset-lead">Start from</span>
+        <div className="chips">
+          {PRESET_ORDER.map((name) => {
+            // Three states from one source, the stage: filled when the pipeline
+            // is exactly this preset, ink-outlined when it began here and has
+            // since been edited, muted otherwise. Clicking any chip loads it —
+            // which is also how the edited chip resets to where it started.
+            const on = activePreset === name
+            const anchor = edited && basePreset === name
+            const cls = `chip${on ? ' is-on' : ''}${anchor ? ' is-edited' : ''}`
+            return (
+              <button
+                key={name}
+                type="button"
+                className={cls}
+                aria-pressed={on}
+                onClick={() => onPreset(name)}
+              >
+                {name}
+              </button>
+            )
+          })}
         </div>
-
-        <label className="name-field">
-          <span className="name-label">effect</span>
-          {/* Names the effect in both output files. Kept raw as you type —
-              sanitized only where it lands in code — so the field doesn't fight
-              the keystroke; an empty box still generates 'mine'. */}
-          <input
-            type="text"
-            className="name-input"
-            value={config.name}
-            spellCheck={false}
-            autoComplete="off"
-            maxLength={24}
-            placeholder={DEFAULT_NAME}
-            onChange={(e) => onName(e.target.value)}
-            aria-label="Effect name"
-          />
-        </label>
+        {edited ? (
+          <span className="edited-flag" aria-live="polite">
+            · edited
+          </span>
+        ) : null}
       </div>
 
-      <div className="dock-pipe">
+      <label className="controls-name name-field">
+        <span className="name-label">effect</span>
+        {/* Names the effect in both output files. Kept raw as you type —
+            sanitized only where it lands in code — so the field doesn't fight
+            the keystroke; an empty box still generates 'mine'. */}
+        <input
+          type="text"
+          className="name-input"
+          value={config.name}
+          spellCheck={false}
+          autoComplete="off"
+          maxLength={24}
+          placeholder={DEFAULT_NAME}
+          onChange={(e) => onName(e.target.value)}
+          aria-label="Effect name"
+        />
+      </label>
+
+      <div className="controls-pipe">
         <span className="tier-tag" aria-hidden="true">
           effects.ts
         </span>
@@ -235,9 +233,9 @@ export function LabControls({
         </section>
       </div>
 
-      <hr className="dock-rule" />
+      <hr className="controls-rule" />
 
-      <div className="dock-look">
+      <div className="controls-look">
         <span className="tier-tag" aria-hidden="true">
           App.tsx
         </span>
