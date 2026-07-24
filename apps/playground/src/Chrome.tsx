@@ -12,11 +12,11 @@ export function Out({ href, children }: { href: string; children: string }) {
 /**
  * github / npm / x, in that order, wherever they appear.
  *
- * The Lab used to head this row as `lab`, a second door beside the "yours" tile
- * that opened on fire while the tile opens on rain — two entrances to one room,
- * disagreeing about what you'd find. The tile is the door now, because it is
- * continuous: you watch rain, you click, you land editing rain. The bar is left
- * to say only what is off-site.
+ * The Lab used to head this row as `lab`, a second door beside the tile that
+ * also leads there — the bar opening on fire while the tile opens on rain, two
+ * entrances to one room disagreeing about what you'd find. The tile is the door
+ * now, because it is continuous: you watch rain, you click, you land editing
+ * rain. The bar is left to say only what is off-site.
  */
 export function OutLinks() {
   return (

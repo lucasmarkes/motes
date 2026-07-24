@@ -39,7 +39,13 @@ export function Panel({ config, onChange }: PanelProps) {
             label="Effect"
             options={CATALOG.map((entry) => ({ value: entry.id, label: entry.title }))}
             value={config.effect}
-            onChange={(id) => navigate(`/${id}`)}
+            // The custom tab leads where its tile does — into the Lab — not to
+            // the effect's own route, which no longer stands as a page. Every
+            // other tab is a peer effect at `/{id}`.
+            onChange={(id) => {
+              const entry = CATALOG.find((e) => e.id === id)
+              navigate(entry?.href ?? `/${id}`)
+            }}
           />
         </section>
 

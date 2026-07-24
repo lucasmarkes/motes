@@ -19,8 +19,10 @@ defineEffect('rain', { glsl: RAIN_GLSL })
 /**
  * The fourth tile is the door into the Lab, and rain is one of its presets, so
  * the click is continuous: you are watching rain, and you land already editing
- * rain rather than on a blank composition. The name rides along as 'yours', so
- * the tile's `defineEffect('yours')` is what the Lab hands you when you arrive.
+ * rain rather than on a blank composition. The tile is labelled `lab` — where
+ * you land — while the composition it hands you is named 'yours', the effect you
+ * make, so the code output reads `defineEffect('yours')`. Two words for two
+ * things: `lab` is the place, `yours` is the proof.
  */
 export const YOURS_HREF = `/lab?${encodeConfig({
   name: 'yours',
@@ -75,7 +77,7 @@ export const CATALOG: CatalogEntry[] = [
   {
     id: 'rain',
     tag: "defineEffect('yours')",
-    title: 'yours',
+    title: 'lab',
     custom: true,
     href: YOURS_HREF,
     blurb: 'Not in the library. Compose your own in the Lab and leave with the code.',
