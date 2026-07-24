@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from '../router'
 import { LabPreview } from './LabPreview'
-import { LabDock } from './LabDock'
+import { LabControls } from './LabControls'
 import { CodeOutput } from '../controls/CodeOutput'
 import {
   DEFAULT_CONFIG,
@@ -138,7 +138,7 @@ export function Lab() {
         />
       </div>
 
-      <LabDock
+      <LabControls
         stage={stage}
         onStage={(patch) => setStage((prev) => ({ ...prev, ...patch }))}
         look={look}

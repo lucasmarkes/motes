@@ -38,7 +38,7 @@ const MASK_OPTIONS: readonly SegOption<Mask>[] = [
 
 const one = (v: number) => v.toFixed(1)
 
-interface LabDockProps {
+interface LabControlsProps {
   stage: StageConfig
   onStage: (patch: Partial<StageConfig>) => void
   look: Look
@@ -68,7 +68,7 @@ interface LabDockProps {
  * labelled row on it: "Flow" and its speed sit on one line, the segmented and
  * the bare track below. Shape carries three, so it keeps a label on each.
  */
-export function LabDock({
+export function LabControls({
   stage,
   onStage,
   look,
@@ -78,7 +78,7 @@ export function LabDock({
   onPreset,
   config,
   onName,
-}: LabDockProps) {
+}: LabControlsProps) {
   // Edited iff we have an anchor to have drifted from and no exact match now.
   const edited = activePreset === '' && basePreset !== ''
 
