@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:glsl": "vitest run --config vitest.glsl.config.ts",
+    "test:layout": "vitest run --config vitest.layout.config.ts",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist .turbo",
     "registry": "node ../../registry/build.mjs"

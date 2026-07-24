@@ -2367,15 +2367,21 @@ input {
 }
 
 /* The controls rail: the pipeline stood upright. Full height, and sized so its
-   content never needs to scroll — the height budget is a requirement, checked
-   in Playwright. Two tiers, split by the hairline: the stages compile to the
-   GLSL of effects.ts, the look and pointer are props on <Motes> in App.tsx. */
+   content fits without scrolling at a normal viewport — the height budget is a
+   requirement, asserted in the layout test. `overflow-y: auto` is the net under
+   that: it never engages at the sizes we design for, but it keeps the rail
+   usable when a reader brings their own variance — text zoom, a substituted
+   font — instead of letting content bleed past the rounded panel. A regression
+   we cause the test catches; variance a person brings the scrollbar serves.
+   Two tiers, split by the hairline: the stages compile to the GLSL of
+   effects.ts, the look and pointer are props on <Motes> in App.tsx. */
 .lab-controls {
   grid-area: controls;
   display: flex;
   flex-direction: column;
   gap: var(--s2);
   min-height: 0;
+  overflow-y: auto;
   padding: var(--s2) 18px;
   background: var(--paper);
   color: var(--ink);
@@ -2630,6 +2636,26 @@ input {
     inset: 0;
     z-index: 20;
     background: oklch(0 0 0 / 0.32);
+  }
+
+  /* The "Show code" toggle only stands in the rail below 1600, and it costs a
+     row the three-column tier never spends. A shorter viewport is also the one
+     under height pressure, so this is where the rail tightens: the inter-tier
+     gaps and the pipe's stage gap close by half a cell, and the tier markers
+     sit a touch nearer their tiers, reclaiming the toggle's row with room to
+     spare. The 1920 layout keeps its fuller spacing. */
+  .lab-controls {
+    gap: var(--s1);
+    padding-block: var(--s1);
+  }
+
+  .controls-pipe {
+    gap: var(--s1);
+    padding-top: 10px;
+  }
+
+  .controls-look {
+    padding-top: 10px;
   }
 }
 

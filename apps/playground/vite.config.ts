@@ -47,6 +47,10 @@ export default defineConfig({
   // and runs on demand through `test:glsl`.
   test: {
     environment: 'jsdom',
-    exclude: [...configDefaults.exclude, 'src/lab/compile.test.ts'],
+    exclude: [
+      ...configDefaults.exclude,
+      'src/lab/compile.test.ts',
+      'src/lab/layout.test.ts',
+    ],
   },
 })
