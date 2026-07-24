@@ -2257,6 +2257,10 @@ input {
   inset: 0;
   overflow: hidden;
   background: var(--canvas);
+  /* The code rail's width, named once. The controls rail clears it by hand
+     (right: calc(--code-rail + two gaps)) and the slide-over reuses it below
+     1600 — three sites that must agree, so the number lives in one. */
+  --code-rail: 380px;
 }
 
 /* The field, edge to edge behind the page, and the title that stands on it. No
@@ -2307,7 +2311,7 @@ input {
   top: var(--s2);
   right: var(--s2);
   bottom: var(--s2);
-  width: 380px;
+  width: var(--code-rail);
   z-index: 6;
   min-height: 0;
   display: flex;
@@ -2385,10 +2389,10 @@ input {
   position: absolute;
   top: var(--s2);
   bottom: var(--s2);
-  /* Floats just left of the code rail: clear its 380px width and a gap on each
-     side of it. Below 1600 the code becomes a slide-over and this reclaims the
+  /* Floats just left of the code rail: clear its width and a gap on each side
+     of it. Below 1600 the code becomes a slide-over and this reclaims the
      right gutter (see the responsive block). */
-  right: calc(380px + var(--s2) * 2);
+  right: calc(var(--code-rail) + var(--s2) * 2);
   width: 420px;
   z-index: 6;
   display: flex;
@@ -2627,7 +2631,7 @@ input {
     top: 0;
     right: 0;
     bottom: 0;
-    width: 380px;
+    width: var(--code-rail);
     z-index: 30;
     margin: var(--s2);
     height: auto;
