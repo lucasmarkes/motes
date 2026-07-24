@@ -2236,7 +2236,403 @@ input {
   }
 }
 
+/* Lab ----------------------------------------------------------------------
+   The composer's own layout, deliberately off the effect page's shared
+   .stage-shell / .panel so the two can diverge without treading on each other.
+
+   Three zones, each with one job. A vertical rail was the wrong shape for a
+   wide screen: five stages fought over ~400px while the field floated in the
+   rest, and the code hid below a fold. So the field takes the width, the code
+   panel is the one thing that keeps a rail — GLSL is long and narrow, and a
+   rail is the shape it wants — and the pipeline lies flat along the foot. */
+
+.lab-shell {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'field code'
+    'dock  dock';
+  gap: var(--s2);
+  padding: var(--s2);
+  background: var(--canvas);
+}
+
+/* The field, and the title that stands on it. Rounded and clipped, so the live
+   canvas takes the same 8px radius as the surfaces around it. */
+.lab-field-wrap {
+  grid-area: field;
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.lab-field {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+  touch-action: none;
+  /* Paired with the tile preview the visitor clicked (see router.tsx), so the
+     small field grows into the full one. */
+  view-transition-name: motes-field;
+}
+
+/* Ground for the title, as on the effect page — a corner scrim, not a box, so
+   the field runs on underneath it. */
+.lab-field-wrap::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: min(560px, 82%);
+  height: 300px;
+  z-index: 4;
+  background: linear-gradient(
+    150deg,
+    oklch(0.108 0.005 71.346 / 0.94) 0%,
+    oklch(0.108 0.005 71.346 / 0.72) 40%,
+    oklch(0.108 0.005 71.346 / 0) 100%
+  );
+  pointer-events: none;
+}
+
+/* The code rail: the only vertical column on the page, because GLSL is the one
+   thing whose natural shape is tall and narrow. A surface like the panel, and
+   the code scrolls inside it rather than pinned to a foot. */
+.lab-code {
+  grid-area: code;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 18px;
+  background: var(--paper);
+  color: var(--ink);
+  border-radius: 8px;
+  box-shadow:
+    0 1px 1px oklch(0 0 0 / 0.13),
+    0 8px 16px oklch(0 0 0 / 0.16),
+    0 24px 56px oklch(0 0 0 / 0.34);
+  overflow: hidden;
+}
+
+.lab-code .code {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  /* No pinned-to-a-foot border here: the rail is the block. */
+  padding-top: 0;
+  border-top: 0;
+}
+
+.lab-code pre {
+  flex: 1;
+  min-height: 0;
+  /* Fill the rail and scroll, rather than the effect panel's fixed 40vh share. */
+  max-height: none;
+}
+
+/* Dock ---------------------------------------------------------------------
+   The pipeline along the foot, spanning the width. Two tiers, and the split is
+   the argument: the four columns compile to the GLSL of effects.ts, the strip
+   below is the props on <Motes> in App.tsx. Read top to bottom, the dock is
+   what you are making, then how it is shown. */
+.lab-dock {
+  grid-area: dock;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  padding: var(--s2) 18px;
+  background: var(--paper);
+  color: var(--ink);
+  border-radius: 8px;
+  box-shadow:
+    0 1px 1px oklch(0 0 0 / 0.13),
+    0 8px 16px oklch(0 0 0 / 0.16),
+    0 24px 56px oklch(0 0 0 / 0.34);
+}
+
+/* Start-from row: the presets on the left, the effect name pushed to the far
+   right, where it reads as the composition's title rather than a control. */
+.dock-top {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  flex-wrap: wrap;
+}
+
+.preset-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  flex-wrap: wrap;
+}
+
+.preset-lead {
+  font-family: var(--mono);
+  font-size: var(--fs-fine);
+  color: var(--ink-3);
+}
+
+.chips {
+  display: flex;
+  gap: 6px;
+}
+
+/* A preset chip, in three states from one source — the stage. Muted outline
+   when it is not the field; filled when the field is exactly it; and, once an
+   edit pulls the field away, the outline is kept but inked, so the row never
+   goes dark and the anchor of where you started stays lit to reset to. */
+.chip {
+  min-height: 30px;
+  padding: 0 12px;
+  font-family: var(--mono);
+  font-size: var(--fs-fine);
+  color: var(--ink-2);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+  transition:
+    color var(--t-hover) var(--ease),
+    border-color var(--t-hover) var(--ease),
+    background var(--t-hover) var(--ease),
+    scale var(--t-press) var(--ease);
+}
+
+.chip:not(.is-on):hover {
+  color: var(--ink);
+  border-color: var(--ink-3);
+}
+
+.chip:active {
+  scale: 0.97;
+}
+
+/* Selected-clean: the field is this preset. Filled. */
+.chip.is-on {
+  color: var(--paper);
+  background: var(--ink);
+  border-color: var(--ink);
+}
+
+/* Selected-edited: began here, since edited. Outline kept, border to ink. */
+.chip.is-edited {
+  color: var(--ink);
+  border-color: var(--ink);
+  background: transparent;
+}
+
+.edited-flag {
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
+  color: var(--ink-3);
+  letter-spacing: 0.01em;
+}
+
+.dock-top .name-field {
+  margin-inline-start: auto;
+  width: 220px;
+}
+
+/* The tier's file, marked as lightly as it can be read — same mono, same ink as
+   the code panel's tabs, so the tie between this tier and that file is made
+   without drawing a second thing to look at. Sits in a lane at the tier's top,
+   clear of the controls, aligned right under the panel it names. */
+.tier-tag {
+  position: absolute;
+  top: 0;
+  right: 0;
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
+  color: var(--ink-3);
+  pointer-events: none;
+}
+
+/* Pipeline tier: four columns, and the room to not be cramped. Each stage's one
+   value rides in its header rather than a labelled row of its own. */
+.dock-pipe {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  column-gap: var(--s3);
+  row-gap: var(--s1);
+  align-items: start;
+  padding-top: 16px;
+}
+
+.pcol {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+}
+
+.pcol-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  min-height: 18px;
+  margin: 0;
+}
+
+/* The stage's name, given more ink and size than the controls under it — this
+   is the "what am I making" the dock wants read first. */
+.pcol-name {
+  font-family: var(--mono);
+  font-size: var(--fs-ui);
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+
+.pcol-val {
+  font-family: var(--mono);
+  font-size: var(--fs-fine);
+  font-weight: 500;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The param is inert — flow still, or mask none — so the number is shown but
+   stood down, matching the disabled track below it. */
+.pcol-val.is-mute {
+  color: var(--ink-3);
+  opacity: 0.55;
+}
+
+/* A bare slider carries no label row; its value lives in the column header. */
+.slider.is-bare {
+  margin-top: 2px;
+}
+
+/* Look/pointer tier: subordinate to the pipeline — this is dressing, not
+   composition — so it sits smaller and tighter under a hairline. Two groups,
+   split by concern: how the field looks, then how it responds. */
+.dock-rule {
+  height: 0;
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+
+.dock-look {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s2);
+  padding-top: 16px;
+}
+
+.look-group {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s2);
+}
+
+/* The divider between looks and responds: one is the field's appearance, the
+   other its behaviour, and the line says they are different questions. */
+.look-responds {
+  padding-inline-start: var(--s2);
+  border-inline-start: 1px solid var(--line);
+}
+
+.look-cell {
+  flex: none;
+  width: 132px;
+}
+
+.look-cell-charset {
+  width: 184px;
+}
+
+.look-cell-accent {
+  width: auto;
+}
+
+.look-cell-toggle {
+  width: 190px;
+}
+
+/* Subordinate sizing: the strip's labels drop a step and its tracks pull in, so
+   a glance reads the pipeline first and this second. */
+.dock-look .lab {
+  font-size: var(--fs-micro);
+}
+
+.dock-look .track-hit {
+  height: 26px;
+}
+
+/* The interaction switch is the panel's hero control; down here it is one row
+   of the dressing, so it loses the tap-height floor and reads at the strip's
+   scale. */
+.dock-look .toggle {
+  min-height: 34px;
+  padding: 6px var(--s1);
+  gap: var(--s1);
+}
+
+.dock-look .toggle-label,
+.dock-look .toggle-state {
+  font-size: var(--fs-micro);
+}
+
+.dock-look .pick-trigger {
+  min-height: 34px;
+}
+
 /* Responsive --------------------------------------------------------------*/
+
+/* Below ~1100 the dock is too wide for four columns and the rail too tight
+   beside the field. Not a fall back to the vertical rail, though: the columns
+   fold to two-by-two and the code panel drops below the dock, so the field
+   still takes the top and the pipeline still lies flat. */
+@media (max-width: 1100px) {
+  .lab-shell {
+    position: static;
+    height: auto;
+    min-height: 100dvh;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto;
+    grid-template-areas:
+      'field'
+      'dock'
+      'code';
+  }
+
+  /* In flow now, so the field needs a real height rather than a grid track. */
+  .lab-field-wrap {
+    height: 62vh;
+  }
+
+  .lab-code {
+    height: auto;
+  }
+
+  .lab-code pre {
+    flex: none;
+    max-height: 60vh;
+  }
+
+  .dock-pipe {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: var(--s2);
+  }
+
+  /* The two concerns stack; the divider becomes the rule between them. */
+  .dock-look {
+    flex-direction: column;
+  }
+
+  .look-responds {
+    padding-inline-start: 0;
+    border-inline-start: 0;
+    padding-top: var(--s2);
+    border-top: 1px solid var(--line);
+  }
+}
 
 @media (max-width: 900px) {
   .stage-shell {
@@ -2246,7 +2642,7 @@ input {
     flex-direction: column;
   }
 
-  .stage {
+  .stage-shell .stage {
     position: relative;
     inset: auto;
     height: 62vh;
@@ -2256,7 +2652,9 @@ input {
     display: none; /* Stacked layout: the head no longer overlaps the field. */
   }
 
-  .stage-head {
+  /* Scoped to the effect page: the Lab reuses .stage-head as the title over its
+     own field, and it keeps its overlay at every width. */
+  .stage-shell .stage-head {
     position: static;
     padding: var(--s3) var(--s2) 0;
     max-width: none;
@@ -2290,7 +2688,9 @@ input {
     align-items: center;
   }
 
-  .hint {
+  /* Scoped: the Lab's compile-error hint lives over its own field, positioned by
+     the Lab's own rules, and must not take the effect page's stacked offset. */
+  .stage-shell .hint {
     bottom: auto;
     top: 58vh;
   }

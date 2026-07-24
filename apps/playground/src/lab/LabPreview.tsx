@@ -28,8 +28,12 @@ import type { StageConfig } from './pipeline'
 let seq = 0
 const nextName = () => `__lab_${++seq}`
 
-/** The recompile settles this long after the last edit. */
-const DEBOUNCE_MS = 120
+/** The recompile settles this long after the last edit. A slider drag fires a
+ *  stream of these; the wait has to outlast the gaps between frames of a drag so
+ *  a continuous scrub relinks once at the end, not once per step. It cannot hide
+ *  the relink itself — a structural change to the field always recompiles the
+ *  program — only keep the drag from queuing a hundred of them. */
+const DEBOUNCE_MS = 180
 
 interface LabPreviewProps {
   /** The pipeline config to compile into a field. */
