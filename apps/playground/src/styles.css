@@ -2493,6 +2493,11 @@ input {
   right: 0;
   font-family: var(--mono);
   font-size: var(--fs-micro);
+  /* Collapse the line-box to the glyph: at the default line-height the tag
+     paints ~18px tall and, in the look tier's 10px lane, spills onto the
+     charset select below it. The lane can't grow — the rail is exact-fit and
+     the layout test forbids scroll — so the tag shrinks to fit instead. */
+  line-height: 1;
   color: var(--ink-3);
   pointer-events: none;
 }
