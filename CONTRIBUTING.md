@@ -76,7 +76,9 @@ defineEffect('rain', { glsl: `float field(vec2 cell, float t) { /* ... */ }` })
 ```
 
 `defineEffect` rejects a snippet with no `field()`, so a typo fails loudly at
-registration rather than rendering nothing.
+registration rather than rendering nothing. `removeEffect(name)` is its
+counterpart, and it refuses to delete a built-in unless you pass
+`{ override: true }` — the library can't be dismantled by accident.
 
 **As a built-in — a PR.** Add it to the library so `effect="yours"` works out of
 the box:

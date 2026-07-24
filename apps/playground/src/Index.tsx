@@ -106,10 +106,13 @@ function Tile({ entry }: { entry: CatalogEntry }) {
   return (
     <Link
       ref={tile}
-      to={`/${entry.id}`}
+      to={entry.href ?? `/${entry.id}`}
       className={`tile ${held ? 'is-held' : ''}`}
-      // This preview is a small-scale render of the very stage being opened,
-      // so it grows into it rather than being cut away.
+      // This preview is a small-scale render of the very stage being opened, so
+      // it grows into it rather than being cut away. The destination is the one
+      // persistent field behind the app (see App.tsx), which carries the same
+      // morph name on the effect and Lab routes — so the small field grows into
+      // the full one there too, the custom tile's Lab included.
       onActivate={() => morphFrom(field.current)}
     >
       <span className="tile-field" ref={field}>

@@ -1,4 +1,6 @@
 import { defineEffect } from '@lucasmarkes/motes'
+import { encodeConfig } from './lab/url'
+import { DEFAULT_LOOK, PRESETS } from './lab/pipeline'
 
 /**
  * Registered here, in the demo, not in the library — the fourth tile is a real
@@ -14,6 +16,20 @@ export const RAIN_GLSL = `float field(vec2 cell, float t) {
 
 defineEffect('rain', { glsl: RAIN_GLSL })
 
+/**
+ * The fourth tile is the door into the Lab, and rain is one of its presets, so
+ * the click is continuous: you are watching rain, and you land already editing
+ * rain rather than on a blank composition. The tile is labelled `lab` — where
+ * you land — while the composition it hands you is named 'yours', the effect you
+ * make, so the code output reads `defineEffect('yours')`. Two words for two
+ * things: `lab` is the place, `yours` is the proof.
+ */
+export const YOURS_HREF = `/lab?${encodeConfig({
+  name: 'yours',
+  stage: PRESETS.rain,
+  look: DEFAULT_LOOK,
+})}`
+
 export interface CatalogEntry {
   id: string
   /**
@@ -25,6 +41,9 @@ export interface CatalogEntry {
   title: string
   /** True for the one effect that is not in the library. */
   custom?: boolean
+  /** Where the tile leads, when that is not simply `/{id}`. The custom tile
+   *  opens the Lab with its preset loaded, while its preview stays on `id`. */
+  href?: string
   blurb: string
   /** Shown on the effect page, under the title. */
   detail: string
@@ -57,10 +76,11 @@ export const CATALOG: CatalogEntry[] = [
   },
   {
     id: 'rain',
-    tag: "defineEffect('rain')",
-    title: 'yours',
+    tag: "defineEffect('yours')",
+    title: 'lab',
     custom: true,
-    blurb: 'Registered at runtime in six lines of GLSL. Not in the library.',
+    href: YOURS_HREF,
+    blurb: 'Not in the library. Compose your own in the Lab and leave with the code.',
     detail:
       'This effect is not in the library. It was added by this page with defineEffect, and it reacts to the cursor without a line of pointer code.',
   },

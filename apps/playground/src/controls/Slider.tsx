@@ -9,6 +9,14 @@ export interface SliderProps {
   max: number
   step: number
   disabled?: boolean
+  /**
+   * Drop the name/value/scrub row and render only the track. The Lab's pipeline
+   * stages fold a stage's one value into its header row, so repeating it in a
+   * label above the track would restage the very row the rail merged away. The
+   * track drag and the arrow keys stay; only the label-scrub — which had nowhere
+   * to live without its number — is gone, and the full-width track pays it back.
+   */
+  bare?: boolean
   onChange: (v: number) => void
   format: (v: number) => string
 }
@@ -45,6 +53,7 @@ export function Slider({
   max,
   step,
   disabled,
+  bare,
   onChange,
   format,
 }: SliderProps) {
@@ -144,20 +153,22 @@ export function Slider({
   }
 
   return (
-    <section className={`ctl slider${disabled ? ' is-disabled' : ''}`}>
-      <div
-        className="lab"
-        onPointerDown={onLabelDown}
-        onPointerMove={onLabelMove}
-        onPointerUp={endScrub}
-        onPointerCancel={endScrub}
-      >
-        <span>{label}</span>
-        <b>
-          {format(value)}
-          {unit ? <em>{unit}</em> : null}
-        </b>
-      </div>
+    <section className={`ctl slider${bare ? ' is-bare' : ''}${disabled ? ' is-disabled' : ''}`}>
+      {bare ? null : (
+        <div
+          className="lab"
+          onPointerDown={onLabelDown}
+          onPointerMove={onLabelMove}
+          onPointerUp={endScrub}
+          onPointerCancel={endScrub}
+        >
+          <span>{label}</span>
+          <b>
+            {format(value)}
+            {unit ? <em>{unit}</em> : null}
+          </b>
+        </div>
+      )}
 
       <div
         ref={track}

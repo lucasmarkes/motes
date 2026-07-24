@@ -1,13 +1,14 @@
-import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
+import { useState } from 'react'
 import type { MotesOptions } from '@lucasmarkes/motes'
 import { CATALOG } from './effects'
-import { highlight, snippetFor, type Tab } from './snippet'
+import { snippetFor, type Tab } from './snippet'
 import { navigate } from './router'
-import { CheckIcon, CopyIcon } from './icons'
-import { Swap } from './Swap'
 import { Slider } from './controls/Slider'
+import { Segmented } from './controls/Segmented'
+import { Toggle } from './controls/Toggle'
 import { CharsetSelect } from './controls/CharsetSelect'
 import { AccentSwatches } from './controls/AccentSwatches'
+import { CodeOutput } from './controls/CodeOutput'
 
 interface PanelProps {
   config: MotesOptions
@@ -26,41 +27,6 @@ interface PanelProps {
  */
 export function Panel({ config, onChange }: PanelProps) {
   const [tab, setTab] = useState<Tab>('react')
-  const [copied, setCopied] = useState(false)
-  const tabsRef = useRef<HTMLDivElement>(null)
-
-  // The underline is one line that slides between two labels of unequal width,
-  // so it has to be measured rather than assumed. It rides on transform alone —
-  // a 1px base translated to the active tab and scaled to its width — so the
-  // slide stays on the GPU and never animates layout. Runs before paint, so the
-  // first frame already has it placed; the transition only bites on a change.
-  useLayoutEffect(() => {
-    const list = tabsRef.current
-    const active = list?.querySelector<HTMLElement>('[role="tab"].on')
-    if (!list || !active) return
-    list.style.setProperty('--u-x', `${active.offsetLeft}px`)
-    list.style.setProperty('--u-w', `${active.offsetWidth}`)
-  }, [tab])
-
-  const code = snippetFor(tab, config)
-
-  // The active cell's index drives the sliding pill below. Clamped, because a
-  // config can carry an effect that is not in the catalog — the pill then rests
-  // under the first cell, which is also what the buttons fall back to.
-  const activeEffect = Math.max(
-    0,
-    CATALOG.findIndex((entry) => entry.id === config.effect),
-  )
-
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(code)
-      setCopied(true)
-      window.setTimeout(() => setCopied(false), 1400)
-    } catch {
-      // Clipboard unavailable; the code is selectable either way.
-    }
-  }
 
   return (
     <aside className="panel" aria-label="Field controls">
@@ -69,50 +35,30 @@ export function Panel({ config, onChange }: PanelProps) {
       <div className="panel-scroll">
         <section className="group" aria-label="Effect">
           <p className="eyebrow">Effect</p>
-          <div
-            className="seg"
-            role="group"
-            aria-label="Effect"
-            style={
-              { '--seg-n': CATALOG.length, '--seg-i': activeEffect } as CSSProperties
-            }
-          >
-            {/* One pill that rides between the cells, behind the labels. */}
-            <span className="seg-pill" aria-hidden="true" />
-            {CATALOG.map((entry) => (
-              <button
-                key={entry.id}
-                type="button"
-                className={entry.id === config.effect ? 'on' : ''}
-                aria-pressed={entry.id === config.effect}
-                onClick={() => navigate(`/${entry.id}`)}
-              >
-                {entry.title}
-              </button>
-            ))}
-          </div>
+          <Segmented
+            label="Effect"
+            options={CATALOG.map((entry) => ({ value: entry.id, label: entry.title }))}
+            value={config.effect}
+            // The custom tab leads where its tile does — into the Lab — not to
+            // the effect's own route, which no longer stands as a page. Every
+            // other tab is a peer effect at `/{id}`.
+            onChange={(id) => {
+              const entry = CATALOG.find((e) => e.id === id)
+              navigate(entry?.href ?? `/${id}`)
+            }}
+          />
         </section>
 
         <section className="group" aria-label="Pointer">
           <p className="eyebrow">Pointer</p>
 
           {/* The hero control: this flip is the whole pitch. */}
-          <button
-            type="button"
-            className={`toggle ${config.pointer ? 'on' : ''}`}
-            aria-pressed={config.pointer}
-            onClick={() => onChange({ pointer: !config.pointer })}
-          >
-            <span className="toggle-text">
-              <span className="toggle-label">Interaction</span>
-              <span className="toggle-state">
-                {config.pointer ? 'pointer-reactive' : 'ambient only'}
-              </span>
-            </span>
-            <span className="track" aria-hidden="true">
-              <i />
-            </span>
-          </button>
+          <Toggle
+            label="Interaction"
+            state={config.pointer ? 'pointer-reactive' : 'ambient only'}
+            on={config.pointer}
+            onChange={(pointer) => onChange({ pointer })}
+          />
 
           <Slider
             label="radius"
@@ -182,40 +128,15 @@ export function Panel({ config, onChange }: PanelProps) {
         </section>
       </div>
 
-      <section className="code">
-        <div className="tabs" role="tablist" aria-label="Code" ref={tabsRef}>
-          {(['react', 'core'] as Tab[]).map((t) => (
-            <button
-              key={t}
-              type="button"
-              role="tab"
-              aria-selected={t === tab}
-              className={t === tab ? 'on' : ''}
-              onClick={() => setTab(t)}
-            >
-              {t === 'react' ? 'React' : 'Core'}
-            </button>
-          ))}
-          <button type="button" className="copy" onClick={copy}>
-            <span className="copy-icon" aria-hidden="true">
-              <CopyIcon className={copied ? 'is-out' : 'is-in'} />
-              <CheckIcon className={copied ? 'is-in' : 'is-out'} />
-            </span>
-            <Swap on="Copied" off="Copy" active={copied} />
-          </button>
-          {/* Slides under the active tab; measured in the layout effect above. */}
-          <span className="tab-underline" aria-hidden="true" />
-        </div>
-        <pre>
-          <code>
-            {highlight(code).map((token, i) => (
-              <span key={i} className={`t-${token.kind}`}>
-                {token.text}
-              </span>
-            ))}
-          </code>
-        </pre>
-      </section>
+      <CodeOutput
+        tabs={[
+          { id: 'react', label: 'React' },
+          { id: 'core', label: 'Core' },
+        ]}
+        active={tab}
+        onTab={(id) => setTab(id as Tab)}
+        code={snippetFor(tab, config)}
+      />
     </aside>
   )
 }
