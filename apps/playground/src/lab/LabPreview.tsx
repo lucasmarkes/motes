@@ -28,12 +28,15 @@ import type { StageConfig } from './pipeline'
 let seq = 0
 const nextName = () => `__lab_${++seq}`
 
-/** The recompile settles this long after the last edit. A slider drag fires a
- *  stream of these; the wait has to outlast the gaps between frames of a drag so
- *  a continuous scrub relinks once at the end, not once per step. It cannot hide
- *  the relink itself — a structural change to the field always recompiles the
- *  program — only keep the drag from queuing a hundred of them. */
-const DEBOUNCE_MS = 180
+/** One frame — and it is not the old release-debounce shrunk down. The relink was
+ *  measured at ~3ms on real GPU hardware (p95 ~4ms, cold or warm), well under a
+ *  frame, so the field tracks the slider live instead of settling on release. What
+ *  this timer still does is coalesce: a drag can fire several input events within a
+ *  single frame, each a re-render that would relink, and the timer collapses them
+ *  into one relink per frame. Do not set it to 0 — that is not "instant", it is one
+ *  synchronous relink per event, several per frame. This is load-bearing, not a
+ *  leftover. */
+const DEBOUNCE_MS = 16
 
 interface LabPreviewProps {
   /** The pipeline config to compile into a field. */
@@ -88,7 +91,7 @@ export function LabPreview({ stage, look, onError, className, ...rest }: LabPrev
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Recompile on stage change, debounced.
+  // Recompile on stage change, coalesced to one relink per frame.
   useEffect(() => {
     const inst = instRef.current
     if (!inst || compiledStage.current === stage) return
