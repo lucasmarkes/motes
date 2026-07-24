@@ -2333,6 +2333,38 @@ input {
   max-height: none;
 }
 
+/* Only exists once the code rail collapses (below 1600px); a standing control in
+   the rail, not something to hunt for. */
+.code-toggle {
+  display: none;
+  align-self: flex-start;
+  min-height: 30px;
+  padding: 0 14px;
+  font-family: var(--mono);
+  font-size: var(--fs-fine);
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+  transition:
+    color var(--t-hover) var(--ease),
+    border-color var(--t-hover) var(--ease),
+    scale var(--t-press) var(--ease);
+}
+
+.code-toggle:hover {
+  border-color: var(--ink-3);
+}
+
+.code-toggle:active {
+  scale: 0.97;
+}
+
+.code-backdrop {
+  display: none;
+}
+
 /* The controls rail: the pipeline stood upright. Full height, and sized so its
    content never needs to scroll — the height budget is a requirement, checked
    in Playwright. Two tiers, split by the hairline: the stages compile to the
@@ -2560,10 +2592,48 @@ input {
 
 /* Responsive --------------------------------------------------------------*/
 
-/* Below ~1100 the dock is too wide for four columns and the rail too tight
-   beside the field. Not a fall back to the vertical rail, though: the columns
-   fold to two-by-two and the code panel drops below the dock, so the field
-   still takes the top and the pipeline still lies flat. */
+/* Below 1600 the code column is too much beside a 420px rail and the field —
+   drop it and summon the code from the right edge instead, where it already
+   lived. Same 380px, full height, over a backdrop; the rail keeps the field. */
+@media (max-width: 1600px) {
+  .lab-shell {
+    grid-template-columns: minmax(0, 1fr) 420px;
+    grid-template-areas: 'field controls';
+  }
+
+  .code-toggle {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .lab-code {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 380px;
+    z-index: 30;
+    margin: var(--s2);
+    height: auto;
+    translate: calc(100% + var(--s2) * 2) 0;
+    transition: translate var(--t-panel, 220ms) var(--ease);
+  }
+
+  .lab-code.is-open {
+    translate: 0 0;
+  }
+
+  .code-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    background: oklch(0 0 0 / 0.32);
+  }
+}
+
+/* Below 1100 a single stacked column: field, controls, then code. The code is
+   back in flow here — the slide-over is a mid-width affordance, not a phone one. */
 @media (max-width: 1100px) {
   .lab-shell {
     position: static;
@@ -2573,39 +2643,34 @@ input {
     grid-template-rows: auto auto auto;
     grid-template-areas:
       'field'
-      'dock'
+      'controls'
       'code';
   }
 
-  /* In flow now, so the field needs a real height rather than a grid track. */
   .lab-field-wrap {
     height: 62vh;
   }
 
+  .code-toggle {
+    display: none;
+  }
+
+  .code-backdrop {
+    display: none;
+  }
+
   .lab-code {
+    position: static;
+    grid-area: code;
+    width: auto;
+    margin: 0;
     height: auto;
+    translate: none;
   }
 
   .lab-code pre {
     flex: none;
     max-height: 60vh;
-  }
-
-  .dock-pipe {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    row-gap: var(--s2);
-  }
-
-  /* The two concerns stack; the divider becomes the rule between them. */
-  .dock-look {
-    flex-direction: column;
-  }
-
-  .look-responds {
-    padding-inline-start: 0;
-    border-inline-start: 0;
-    padding-top: var(--s2);
-    border-top: 1px solid var(--line);
   }
 }
 

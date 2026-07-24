@@ -74,6 +74,7 @@ export function Lab() {
   const [look, setLook] = useState<Look>(initial.look)
   const [name, setName] = useState<string>(initial.name)
   const [tab, setTab] = useState<LabTab>('effects')
+  const [codeOpen, setCodeOpen] = useState(false)
 
   // Derived, not stored: the preset chip fills whenever the pipeline equals a
   // preset again — including right after loading one — and stops filling the
@@ -100,6 +101,18 @@ export function Lab() {
     const url = query ? `${window.location.pathname}?${query}` : window.location.pathname
     window.history.replaceState(null, '', url)
   }, [config])
+
+  // The code slide-over (below 1600px) closes on Escape or a click outside it.
+  // Listeners live only while it is open; above 1600px the panel is a column and
+  // codeOpen has no visual effect, so a stray close is harmless.
+  useEffect(() => {
+    if (!codeOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setCodeOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [codeOpen])
 
   return (
     <div className="lab-shell">
@@ -138,9 +151,14 @@ export function Lab() {
         onPreset={(preset) => setStage(PRESETS[preset])}
         config={config}
         onName={setName}
+        codeOpen={codeOpen}
+        onToggleCode={() => setCodeOpen((v) => !v)}
       />
 
-      <div className="lab-code">
+      {codeOpen ? (
+        <div className="code-backdrop" onClick={() => setCodeOpen(false)} aria-hidden="true" />
+      ) : null}
+      <div className={`lab-code${codeOpen ? ' is-open' : ''}`}>
         <CodeOutput
           tabs={OUTPUT_TABS}
           active={tab}

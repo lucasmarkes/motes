@@ -53,6 +53,10 @@ interface LabControlsProps {
   /** The full composition, for the name field. */
   config: LabConfig
   onName: (name: string) => void
+  /** Whether the code slide-over is open (only meaningful below 1600px). */
+  codeOpen: boolean
+  /** Toggle the code slide-over. */
+  onToggleCode: () => void
 }
 
 /**
@@ -78,12 +82,24 @@ export function LabControls({
   onPreset,
   config,
   onName,
+  codeOpen,
+  onToggleCode,
 }: LabControlsProps) {
   // Edited iff we have an anchor to have drifted from and no exact match now.
   const edited = activePreset === '' && basePreset !== ''
 
   return (
     <section className="lab-controls" aria-label="Pipeline">
+      <button
+        type="button"
+        className="code-toggle"
+        aria-pressed={codeOpen}
+        aria-label="Toggle code panel"
+        onClick={onToggleCode}
+      >
+        {codeOpen ? 'Hide code' : 'Show code'}
+      </button>
+
       <div className="controls-presets" role="group" aria-label="Start from a preset">
         <span className="preset-lead">Start from</span>
         <div className="chips">
