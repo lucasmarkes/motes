@@ -11,10 +11,10 @@ export interface SliderProps {
   disabled?: boolean
   /**
    * Drop the name/value/scrub row and render only the track. The Lab's pipeline
-   * columns show a stage's one value in the column header, so repeating it in a
-   * label above the track would be the very row the dock was collapsing. The
+   * stages fold a stage's one value into its header row, so repeating it in a
+   * label above the track would restage the very row the rail merged away. The
    * track drag and the arrow keys stay; only the label-scrub — which had nowhere
-   * to live without its number — is gone, and the wider column track pays it back.
+   * to live without its number — is gone, and the full-width track pays it back.
    */
   bare?: boolean
   onChange: (v: number) => void

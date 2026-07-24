@@ -2521,7 +2521,7 @@ input {
   opacity: 0.55;
 }
 
-/* A bare slider carries no label row; its value lives in the column header. */
+/* A bare slider carries no label row; its value lives in the stage's header row. */
 .slider.is-bare {
   margin-top: 2px;
 }
