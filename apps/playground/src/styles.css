@@ -2019,8 +2019,8 @@ input {
 /* Name --------------------------------------------------------------------
    The one field you type into rather than drag, so it reads as a line of code
    waiting for a word: a dim `effect` prefix, then a monospace box that becomes
-   the name in both output files. It sits at the foot of the controls, right
-   above the code it feeds. */
+   the name in both output files. It sits right under the presets, heading
+   the pipeline tier — the first thing inside `defineEffect('...')`. */
 
 .name-field {
   display: flex;
@@ -2240,11 +2240,12 @@ input {
    The composer's own layout, deliberately off the effect page's shared
    .stage-shell / .panel so the two can diverge without treading on each other.
 
-   Three zones, each with one job. A vertical rail was the wrong shape for a
-   wide screen: five stages fought over ~400px while the field floated in the
-   rest, and the code hid below a fold. So the field takes the width, the code
-   panel is the one thing that keeps a rail — GLSL is long and narrow, and a
-   rail is the shape it wants — and the pipeline lies flat along the foot. */
+   Three columns, each with one job. The field takes whatever width is left
+   over; the controls rail holds the pipeline upright, stage after stage, at
+   a fixed 420px; and the code panel keeps its own rail — GLSL is long and
+   narrow, and a rail is the shape it wants. Below 1600px the code rail
+   folds into a slide-over rather than sharing the width; below 1100px all
+   three stack into one column. */
 
 .lab-shell {
   position: fixed;
@@ -2497,7 +2498,7 @@ input {
 }
 
 /* The stage's name, given more ink and size than the controls under it — this
-   is the "what am I making" the dock wants read first. */
+   is the "what am I making" the rail wants read first. */
 .pcol-name {
   font-family: var(--mono);
   font-size: var(--fs-ui);

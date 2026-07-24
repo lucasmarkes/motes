@@ -60,12 +60,13 @@ interface LabControlsProps {
 }
 
 /**
- * The dock: the pipeline as four columns, dressed by a subordinate strip.
+ * The controls rail: the pipeline as four stacked rows, dressed by a
+ * subordinate strip below a hairline.
  *
- * The two tiers are the two output files. The four columns compile down to the
+ * The two tiers are the two output files. The four rows compile down to the
  * GLSL of effects.ts — a change to any of them relinks the field. The strip
  * below is the props on <Motes>: the look and the pointer, live uniforms that
- * never recompile, which is App.tsx. Read top-to-bottom, the dock is the
+ * never recompile, which is App.tsx. Read top-to-bottom, the rail is the
  * architecture — what you are making, then how it is shown.
  *
  * A stage with a single value folds it into its header rather than spending a
@@ -94,7 +95,6 @@ export function LabControls({
         type="button"
         className="code-toggle"
         aria-pressed={codeOpen}
-        aria-label="Toggle code panel"
         onClick={onToggleCode}
       >
         {codeOpen ? 'Hide code' : 'Show code'}
