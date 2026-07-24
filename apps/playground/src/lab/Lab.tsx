@@ -116,9 +116,27 @@ export function Lab() {
     return () => window.removeEventListener('keydown', onKey)
   }, [codeOpen])
 
+  // codeOpen only means anything below 1600px, where the code is a slide-over.
+  // Above it the code is a plain column, so a stale open state must be cleared on
+  // the way up — otherwise the `inert` below would disable the field and rail
+  // beside a panel that is not overlaying them at all.
+  useEffect(() => {
+    const wide = window.matchMedia('(min-width: 1601px)')
+    const sync = () => {
+      if (wide.matches) setCodeOpen(false)
+    }
+    sync()
+    wide.addEventListener('change', sync)
+    return () => wide.removeEventListener('change', sync)
+  }, [])
+
+  // While the slide-over is open, the field and the rail behind its backdrop are
+  // inert: dimmed to the eye, and now also unreachable by keyboard, so Tab cannot
+  // land on a control hidden under the scrim. Escape and an outside click still
+  // close it, and focus falls through to the panel itself, which stays live.
   return (
     <div className="lab-shell">
-      <div className="lab-field-wrap">
+      <div className="lab-field-wrap" inert={codeOpen}>
         <LabPreview
           stage={stage}
           look={look}

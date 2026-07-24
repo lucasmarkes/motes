@@ -90,7 +90,7 @@ export function LabControls({
   const edited = activePreset === '' && basePreset !== ''
 
   return (
-    <section className="lab-controls" aria-label="Pipeline">
+    <section className="lab-controls" aria-label="Pipeline" inert={codeOpen}>
       <button
         type="button"
         className="code-toggle"
