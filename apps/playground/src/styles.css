@@ -1151,7 +1151,8 @@ input {
   cursor: crosshair;
 }
 
-::view-transition-group(motes-field),
+/* The chrome around the field — the title, the panel, the index — cross-fades
+   on its own clock, unchanged by the field morph below. */
 ::view-transition-group(root),
 ::view-transition-old(root),
 ::view-transition-new(root) {
@@ -1159,18 +1160,33 @@ input {
   animation-timing-function: var(--ease);
 }
 
-/* The group carries the geometry for the full beat, but the outgoing
-   snapshot is a 180px preview being magnified about five times — so clear it
-   early and let the crisp field take over rather than hold a blown-up frame
-   on screen for the whole transition. */
-::view-transition-old(motes-field) {
-  animation-duration: 120ms;
-  animation-timing-function: var(--ease);
+/* The field morph, three parts of one gesture: a tile's preview growing into
+   the full page. The group carries the geometry — the ~180px preview box
+   expanding to the viewport — so it sets the felt duration and must be at least
+   as long as its slowest child or that child clips. Ease-out (a strong one) so
+   the expand decelerates into place and settles, rather than snapping to size. */
+::view-transition-group(motes-field) {
+  animation-duration: 280ms;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Entrance: the full field fading in as the box expands. Rides the group's
+   ease-out and its full length, so the fade completes exactly as the motion
+   settles instead of arriving early against a still-moving frame. */
 ::view-transition-new(motes-field) {
-  animation-duration: 200ms;
-  animation-timing-function: var(--ease);
+  animation-duration: 280ms;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Exit: the outgoing preview — a 180px snapshot being magnified about five
+   times — leaving as the box grows. Shorter than the entrance so it reads as
+   crisper, but long enough (220ms, not the old 120ms) to be a visible
+   shrink-back and not a cut. Ease-in: it holds at first, then accelerates out,
+   which also spends its most-magnified, blurriest frames at low opacity rather
+   than holding a blown-up frame on screen. */
+::view-transition-old(motes-field) {
+  animation-duration: 220ms;
+  animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45);
 }
 
 /* The title sits on the live field; give it ground to stand on, as in the hero. */
