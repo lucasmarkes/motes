@@ -18,13 +18,16 @@ import { decodeConfig, encodeConfig } from './url'
  * real library render it live. The preview compiles the exact GLSL the code
  * panel hands you, so nothing you see here can drift from the paste.
  *
- * Three columns, each with one job. The field takes whatever width is left;
- * the controls rail is fixed at 420px, the pipeline laid out as a scrolling
- * stack of rows; the code panel is the narrow rail beside it, which is the
- * shape GLSL wants. Below 1600px the code rail collapses into a slide-over;
- * below 1100px all three stack into one column. The controls rail's two tiers
- * are the two files the code panel shows — the pipeline compiles to
- * effects.ts, the look and pointer are props in App.tsx.
+ * The field is a full-bleed layer behind the whole page, as on the effect
+ * pages; the controls float over it as panels rather than columns taking width
+ * from it. The controls rail is fixed at 420px, the pipeline laid out as a
+ * scrolling stack of rows; the code panel is the narrow rail beside it, which is
+ * the shape GLSL wants. The pointer still reaches the field under the panels —
+ * the library hit-tests the cursor against the canvas box, so the field reacts
+ * behind whatever is stacked on it. Below 1600px the code rail collapses into a
+ * slide-over; below 1100px the layer flattens and all three stack into one
+ * column. The controls rail's two tiers are the two files the code panel shows —
+ * the pipeline compiles to effects.ts, the look and pointer are props in App.tsx.
  *
  * State splits the way the layout does. `stage` is the pipeline — a change to it
  * recompiles the field. `look` is everything else motes takes: the glyphs, the
@@ -60,7 +63,7 @@ function matchPreset(stage: StageConfig): PresetName | '' {
 
 /** The opening composition, read from the URL at the moment the Lab mounts.
  *  A lazy initializer, not a module constant: the Lab is reached by client-side
- *  navigation (the index's "yours" tile links to /lab with the rain preset in
+ *  navigation (the index's "lab" tile links to /lab with the rain preset in
  *  the query), so the search string only carries the shared config once that
  *  navigation has happened — a value frozen at module load would always be the
  *  default. Reading it here also means the first render already matches the

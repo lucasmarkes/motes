@@ -2238,34 +2238,34 @@ input {
 
 /* Lab ----------------------------------------------------------------------
    The composer's own layout, deliberately off the effect page's shared
-   .stage-shell / .panel so the two can diverge without treading on each other.
+   .stage-shell / .panel so the two can diverge without treading on each other —
+   but built to the same rule the effect page follows: the field is a full-bleed
+   layer behind everything, and the controls sit over it as floating panels, not
+   columns competing with it for width.
 
-   Three columns, each with one job. The field takes whatever width is left
-   over; the controls rail holds the pipeline upright, stage after stage, at
-   a fixed 420px; and the code panel keeps its own rail — GLSL is long and
-   narrow, and a rail is the shape it wants. Below 1600px the code rail
-   folds into a slide-over rather than sharing the width; below 1100px all
-   three stack into one column. */
+   The field fills the viewport. Two rails float at the right edge: the controls
+   rail holds the pipeline upright, stage after stage, at a fixed 420px; and the
+   code panel keeps its own rail beside it — GLSL is long and narrow, and a rail
+   is the shape it wants. The pointer reaches the field even under the rails: the
+   library hit-tests the cursor against the canvas box rather than listening on
+   the canvas, so the field goes on reacting behind whatever is stacked over it.
+   Below 1600px the code rail folds into a slide-over rather than sharing the
+   edge; below 1100px the layer flattens and all three stack into one column. */
 
 .lab-shell {
   position: fixed;
   inset: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 420px 380px;
-  grid-template-rows: minmax(0, 1fr);
-  grid-template-areas: 'field controls code';
-  gap: var(--s2);
-  padding: var(--s2);
+  overflow: hidden;
   background: var(--canvas);
 }
 
-/* The field, and the title that stands on it. Rounded and clipped, so the live
-   canvas takes the same 8px radius as the surfaces around it. */
+/* The field, edge to edge behind the page, and the title that stands on it. No
+   radius and no inset — it is the ground the rails float over, as .stage is on
+   the effect page, not a card among cards. */
 .lab-field-wrap {
-  grid-area: field;
-  position: relative;
+  position: absolute;
+  inset: 0;
   overflow: hidden;
-  border-radius: 8px;
 }
 
 .lab-field {
@@ -2299,10 +2299,16 @@ input {
 }
 
 /* The code rail: the only vertical column on the page, because GLSL is the one
-   thing whose natural shape is tall and narrow. A surface like the panel, and
-   the code scrolls inside it rather than pinned to a foot. */
+   thing whose natural shape is tall and narrow. A floating panel at the right
+   edge — the same surface as the effect page's .panel — with the code scrolling
+   inside it rather than pinned to a foot. */
 .lab-code {
-  grid-area: code;
+  position: absolute;
+  top: var(--s2);
+  right: var(--s2);
+  bottom: var(--s2);
+  width: 380px;
+  z-index: 6;
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -2376,7 +2382,15 @@ input {
    Two tiers, split by the hairline: the stages compile to the GLSL of
    effects.ts, the look and pointer are props on <Motes> in App.tsx. */
 .lab-controls {
-  grid-area: controls;
+  position: absolute;
+  top: var(--s2);
+  bottom: var(--s2);
+  /* Floats just left of the code rail: clear its 380px width and a gap on each
+     side of it. Below 1600 the code becomes a slide-over and this reclaims the
+     right gutter (see the responsive block). */
+  right: calc(380px + var(--s2) * 2);
+  width: 420px;
+  z-index: 6;
   display: flex;
   flex-direction: column;
   gap: var(--s2);
@@ -2603,11 +2617,6 @@ input {
    drop it and summon the code from the right edge instead, where it already
    lived. Same 380px, full height, over a backdrop; the rail keeps the field. */
 @media (max-width: 1600px) {
-  .lab-shell {
-    grid-template-columns: minmax(0, 1fr) 420px;
-    grid-template-areas: 'field controls';
-  }
-
   .code-toggle {
     display: inline-flex;
     align-items: center;
@@ -2638,13 +2647,16 @@ input {
     background: oklch(0 0 0 / 0.32);
   }
 
-  /* The "Show code" toggle only stands in the rail below 1600, and it costs a
-     row the three-column tier never spends. A shorter viewport is also the one
-     under height pressure, so this is where the rail tightens: the inter-tier
-     gaps and the pipe's stage gap close by half a cell, and the tier markers
-     sit a touch nearer their tiers, reclaiming the toggle's row with room to
-     spare. The 1920 layout keeps its fuller spacing. */
+  /* With the code gone to a slide-over, the controls rail is the only floating
+     panel left, so it takes the right gutter the code rail held. And the "Show
+     code" toggle now stands in it, costing a row the three-panel tier never
+     spends — a shorter viewport is also the one under height pressure, so this
+     is where the rail tightens: the inter-tier gaps and the pipe's stage gap
+     close by half a cell, and the tier markers sit a touch nearer their tiers,
+     reclaiming the toggle's row with room to spare. 1920 keeps its fuller
+     spacing and its second rail. */
   .lab-controls {
+    right: var(--s2);
     gap: var(--s1);
     padding-block: var(--s1);
   }
@@ -2666,16 +2678,28 @@ input {
     position: static;
     height: auto;
     min-height: 100dvh;
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto auto auto;
-    grid-template-areas:
-      'field'
-      'controls'
-      'code';
+    overflow: visible;
+    display: flex;
+    flex-direction: column;
+    gap: var(--s2);
+    padding: var(--s2);
   }
 
+  /* The layer flattens: the field is a rounded card at the top of the column
+     again — not the ground behind everything — and the rails fall in below it,
+     in flow, instead of floating over it. */
   .lab-field-wrap {
+    position: relative;
+    inset: auto;
     height: 62vh;
+    border-radius: 8px;
+  }
+
+  .lab-controls {
+    position: static;
+    inset: auto;
+    right: auto;
+    width: auto;
   }
 
   .code-toggle {
@@ -2688,7 +2712,8 @@ input {
 
   .lab-code {
     position: static;
-    grid-area: code;
+    inset: auto;
+    right: auto;
     width: auto;
     margin: 0;
     height: auto;
