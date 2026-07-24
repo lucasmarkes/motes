@@ -7,6 +7,7 @@ import { POINTER_HINT } from './hint'
 import { SiteHeader, SiteFooter } from './Chrome'
 import { InstallRow } from './Install'
 import { useReveal } from './reveal'
+import { useEntrance } from './enter'
 
 export function Index() {
   // The hint has one job and it is done the moment you move. Any move over
@@ -14,8 +15,13 @@ export function Index() {
   // on top of the field, and having moved across it you already know.
   const [touched, setTouched] = useState(false)
 
+  // One class gates the whole entrance, and it is only ever on for the first
+  // mount — see enter.ts. Navigating back from an effect page remounts this
+  // component, and the hero should already be there when you land.
+  const entering = useEntrance()
+
   return (
-    <main className="index">
+    <main className={`index ${entering ? 'is-entering' : ''}`}>
       <SiteHeader />
 
       <header className="hero" onPointerMove={() => setTouched(true)}>

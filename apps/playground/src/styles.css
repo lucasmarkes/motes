@@ -106,6 +106,16 @@
   --tap: 44px;
   --ease: cubic-bezier(0.2, 0, 0, 1);
 
+  /* The entrance curve, and the only place it differs from --ease. An arrival
+     is the one motion on this page with no cause the reader can point at: a
+     hover answers the cursor and a press answers a click, but the hero simply
+     appears. So it leaves almost all of its distance in the first third and
+     spends the rest easing to a stop, which reads as something settling under
+     its own weight rather than something being moved. --ease is the general
+     curve for motion that answers an input; this one is for motion that
+     starts on its own. */
+  --ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
+
   /* The hero pair's height, written down rather than arrived at. See the
      install row below for why a derived height was not one. */
   --btn-h: 42px;
@@ -851,8 +861,14 @@ input {
    `both`, so its filled end state outranks any opacity written here and the exit
    would never play. Cancelling it also covers the case where you move before the
    line has finished arriving — the before-change style still counts the running
-   animation, so it fades from wherever it had got to, or never shows at all. */
-.hero-hint.is-out {
+   animation, so it fades from wherever it had got to, or never shows at all.
+
+   Selected through the parent to outrank both the entrance and its
+   reduced-motion override, which are two and two classes; this is three. An
+   even match would have been decided by source order, and the entrance is
+   declared further down the file — so the hint would have got its animation
+   back at exactly the moment it was told to leave. */
+.hero-copy > .hero-hint.is-out {
   animation: none;
   opacity: 0;
 }
@@ -2152,37 +2168,111 @@ input {
 .t-comment { color: oklch(0.62 0.01 258); }
 
 /* Enter -------------------------------------------------------------------
-   Split into semantic chunks and staggered, rather than fading one container.
+   Ranked, not staggered.
 
-   340ms and 60ms apart, where it used to be 550 and 100. At the old numbers
-   the last chunk began arriving 420ms after the first and finished 970ms in,
-   which is long enough to watch — and a page you watch arrive is performing.
-   The whole sequence now closes at 640ms, and the eye reads it as the page
-   settling rather than as six things taking their turn.
+   This was six chunks 60ms apart, each moving the same 10px over the same
+   340ms. That is a stagger, and a stagger says only that an animation
+   happened: every element treated identically arrives as a list of equals, so
+   the entrance flattens the very hierarchy the type sizes spent all their
+   effort building. The headline was item two in a queue.
 
-   The bar goes first, at no delay, because it is the top of the page and it
-   is where the mark lives. It arrives as one chunk: the mark travelling in
-   while github / npm / x sat still would be two decisions where the reader
-   can only see one line. */
-.site-head-row,
-.hero-copy > * {
-  animation: enter 0.34s var(--ease) both;
+   Now the timing carries the ranking. Distance is the loudest part of an
+   arrival, so it scales with weight — 16px for the headline, 10 for the
+   signature, 8 for the lede and the action, 4 for the mark, and none at all
+   for the hint, which only fades. Duration scales with it: the further a
+   thing travels the longer it takes, or it reads as thrown rather than
+   placed.
+
+   The gaps are the real argument. 140 to the headline, then 250, 120, 100,
+   100. The 250 is the whole idea — it is the headline alone on screen with
+   nothing else moving, long enough that it reads as the thing the page is
+   about rather than the second row of a list. After it the gaps tighten, and
+   the tightening is what keeps the tail from feeling like a queue: equal gaps
+   are a metronome, and nothing that reads as alive keeps time.
+
+   The bar goes first and lowest, at 4px. It frames the page and it should not
+   compete to lead it — it is establishing where you are, and by the time the
+   headline is underway it is already done. It arrives as one chunk, because
+   the mark travelling in while github / npm / x sat still would be two
+   decisions where the reader can only see one line.
+
+   The pair in the action row is deliberately not staggered against itself.
+   The command and the repository are peers, and .hero-action animates as a
+   single element, so they arrive together — as does the footnote under them,
+   which is the same fact stated a moment later, not a sixth event.
+
+   The last thing lands just over a second in, which is longer than the 640ms
+   this replaced. That is the cost of the headline's solo beat and it is the
+   point: the previous sequence was quick because it never gave anything room,
+   and finishing sooner is not the same as reading better. */
+
+/* The gate, and the only rule that names the animation. `.is-entering` is on
+   for the first mount of the page's life and never again (see enter.ts), so
+   coming back to the home page from an effect finds the hero already there
+   rather than watching it assemble a second time. */
+.is-entering .site-head-row,
+.is-entering .hero-copy > * {
+  animation-name: enter;
+  animation-fill-mode: both;
+  animation-timing-function: var(--ease-enter);
 }
 
-/* Five chunks: headline, signature, lede, action, hint. There were six delays
-   declared here when there were only ever five to six children; grouping the
-   command with its footnote made the count exactly five, so the sixth rule is
-   gone rather than left matching nothing. */
-.hero-copy > *:nth-child(1) { animation-delay: 0.06s; }
-.hero-copy > *:nth-child(2) { animation-delay: 0.12s; }
-.hero-copy > *:nth-child(3) { animation-delay: 0.18s; }
-.hero-copy > *:nth-child(4) { animation-delay: 0.24s; }
-.hero-copy > *:nth-child(5) { animation-delay: 0.3s; }
+/* How far each thing travels and when, addressed by name rather than by
+   nth-child — the old numeric rules silently re-ranked the hero the moment
+   anything was reordered or inserted.
 
+   Ungated on purpose. Without the rule above there is no animation-name, so
+   every one of these is inert: they set the shape of an entrance that is not
+   running. Keeping them out of `.is-entering` also keeps them at two classes,
+   which is what lets the hint's exit outrank them. */
+.site-head-row {
+  --enter-y: 4px;
+  animation-duration: 250ms;
+  animation-delay: 0ms;
+}
+
+.hero-copy > h1 {
+  --enter-y: 16px;
+  animation-duration: 500ms;
+  animation-delay: 140ms;
+}
+
+.hero-copy > .signature {
+  --enter-y: 10px;
+  animation-duration: 400ms;
+  animation-delay: 390ms;
+}
+
+.hero-copy > .lede {
+  --enter-y: 8px;
+  animation-duration: 400ms;
+  animation-delay: 510ms;
+}
+
+.hero-copy > .hero-action {
+  --enter-y: 8px;
+  animation-duration: 400ms;
+  animation-delay: 610ms;
+}
+
+/* The quietest line on the page, and the only one that will leave on its own.
+   No travel: it is a footnote about the cursor, and a footnote that slides in
+   is asking for a look it does not want. */
+.hero-copy > .hero-hint {
+  --enter-y: 0px;
+  animation-duration: 400ms;
+  animation-delay: 710ms;
+}
+
+/* One keyframe for all six. The distance is a custom property rather than a
+   value, which is what lets a single animation carry a ranking: the property
+   resolves per element before the animation is built, so each one interpolates
+   from its own constant and the compositor still sees a plain transform.
+   Opacity and translate only — nothing here touches layout. */
 @keyframes enter {
   from {
     opacity: 0;
-    translate: 0 10px;
+    translate: 0 var(--enter-y, 8px);
   }
   to {
     opacity: 1;
@@ -2312,11 +2402,28 @@ input {
     scale: none !important;
   }
 
-  /* No entrance at all. `both` fills the from-state before the delay, so the
-     animation has to go rather than be zeroed — a 0s animation still holds
-     the page invisible for its delay. */
-  .site-head-row,
-  .hero-copy > *,
+  /* The entrance keeps its fade and loses everything else. Travel goes to
+     zero and every delay collapses to nothing, so the six chunks stop being a
+     sequence and become one 180ms fade — the ranking was expressed in
+     distance and time, and both of those are the parts a vestibular system
+     objects to. What is left still softens the load without moving anything
+     across the screen.
+
+     Overriding rather than cancelling. `animation: none` would work here, but
+     it would also drop the name the gate supplies and take the fade with it,
+     and these three declarations say what should happen instead of what
+     should not. `both` still fills the from-state, so the delays have to
+     actually go: a zero-duration animation left on a 710ms delay would hold
+     the hint invisible for exactly as long as before. */
+  .is-entering .site-head-row,
+  .is-entering .hero-copy > * {
+    --enter-y: 0px;
+    animation-duration: 180ms;
+    animation-delay: 0ms;
+  }
+
+  /* The effect page's hint rises on `rise`, which carries its distance in the
+     keyframe itself and so has no lever to pull. It goes. */
   .hint {
     animation: none;
   }
