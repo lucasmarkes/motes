@@ -3020,17 +3020,19 @@ input {
   position: fixed;
   inset: 0;
   z-index: 100;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding: 12vh var(--s3) var(--s3);
   background: oklch(0.05 0.005 258 / 0.65);
   backdrop-filter: blur(6px);
   animation: fade-in 120ms var(--ease) both;
 }
 
 .doc-search {
-  width: min(560px, 100%);
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 101;
+  transform: translate(-50%, -50%);
+  width: min(560px, calc(100vw - var(--s3) * 2));
+  max-height: min(480px, calc(100dvh - var(--s3) * 2));
   margin: 0;
   padding: 0;
   border: 1px solid var(--rule-strong);
@@ -3038,9 +3040,16 @@ input {
   background: var(--raise);
   box-shadow: 0 24px 64px oklch(0 0 0 / 0.45);
   color: var(--text);
+  overflow: hidden;
 }
 
-.doc-search-input {
+.doc-search [cmdk-root] {
+  display: flex;
+  flex-direction: column;
+  max-height: inherit;
+}
+
+.doc-search [cmdk-input] {
   width: 100%;
   padding: var(--s3);
   font-family: var(--display);
@@ -3052,37 +3061,44 @@ input {
   outline: none;
 }
 
-.doc-search-input::placeholder {
+.doc-search [cmdk-input]::placeholder {
   color: var(--text-3);
 }
 
-.doc-search-results {
-  list-style: none;
-  margin: 0;
-  padding: var(--s1);
+.doc-search [cmdk-list] {
   max-height: 320px;
   overflow-y: auto;
+  padding: var(--s1);
 }
 
-.doc-search-results button {
-  width: 100%;
+.doc-search [cmdk-group-heading] {
+  padding: var(--s1) var(--s2) 4px;
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  user-select: none;
+}
+
+.doc-search [cmdk-item] {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 2px;
   padding: var(--s2);
-  text-align: left;
-  font: inherit;
-  color: inherit;
-  background: transparent;
-  border: 0;
   border-radius: 5px;
   cursor: pointer;
+  user-select: none;
 }
 
-.doc-search-results button:hover,
-.doc-search-results button.is-active {
+.doc-search [cmdk-item][data-selected='true'] {
   background: oklch(0.935 0.006 258 / 0.08);
+}
+
+.doc-search [cmdk-item][data-disabled='true'] {
+  cursor: default;
+  opacity: 0.5;
 }
 
 .doc-search-title {
@@ -3095,7 +3111,7 @@ input {
   color: var(--text-3);
 }
 
-.doc-search-empty {
+.doc-search [cmdk-empty] {
   padding: var(--s3);
   font-size: var(--fs-ui);
   color: var(--text-3);
@@ -3107,6 +3123,7 @@ input {
   font-size: var(--fs-micro);
   color: var(--text-3);
   border-top: 1px solid var(--rule);
+  text-align: center;
 }
 
 .doc-search-hint kbd {
