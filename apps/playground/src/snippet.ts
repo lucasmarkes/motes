@@ -5,7 +5,7 @@ export type Tab = 'core' | 'react'
 /** Options worth showing: the two that carry the pitch, plus anything tuned. */
 const TUNABLE = ['radius', 'force', 'density', 'speed', 'trail', 'charset', 'accent'] as const
 
-function tuned(config: MotesOptions): Array<[string, string | number]> {
+export function tuned(config: MotesOptions): Array<[string, string | number]> {
   const out: Array<[string, string | number]> = []
   for (const key of TUNABLE) {
     if (config[key] !== DEFAULT_OPTIONS[key]) out.push([key, config[key]])

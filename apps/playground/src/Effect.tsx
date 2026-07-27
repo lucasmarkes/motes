@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Motes } from '@lucasmarkes/motes-react'
 import type { MotesOptions } from '@lucasmarkes/motes'
 import { Panel } from './Panel'
 import type { CatalogEntry } from './effects'
@@ -12,19 +11,24 @@ interface EffectProps {
   onChange: (patch: Partial<MotesOptions>) => void
 }
 
+/**
+ * An effect page is chrome now, not a canvas. The field is the one persistent
+ * layer behind the whole app (see App.tsx and Field.tsx); this page only dresses
+ * it — a title, a hint, the tuning panel — and repoints it through the shared
+ * handle when you switch effects. So there is no `<Motes>` here to receive the
+ * pointer: the move that dismisses the hint is read off the shell, and the field
+ * itself reacts to the cursor by hit-testing it against the canvas box, the same
+ * for every effect, whatever is stacked over it.
+ */
 export function Effect({ entry, config, onChange }: EffectProps) {
   const [touched, setTouched] = useState(false)
 
   return (
-    <div className="stage-shell">
-      <Motes
-        {...config}
-        className="stage"
-        aria-label={`${entry.title} field`}
-        onPointerMove={() => setTouched(true)}
-        onPointerDown={() => setTouched(true)}
-      />
-
+    <div
+      className="stage-shell"
+      onPointerMove={() => setTouched(true)}
+      onPointerDown={() => setTouched(true)}
+    >
       <header className="stage-head">
         <Link to="/" className="back">
           <span aria-hidden="true">←</span> All effects

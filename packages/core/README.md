@@ -81,6 +81,17 @@ pointer pass → main`, and the pointer contribution is added after `field()`
 returns. An effect cannot see or override it, which is why the cursor works
 without you asking.
 
+Registered at runtime, an effect can be removed at runtime too:
+
+```ts
+removeEffect('rain') // → true if it was registered
+```
+
+`removeEffect` frees no GPU resources — the compiled program is the renderer's,
+released when the effect is swapped out or the instance is destroyed. The
+built-ins are protected: removing `flow`, `waves`, or `pulse` throws unless you
+pass `{ override: true }`.
+
 ## React
 
 ```sh

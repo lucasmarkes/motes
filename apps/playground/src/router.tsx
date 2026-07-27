@@ -63,6 +63,19 @@ export function navigate(to: string): void {
   })
 }
 
+/**
+ * Replace the current entry, rather than push a new one. For a route that only
+ * forwards somewhere else — a superseded page pointing at its successor — a
+ * pushState would trap the back button, which would land on the old URL, redirect
+ * again, and never reach where the visitor came from. replaceState leaves no
+ * such loop. Carries a query, so it compares on the full target, not the path.
+ */
+export function redirect(to: string): void {
+  if (to === window.location.pathname + window.location.search) return
+  window.history.replaceState({}, '', to)
+  window.dispatchEvent(new PopStateEvent('popstate'))
+}
+
 interface LinkProps {
   to: string
   className?: string

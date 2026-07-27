@@ -1,0 +1,198 @@
+import { useEffect, useMemo, useState, type RefObject } from 'react'
+import { Link } from '../router'
+import type { FieldHandle } from '../Field'
+import { useLabField } from './useLabField'
+import { LabControls } from './LabControls'
+import { CodeOutput } from '../controls/CodeOutput'
+import {
+  DEFAULT_CONFIG,
+  PRESETS,
+  type Look,
+  type PresetName,
+  type StageConfig,
+} from './pipeline'
+import { labSource, type LabTab } from './source'
+import { decodeConfig, encodeConfig } from './url'
+
+/**
+ * The Lab: compose a field from the fixed five-stage pipeline and watch the
+ * real library render it live. The preview compiles the exact GLSL the code
+ * panel hands you, so nothing you see here can drift from the paste.
+ *
+ * The field is a full-bleed layer behind the whole page, as on the effect
+ * pages; the controls float over it as panels rather than columns taking width
+ * from it. The controls rail is fixed at 420px, the pipeline laid out as a
+ * scrolling stack of rows; the code panel is the narrow rail beside it, which is
+ * the shape GLSL wants. The pointer still reaches the field under the panels —
+ * the library hit-tests the cursor against the canvas box, so the field reacts
+ * behind whatever is stacked on it. Below 1600px the code rail collapses into a
+ * slide-over; below 1100px the layer flattens and all three stack into one
+ * column. The controls rail's two tiers are the two files the code panel shows —
+ * the pipeline compiles to effects.ts, the look and pointer are props in App.tsx.
+ *
+ * State splits the way the layout does. `stage` is the pipeline — a change to it
+ * recompiles the field. `look` is everything else motes takes: the glyphs, the
+ * colour, the pointer — live uniform updates, no recompile. The field is never
+ * chosen from a list, so `look` carries no `effect`. `name` labels the effect in
+ * both output files.
+ *
+ * The three together are the whole composition, so they are the whole URL: every
+ * edit rewrites the query string in place (no history spam), and a fresh load
+ * decodes it back, which makes any Lab session a link you can send.
+ */
+
+/** Flat config, so field-by-field equality is all a preset match needs. */
+function sameStage(a: StageConfig, b: StageConfig): boolean {
+  return (
+    a.turbulence === b.turbulence &&
+    a.pattern === b.pattern &&
+    a.flow === b.flow &&
+    a.speed === b.speed &&
+    a.mask === b.mask &&
+    a.falloff === b.falloff &&
+    a.contrast === b.contrast &&
+    a.flicker === b.flicker
+  )
+}
+
+const PRESET_NAMES = Object.keys(PRESETS) as PresetName[]
+
+/** The preset a stage exactly equals, or '' for a composition that matches none. */
+function matchPreset(stage: StageConfig): PresetName | '' {
+  return PRESET_NAMES.find((name) => sameStage(PRESETS[name], stage)) ?? ''
+}
+
+/** The opening composition, read from the URL at the moment the Lab mounts.
+ *  A lazy initializer, not a module constant: the Lab is reached by client-side
+ *  navigation (the index's "lab" tile links to /lab with the rain preset in
+ *  the query), so the search string only carries the shared config once that
+ *  navigation has happened — a value frozen at module load would always be the
+ *  default. Reading it here also means the first render already matches the
+ *  link, with no flash of the default field. Guarded for non-browser tests. */
+function initialConfig() {
+  return typeof window === 'undefined' ? DEFAULT_CONFIG : decodeConfig(window.location.search)
+}
+
+export function Lab({ fieldRef }: { fieldRef: RefObject<FieldHandle | null> }) {
+  const [error, setError] = useState<string | null>(null)
+  const [initial] = useState(initialConfig)
+  const [stage, setStage] = useState<StageConfig>(initial.stage)
+  const [look, setLook] = useState<Look>(initial.look)
+  const [name, setName] = useState<string>(initial.name)
+  const [tab, setTab] = useState<LabTab>('effects')
+  const [codeOpen, setCodeOpen] = useState(false)
+
+  // Derived, not stored: the preset chip fills whenever the pipeline equals a
+  // preset again — including right after loading one — and stops filling the
+  // moment an edit pulls it away. One source of truth, the stage.
+  const activePreset = useMemo(() => matchPreset(stage), [stage])
+
+  // The anchor. Where the exact match tells you the pipeline IS a preset, this
+  // remembers which preset it last WAS, and holds that through every edit — so
+  // the row keeps a lit chip to reset to instead of going dark on the first
+  // tweak. Seeded from the opening config, then re-pinned each time an edit
+  // lands the pipeline back on some preset exactly.
+  const [basePreset, setBasePreset] = useState<PresetName | ''>(() => matchPreset(initial.stage))
+  useEffect(() => {
+    if (activePreset) setBasePreset(activePreset)
+  }, [activePreset])
+
+  // The composition IS the URL. Every edit rewrites the query string in place —
+  // replaceState, not pushState, so a tweak doesn't stack a history entry per
+  // keystroke — and the name is stored raw (sanitized only in the output) so the
+  // link round-trips exactly what the box shows.
+  const config = useMemo(() => ({ name, stage, look }), [name, stage, look])
+  useEffect(() => {
+    const query = encodeConfig(config)
+    const url = query ? `${window.location.pathname}?${query}` : window.location.pathname
+    window.history.replaceState(null, '', url)
+  }, [config])
+
+  // Drive the shared field: borrow the instance App keeps above the router,
+  // live-compile the pipeline into it, and hand it back on the way out. The
+  // preview is not a canvas of the Lab's own — it is the one field, composed.
+  useLabField(fieldRef, stage, look, setError)
+
+  // The code slide-over (below 1600px) closes on Escape or a click outside it.
+  // Listeners live only while it is open; above 1600px the panel is a column and
+  // codeOpen has no visual effect, so a stray close is harmless.
+  useEffect(() => {
+    if (!codeOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setCodeOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [codeOpen])
+
+  // codeOpen only means anything below 1600px, where the code is a slide-over.
+  // Above it the code is a plain column, so a stale open state must be cleared on
+  // the way up — otherwise the `inert` below would disable the field and rail
+  // beside a panel that is not overlaying them at all.
+  useEffect(() => {
+    const wide = window.matchMedia('(min-width: 1601px)')
+    const sync = () => {
+      if (wide.matches) setCodeOpen(false)
+    }
+    sync()
+    wide.addEventListener('change', sync)
+    return () => wide.removeEventListener('change', sync)
+  }, [])
+
+  // While the slide-over is open, the field and the rail behind its backdrop are
+  // inert: dimmed to the eye, and now also unreachable by keyboard, so Tab cannot
+  // land on a control hidden under the scrim. Escape and an outside click still
+  // close it, and focus falls through to the panel itself, which stays live.
+  return (
+    <div className="lab-shell">
+      <div className="lab-field-wrap" inert={codeOpen}>
+        <header className="stage-head">
+          <Link to="/" className="back">
+            <span aria-hidden="true">←</span> All effects
+          </Link>
+          <h1>Lab</h1>
+          <code className="stage-tag is-yours">compose</code>
+          <p>build a field from the five-stage pipeline, running live</p>
+        </header>
+
+        {error ? (
+          <p className="hint hint-off" role="status">
+            compile error — showing last good field: {error}
+          </p>
+        ) : null}
+      </div>
+
+      <LabControls
+        stage={stage}
+        onStage={(patch) => setStage((prev) => ({ ...prev, ...patch }))}
+        look={look}
+        onLook={(patch) => setLook((prev) => ({ ...prev, ...patch }))}
+        activePreset={activePreset}
+        basePreset={basePreset}
+        onPreset={(preset) => setStage(PRESETS[preset])}
+        config={config}
+        onName={setName}
+        codeOpen={codeOpen}
+        onToggleCode={() => setCodeOpen((v) => !v)}
+      />
+
+      {codeOpen ? (
+        <div className="code-backdrop" onClick={() => setCodeOpen(false)} aria-hidden="true" />
+      ) : null}
+      <div className={`lab-code${codeOpen ? ' is-open' : ''}`}>
+        <CodeOutput
+          tabs={OUTPUT_TABS}
+          active={tab}
+          onTab={(id) => setTab(id as LabTab)}
+          code={labSource(tab, config)}
+          label="Output files"
+        />
+      </div>
+    </div>
+  )
+}
+
+const OUTPUT_TABS = [
+  { id: 'effects', label: 'effects.ts' },
+  { id: 'app', label: 'App.tsx' },
+] as const

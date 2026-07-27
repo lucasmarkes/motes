@@ -77,6 +77,10 @@ pointer pass → main`, and the pointer contribution is added after `field()`
 returns. An effect cannot see or override it — the orthogonality is structural,
 not a convention, and there are tests that fail if it ever stops being true.
 
+Remove one just as easily with `removeEffect('rain')`. The built-ins are
+protected: removing `flow`, `waves`, or `pulse` throws unless you pass
+`{ override: true }`.
+
 ## Options
 
 | Option | Default | What it does |

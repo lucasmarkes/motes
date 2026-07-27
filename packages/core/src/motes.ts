@@ -1,5 +1,6 @@
 import { buildGlyphAtlas, validateCharset } from './atlas'
 import { parseHexColor, type RGB } from './color'
+import { NOISY } from './dev'
 import { diagnose } from './diagnostics'
 import { getEffect, listEffects } from './effects/registry'
 import { createRenderer, type Renderer } from './renderer/gl'
@@ -27,30 +28,6 @@ const MIN_FADE = 0.08
  * costs nothing; a false positive costs the whole feature.
  */
 const ARM_DELAY_MS = 1000
-
-// The diagnostics gate reads process.env.NODE_ENV as a bare literal so a
-// consumer's bundler can substitute and dead-code-eliminate it. TypeScript
-// needs to believe `process` exists; the runtime guard below handles the case
-// where it does not.
-declare const process: { env: Record<string, string | undefined> }
-
-/**
- * Diagnostics are development-only. A bundler replaces the literal
- * `process.env.NODE_ENV` → `"production" !== "production"` → `false`, and the
- * whole diagnostic path is eliminated from production builds. But `process` is
- * undefined in raw browser ESM — a CDN `<script type="module">` user — where
- * touching it throws a ReferenceError, fatal for a zero-dependency browser
- * library. The read is wrapped so that user still gets help. Writing
- * `process.env?.NODE_ENV` instead would defeat the bundler substitution, which
- * matches the exact literal. Evaluated once, at module load.
- */
-const NOISY = (() => {
-  try {
-    return process.env.NODE_ENV !== 'production'
-  } catch {
-    return true
-  }
-})()
 
 /** Monospace advance is roughly 0.6em, so cells are taller than they are wide. */
 function cellSize(density: number): { w: number; h: number } {

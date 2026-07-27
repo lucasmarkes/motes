@@ -1,5 +1,5 @@
 export { createMotes } from './motes'
-export { defineEffect, listEffects } from './effects/registry'
+export { defineEffect, listEffects, removeEffect } from './effects/registry'
 export { DEFAULT_OPTIONS } from './types'
 export type {
   BuiltinEffect,
