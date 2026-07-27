@@ -61,11 +61,66 @@ export interface Token {
   kind: TokenKind
 }
 
-const PATTERN =
-  /(\/\/[^\n]*)|('[^']*'|"[^"]*")|(\b(?:import|from|const|true|false)\b)|(\b\d+(?:\.\d+)?\b)/g
+export type HighlightLang = 'ts' | 'tsx' | 'glsl' | 'bash'
+
+const KEYWORDS: Record<HighlightLang, string[]> = {
+  ts: [
+    'import',
+    'from',
+    'const',
+    'let',
+    'var',
+    'export',
+    'type',
+    'interface',
+    'return',
+    'async',
+    'await',
+    'true',
+    'false',
+    'null',
+    'new',
+    'function',
+  ],
+  tsx: [
+    'import',
+    'from',
+    'const',
+    'let',
+    'export',
+    'return',
+    'true',
+    'false',
+    'function',
+  ],
+  glsl: [
+    'float',
+    'vec2',
+    'vec3',
+    'vec4',
+    'return',
+    'smoothstep',
+    'pow',
+    'fract',
+    'sin',
+    'mix',
+  ],
+  bash: [],
+}
+
+function keywordPattern(lang: HighlightLang): RegExp {
+  const words = KEYWORDS[lang]
+  if (words.length === 0) return /(?!x)x/
+  return new RegExp(`\\b(?:${words.join('|')})\\b`)
+}
 
 /** Small tokenizer for the snippet subset — enough to read, nothing more. */
-export function highlight(code: string): Token[] {
+export function highlight(code: string, lang: HighlightLang = 'ts'): Token[] {
+  const kw = keywordPattern(lang)
+  const PATTERN = new RegExp(
+    `(\\/\\/[^\\n]*)|('[^']*'|"[^"]*")|(${kw.source})|(\\b\\d+(?:\\.\\d+)?\\b)`,
+    'g',
+  )
   const tokens: Token[] = []
   let last = 0
 
