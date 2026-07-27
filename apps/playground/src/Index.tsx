@@ -117,7 +117,7 @@ function Tile({ entry }: { entry: CatalogEntry }) {
     >
       <span className="tile-field" ref={field}>
         <Motes
-          effect={entry.id}
+          effect={entry.preview ?? entry.id}
           density={10}
           trail={0.3}
           radius={110}

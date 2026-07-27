@@ -859,6 +859,26 @@ input {
 
 /* Index: grid ------------------------------------------------------------- */
 
+/* Gallery page — same tile grid as the index, with an in-flow header instead
+   of the effect page's absolute overlay. */
+.gallery-head {
+  position: relative;
+  top: auto;
+  left: auto;
+  max-width: var(--page);
+  margin-inline: auto;
+  padding: calc(var(--site-head) + var(--s4)) var(--rail) var(--s3);
+  pointer-events: auto;
+}
+
+.gallery-lede {
+  font-size: var(--fs-ui);
+  line-height: 1.6;
+  color: var(--text-2);
+  text-wrap: pretty;
+  max-width: 42ch;
+}
+
 /* No inline borders. A 1px left edge would push every label one pixel off
    the rail, which is exactly the kind of near-miss that reads as sloppy
    without being nameable. The hero's own bottom edge draws the line above.
