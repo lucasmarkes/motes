@@ -6,7 +6,7 @@ import { createServer, type ViteDevServer } from 'vite'
 // "No scroll at a normal viewport" is the controls rail's binding requirement,
 // and it is a layout property — jsdom has no layout engine, so `scrollHeight`
 // there is always 0 and can prove nothing. This boots the real app through Vite
-// in-process, renders /lab in a real browser at the two desktop sizes the design
+// in-process, renders the Lab layout fixture in a real browser at the two desktop
 // commits to, and asserts the rail's content fits its column without overflow.
 //
 // This is the standing counterpart to the `overflow-y: auto` net on the rail:
@@ -55,7 +55,7 @@ for (const [w, h] of [
   test(`controls rail fits its column without scrolling at ${w}x${h}`, async () => {
     const page = await browser.newPage({ viewport: { width: w, height: h } })
     try {
-      await page.goto(`${base}lab`, { waitUntil: 'networkidle' })
+      await page.goto(`${base}lab-fixture.html`, { waitUntil: 'networkidle' })
       const rail = page.locator('.lab-controls')
       await rail.waitFor()
       const { scrollH, clientH } = await rail.evaluate((el) => ({

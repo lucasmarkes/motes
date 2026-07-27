@@ -5,7 +5,6 @@ import { Field, type FieldHandle } from './Field'
 import { Effect } from './Effect'
 import { Gallery } from './Gallery'
 import { Index } from './Index'
-import { Lab } from './lab/Lab'
 import { entryFor } from './effects'
 import { usePath } from './router'
 
@@ -30,28 +29,18 @@ export function App() {
 
   const entry = id ? entryFor(id) : undefined
 
-  // Five routes over one field. The gallery lists ready-made effects; a catalog
-  // entry is an effect page; anything else is the index.
-  //
-  // Lab (hidden from navigation — restore by re-linking a tile or tab to /lab):
-  //   id === 'lab' ? 'lab' : ...
   const route =
-    id === 'lab'
-      ? 'lab'
-      : id === 'effects'
-        ? 'gallery'
-        : entry && entry.id !== 'more'
-          ? 'effect'
-          : 'index'
+    id === 'effects'
+      ? 'gallery'
+      : entry && entry.id !== 'more'
+        ? 'effect'
+        : 'index'
 
   // Drive the shared field from the route. The effect pages repoint it and run
-  // it; the index and gallery hide and stop it; the Lab leaves it exactly as it
-  // is — its hook borrows this instance and must not have the effect yanked out
-  // from under its live compile.
+  // it; the index and gallery hide and stop it.
   useEffect(() => {
     const field = fieldRef.current
     if (!field) return
-    if (route === 'lab') return
     if (route === 'index' || route === 'gallery') {
       field.stop()
       return
@@ -71,9 +60,7 @@ export function App() {
         aria-hidden="true"
       />
 
-      {route === 'lab' ? (
-        <Lab fieldRef={fieldRef} />
-      ) : route === 'gallery' ? (
+      {route === 'gallery' ? (
         <Gallery />
       ) : route === 'effect' ? (
         <Effect
