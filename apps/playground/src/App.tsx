@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { DEFAULT_OPTIONS, type MotesOptions } from '@lucasmarkes/motes'
 import { POINTER_ACCENT } from './accent'
+import { Docs } from './docs/Docs'
 import { Effect } from './Effect'
 import { Index } from './Index'
 import { entryFor } from './effects'
@@ -15,6 +16,11 @@ export function App() {
   })
 
   const path = usePath()
+
+  if (path === '/docs' || path.startsWith('/docs/')) {
+    return <Docs path={path} />
+  }
+
   const id = path.replace(/^\/+|\/+$/g, '')
   const entry = id ? entryFor(id) : undefined
 

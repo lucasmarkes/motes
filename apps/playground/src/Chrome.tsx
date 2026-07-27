@@ -1,4 +1,6 @@
 import { LINKS, AUTHOR } from './links'
+import { Link } from './router'
+import { useSearch } from './docs/Search'
 
 /** Off-site, so a new tab — the field on the page you came from stays alive. */
 export function Out({ href, children }: { href: string; children: string }) {
@@ -12,30 +14,40 @@ export function Out({ href, children }: { href: string; children: string }) {
 /** github / npm / x, in that order, wherever they appear. */
 export function OutLinks() {
   return (
-    <nav className="out-links" aria-label="motes elsewhere">
+    <div className="out-links" aria-label="motes elsewhere">
       <Out href={LINKS.github}>github</Out>
       <Out href={LINKS.npm}>npm</Out>
       <Out href={LINKS.x}>x</Out>
-    </nav>
+    </div>
   )
+}
+
+interface SiteHeaderProps {
+  docsActive?: boolean
 }
 
 /**
  * Fixed to the top, on the rail, and transparent.
- *
- * A bar with its own fill would sit on top of the page; this one is a line of
- * text over the field, held legible by a short scrim, and the field goes on
- * reacting underneath it — the container takes no pointer events, only the
- * links themselves do.
  */
-export function SiteHeader() {
+export function SiteHeader({ docsActive }: SiteHeaderProps = {}) {
+  const { open: openSearch } = useSearch()
+
   return (
     <header className="site-head">
       <div className="rail site-head-row">
         <a className="site-mark" href="/">
           motes
         </a>
-        <OutLinks />
+        <nav className="site-nav" aria-label="Site">
+          <Link to="/docs" className={docsActive ? 'is-active' : undefined}>
+            docs
+          </Link>
+          <button type="button" className="site-search" onClick={openSearch}>
+            Search
+            <kbd aria-hidden="true">⌘K</kbd>
+          </button>
+          <OutLinks />
+        </nav>
       </div>
     </header>
   )
