@@ -39,14 +39,13 @@ export function SiteHeader({ docsActive }: SiteHeaderProps = {}) {
           motes
         </a>
         <nav className="site-nav" aria-label="Site">
+          <OutLinks />
           <Link to="/docs" className={docsActive ? 'is-active' : undefined}>
             docs
           </Link>
           <button type="button" className="site-search" onClick={openSearch}>
-            Search
-            <kbd aria-hidden="true">⌘K</kbd>
+            search
           </button>
-          <OutLinks />
         </nav>
       </div>
     </header>
