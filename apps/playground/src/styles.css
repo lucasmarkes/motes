@@ -1132,6 +1132,9 @@ input {
   position: fixed;
   inset: 0;
   overflow: hidden;
+  /* Set per render from the field's own background (see tone.ts). This
+     fallback is the page canvas, which is what the field used to always be. */
+  --field-wash: 5 4 3;
 }
 
 .stage {
@@ -1169,22 +1172,43 @@ input {
   animation-timing-function: var(--ease);
 }
 
-/* The title sits on the live field; give it ground to stand on, as in the hero. */
+/* The title sits on the live field; give it ground to stand on, as in the hero.
+
+   The wash is the field's own background rather than a fixed dark, so it reads
+   as the field thickening instead of a panel dropped on it — and so a light
+   preset does not get a dark rectangle in the corner of the artwork. On the
+   dark presets this is the colour it always was.
+
+   The masks are what stop it being a rectangle. 148deg points mostly downward,
+   so the iso-alpha bands run near horizontal and the box's edges cut straight
+   through them: that was the vertical line at x=650 and the horizontal one at
+   y=360. Pulling the last colour stop in cannot fix the bottom — on a 680x380
+   box the bottom edge starts at 47% of the gradient's own axis, so any stop low
+   enough to zero it would end the wash above the copy. So the edges are zeroed
+   by the mask instead, one gradient per axis, intersected. That makes "no
+   terminating line" structural: it holds for any stop positions, and the
+   numbers below only decide how much ground the copy gets.
+
+   The box grew from 680x380 to pay for what the masks take off its edges. */
 .stage-shell::before {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
-  width: min(680px, 64%);
-  height: 380px;
+  width: min(760px, 68%);
+  height: 440px;
   z-index: 4;
   background: linear-gradient(
     148deg,
-    oklch(0.108 0.005 71.346 / 0.96) 0%,
-    oklch(0.108 0.005 71.346 / 0.87) 36%,
-    oklch(0.108 0.005 71.346 / 0.42) 72%,
-    oklch(0.108 0.005 71.346 / 0) 100%
+    rgb(var(--field-wash) / 0.96) 0%,
+    rgb(var(--field-wash) / 0.87) 36%,
+    rgb(var(--field-wash) / 0.42) 72%,
+    rgb(var(--field-wash) / 0) 100%
   );
+  mask-image:
+    linear-gradient(to right, #000 50%, transparent 100%),
+    linear-gradient(to bottom, #000 50%, transparent 100%);
+  mask-composite: intersect;
   pointer-events: none;
 }
 
