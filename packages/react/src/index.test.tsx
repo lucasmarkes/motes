@@ -27,6 +27,11 @@ vi.mock('@lucasmarkes/motes', async () => {
     density: 13,
     charset: ' .:-=+*#%@',
     accent: '#d8531f',
+    background: '#050403',
+    ink: '#827865',
+    contrast: 1,
+    brightness: 0,
+    respectMotionPreference: true,
     trail: 0.3,
   }
   return {
