@@ -10,7 +10,9 @@
  * that stops at "what is wrong" is the failure mode we are patching.
  */
 
-export type Diagnosis = { code: 'unsized' | 'occluded'; message: string } | null
+import type { RGB, RGBA } from './color'
+
+export type Diagnosis = { code: 'unsized' | 'occluded' | 'washed'; message: string } | null
 
 export interface DiagnosticInput {
   clientWidth: number
@@ -106,4 +108,65 @@ export function diagnose(input: DiagnosticInput): Diagnosis {
   }
 
   return null
+}
+
+/** WCAG relative luminance. The inputs are already normalised sRGB. */
+function channelLuminance(c: number): number {
+  return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)
+}
+
+function relativeLuminance([r, g, b]: RGB): number {
+  return (
+    0.2126 * channelLuminance(r) +
+    0.7152 * channelLuminance(g) +
+    0.0722 * channelLuminance(b)
+  )
+}
+
+/**
+ * Deliberately far below WCAG's 4.5:1.
+ *
+ * That bar is for text you must read; this is a decorative field, and the
+ * shipped default measures about 4.7:1 at the bright end of its ramp while the
+ * dim end sits far lower on purpose. A field at 2:1 is a legitimate subtle
+ * look, not a mistake. 1.5:1 is the line where nothing is on screen at all.
+ */
+const MIN_RATIO = 1.5
+
+const WASHED_MESSAGE =
+  '[motes] The field is drawing, but `ink` and `background` are too close in ' +
+  'luminance to see. The ambient ramp runs from the background toward `ink`, ' +
+  'so when those two match there is nothing to render but the background.\n' +
+  '  Fix: move `ink` away from `background` — light glyphs on a dark ' +
+  'background, or dark on light.\n' +
+  '  Deliberate? Silence with <canvas data-motes-quiet>.'
+
+/**
+ * Warn when the chosen palette cannot produce a visible glyph.
+ *
+ * Separate from `diagnose` because that function is about the DOM box, and
+ * this is about resolved options — different inputs, different lifetime.
+ * Skipped entirely for a non-opaque background: what sits behind the canvas
+ * belongs to the host page, so any ratio computed here would be a guess.
+ *
+ * `background` arrives premultiplied (the pipeline premultiplies once, at
+ * resolve time, and never straightens it back out). That only matters when
+ * alpha is below 1 — and this function bails before touching the colour in
+ * that case — so the luminance maths below never sees a premultiplied value
+ * at anything other than alpha 1, where premultiplied and straight are the
+ * same numbers.
+ */
+export function diagnoseContrast(
+  background: RGBA,
+  ink: RGB,
+  quiet: boolean,
+): Diagnosis {
+  if (quiet) return null
+  if (background[3] < 1) return null
+
+  const a = relativeLuminance([background[0], background[1], background[2]])
+  const b = relativeLuminance(ink)
+  const ratio = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)
+
+  return ratio < MIN_RATIO ? { code: 'washed', message: WASHED_MESSAGE } : null
 }

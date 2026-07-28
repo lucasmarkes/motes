@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { diagnose, type DiagnosticInput } from '../diagnostics'
+import { diagnose, diagnoseContrast, type DiagnosticInput } from '../diagnostics'
 
 /**
  * A correctly-installed field: the documented React snippet
@@ -133,5 +133,44 @@ describe('diagnose', () => {
         ),
       ).toBeNull()
     })
+  })
+})
+
+describe('diagnoseContrast', () => {
+  const INK = [130 / 255, 120 / 255, 101 / 255] as [number, number, number]
+  const DARK = [5 / 255, 4 / 255, 3 / 255, 1] as [number, number, number, number]
+
+  it('passes the shipped default', () => {
+    expect(diagnoseContrast(DARK, INK, false)).toBeNull()
+  })
+
+  it('warns when ink is invisible against the background', () => {
+    const result = diagnoseContrast([1, 1, 1, 1], [1, 1, 1], false)
+    expect(result?.code).toBe('washed')
+    expect(result?.message).toMatch(/background/)
+    expect(result?.message).toMatch(/data-motes-quiet/)
+  })
+
+  it('skips the check when the background is not opaque', () => {
+    expect(diagnoseContrast([0, 0, 0, 0], [0, 0, 0], false)).toBeNull()
+    expect(diagnoseContrast([0.5, 0.5, 0.5, 0.5], [0.5, 0.5, 0.5], false)).toBeNull()
+  })
+
+  it('is silenced by the quiet flag', () => {
+    expect(diagnoseContrast([1, 1, 1, 1], [1, 1, 1], true)).toBeNull()
+  })
+
+  /** A deliberately subtle field must not be nagged at. */
+  it('allows a low but legible ratio', () => {
+    // mid grey on near-black is roughly 4:1 — well clear of the 1.5 floor.
+    expect(diagnoseContrast(DARK, [0.5, 0.5, 0.5], false)).toBeNull()
+  })
+
+  it('pins the 1.5 floor from both sides', () => {
+    // Grey ink on pure black: 0.17 measures ~1.490:1 (just under the floor),
+    // 0.18 measures ~1.544:1 (just over). Numeric, not symbolic, so a change
+    // to MIN_RATIO or the luminance formula can't drift without failing here.
+    expect(diagnoseContrast([0, 0, 0, 1], [0.17, 0.17, 0.17], false)?.code).toBe('washed')
+    expect(diagnoseContrast([0, 0, 0, 1], [0.18, 0.18, 0.18], false)).toBeNull()
   })
 })
