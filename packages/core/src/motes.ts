@@ -1,5 +1,5 @@
 import { buildGlyphAtlas, validateCharset } from './atlas'
-import { parseHexColor, type RGB } from './color'
+import { parseColorRGBA, parseHexColor, premultiply, type RGB, type RGBA } from './color'
 import { diagnose } from './diagnostics'
 import { getEffect, listEffects } from './effects/registry'
 import { createRenderer, type Renderer } from './renderer/gl'
@@ -85,6 +85,8 @@ function resolveOptions(base: MotesOptions, patch: MotesConfig): MotesOptions {
   next.radius = Math.max(1, next.radius)
   next.density = Math.max(2, next.density)
   next.trail = Math.min(1, Math.max(0, next.trail))
+  next.contrast = Math.min(4, Math.max(0, next.contrast))
+  next.brightness = Math.min(1, Math.max(-1, next.brightness))
 
   return next
 }
@@ -106,6 +108,8 @@ export function createMotes(
   const pointer: PointerController = createPointer(canvas)
 
   let accent: RGB = parseHexColor(options.accent)
+  let ink: RGB = parseHexColor(options.ink)
+  let background: RGBA = premultiply(parseColorRGBA(options.background))
   let dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR)
   let cols = 0
   let rows = 0
@@ -241,6 +245,9 @@ export function createMotes(
       rows,
       speed: options.speed,
       accent,
+      ink,
+      contrast: options.contrast,
+      brightness: options.brightness,
       charCount: options.charset.length,
       pointerX: p.x,
       pointerY: p.y,
@@ -264,6 +271,7 @@ export function createMotes(
 
   // Initial setup.
   renderer.setEffect(getEffect(options.effect)!)
+  renderer.setBackground(background)
   measure()
   rebuildAtlas()
   observer.observe(canvas)
@@ -296,6 +304,13 @@ export function createMotes(
       }
       if (options.accent !== previous.accent) {
         accent = parseHexColor(options.accent)
+      }
+      if (options.ink !== previous.ink) {
+        ink = parseHexColor(options.ink)
+      }
+      if (options.background !== previous.background) {
+        background = premultiply(parseColorRGBA(options.background))
+        renderer.setBackground(background)
       }
       if (options.density !== previous.density) {
         measure()

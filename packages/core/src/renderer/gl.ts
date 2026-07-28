@@ -1,6 +1,6 @@
 import type { GlyphAtlas } from '../atlas'
 import type { EffectDef } from '../types'
-import type { RGB } from '../color'
+import type { RGB, RGBA } from '../color'
 import quadVert from './shaders/quad.vert'
 import commonGlsl from './shaders/common.glsl'
 import pointerGlsl from './shaders/pointer.glsl'
@@ -32,9 +32,6 @@ export function assembleFragmentShader(effect: EffectDef): string {
   ].join('\n')
 }
 
-/** The background the phosphor decays toward; matches MOTES_BG in common.glsl. */
-const BG: readonly [number, number, number] = [5 / 255, 4 / 255, 3 / 255]
-
 const UNIFORM_NAMES = [
   'u_time',
   'u_resolution',
@@ -43,6 +40,10 @@ const UNIFORM_NAMES = [
   'u_grid',
   'u_speed',
   'u_accent',
+  'u_background',
+  'u_ink',
+  'u_contrast',
+  'u_brightness',
   'u_glyphAtlas',
   'u_charCount',
   'u_prev',
@@ -67,6 +68,9 @@ export interface FrameState {
   rows: number
   speed: number
   accent: RGB
+  ink: RGB
+  contrast: number
+  brightness: number
   charCount: number
   pointerX: number
   pointerY: number
@@ -83,6 +87,8 @@ export interface FrameState {
 export interface Renderer {
   setEffect(effect: EffectDef): void
   setAtlas(atlas: GlyphAtlas): void
+  /** Premultiplied. Read both by the draw uniform and by the buffer clear. */
+  setBackground(bg: RGBA): void
   resize(width: number, height: number): void
   draw(frame: FrameState): void
   destroy(): void
@@ -139,7 +145,12 @@ function linkProgram(
 
 export function createRenderer(canvas: HTMLCanvasElement): Renderer {
   const gl = canvas.getContext('webgl2', {
-    alpha: false,
+    // Unconditionally alpha-capable: `set({ background: 'transparent' })` can
+    // arrive at any time and context attributes are immutable after creation.
+    // Costs one compositing pass on opaque setups; the alternative is
+    // transparency that only works if you asked for it in the constructor.
+    alpha: true,
+    premultipliedAlpha: true,
     antialias: false,
     depth: false,
     stencil: false,
@@ -175,6 +186,10 @@ export function createRenderer(canvas: HTMLCanvasElement): Renderer {
   // Typed as the tuple's own indices so reads are known-defined.
   let readIndex: 0 | 1 = 0
 
+  // Premultiplied, matching u_background. Seeded with the documented default
+  // so a renderer drawn before setBackground still clears to something sane.
+  let background: RGBA = [5 / 255, 4 / 255, 3 / 255, 1]
+
   let program: WebGLProgram | null = null
   let uniforms: UniformMap = {}
   let destroyed = false
@@ -200,8 +215,8 @@ export function createRenderer(canvas: HTMLCanvasElement): Renderer {
     gl!.framebufferTexture2D(gl!.FRAMEBUFFER, gl!.COLOR_ATTACHMENT0,
       gl!.TEXTURE_2D, tex, 0)
 
-    // Start at the background so the first frames fade from black, not noise.
-    gl!.clearColor(BG[0], BG[1], BG[2], 1)
+    // Start at the background so the first frames fade from it, not from noise.
+    gl!.clearColor(background[0], background[1], background[2], background[3])
     gl!.clear(gl!.COLOR_BUFFER_BIT)
     gl!.bindFramebuffer(gl!.FRAMEBUFFER, null)
 
@@ -250,6 +265,11 @@ export function createRenderer(canvas: HTMLCanvasElement): Renderer {
       )
     },
 
+    setBackground(bg) {
+      if (destroyed) return
+      background = bg
+    },
+
     resize(width, height) {
       if (destroyed) return
       canvas.width = width
@@ -290,6 +310,10 @@ export function createRenderer(canvas: HTMLCanvasElement): Renderer {
       if (u.u_grid) gl.uniform2f(u.u_grid, frame.cols, frame.rows)
       if (u.u_speed) gl.uniform1f(u.u_speed, frame.speed)
       if (u.u_accent) gl.uniform3fv(u.u_accent, frame.accent)
+      if (u.u_background) gl.uniform4fv(u.u_background, background)
+      if (u.u_ink) gl.uniform3fv(u.u_ink, frame.ink)
+      if (u.u_contrast) gl.uniform1f(u.u_contrast, frame.contrast)
+      if (u.u_brightness) gl.uniform1f(u.u_brightness, frame.brightness)
       if (u.u_charCount) gl.uniform1i(u.u_charCount, frame.charCount)
       if (u.u_pointer) gl.uniform2f(u.u_pointer, frame.pointerX, frame.pointerY)
       if (u.u_pointerVel) {
