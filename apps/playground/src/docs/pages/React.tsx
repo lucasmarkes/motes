@@ -20,7 +20,9 @@ export function ReactPage() {
       <p>
         Every motes option is a prop: <code>effect</code>, <code>pointer</code>,{' '}
         <code>radius</code>, <code>force</code>, <code>speed</code>, <code>density</code>,{' '}
-        <code>charset</code>, <code>accent</code>, <code>trail</code>.
+        <code>charset</code>, <code>accent</code>, <code>background</code>, <code>ink</code>,{' '}
+        <code>contrast</code>, <code>brightness</code>, <code>respectMotionPreference</code>,{' '}
+        <code>trail</code>.
       </p>
       <p>
         Unknown props — <code>className</code>, <code>style</code>, <code>aria-*</code>,{' '}

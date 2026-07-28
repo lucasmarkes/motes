@@ -28,7 +28,8 @@ export function Background() {
 ```
 
 Every [motes option](https://www.npmjs.com/package/@lucasmarkes/motes) is a prop: `effect`,
-`pointer`, `radius`, `force`, `speed`, `density`, `charset`, `accent`, `trail`.
+`pointer`, `radius`, `force`, `speed`, `density`, `charset`, `accent`, `background`, `ink`,
+`contrast`, `brightness`, `respectMotionPreference`, `trail`.
 
 ## Behaviour
 

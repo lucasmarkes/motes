@@ -41,6 +41,11 @@ resizes and monitor-to-monitor DPI changes.
 | `density` | `13` | Cell size in CSS pixels. Smaller is denser. |
 | `charset` | `' .:-=+*#%@'` | Dark-to-bright glyph ramp. Index 0 must be a space. |
 | `accent` | `'#d8531f'` | Colour the field intensifies toward. |
+| `background` | `'#050403'` | Field background. `#rgb`, `#rrggbb`, `#rrggbbaa`, or `'transparent'`. |
+| `ink` | `'#827865'` | Colour of the ambient glyphs. |
+| `contrast` | `1` | Ambient tone curve gain. Reshapes which glyphs the field reaches for. |
+| `brightness` | `0` | Ambient tone curve bias. Negative thins the field out. |
+| `respectMotionPreference` | `true` | Freeze ambient motion under `prefers-reduced-motion`. |
 | `trail` | `0.3` | Phosphor persistence, 0 to 1. |
 
 ## Instance
