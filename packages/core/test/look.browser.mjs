@@ -48,8 +48,10 @@ canvas { display: block; width: ${W}px; height: ${H}px; }</style>
     c.id = 'field'
     c.setAttribute('data-motes-quiet', '')
     document.body.appendChild(c)
-    // speed 0 + pointer off + trail 0 => every frame is identical.
-    createMotes(c, { ...cfg, speed: 0, pointer: false, trail: 0 }).start()
+    // speed 0 + pointer off + trail 0 => every frame is identical, unless the
+    // caller's cfg overrides one of them (e.g. the reduced-motion case, which
+    // asserts on a non-zero speed being frozen by the library itself).
+    createMotes(c, { speed: 0, pointer: false, trail: 0, ...cfg }).start()
   }
   // Used only by the property assertions below, not by the golden loop.
   // The WebGL context has no preserveDrawingBuffer, so the drawing buffer is
@@ -81,6 +83,7 @@ const CASES = [
   { name: 'flow-default', config: { effect: 'flow' } },
   { name: 'waves-default', config: { effect: 'waves' } },
   { name: 'pulse-default', config: { effect: 'pulse' } },
+  { name: 'flow-reduced-motion', config: { effect: 'flow' }, reducedMotion: 'reduce', speed: 1 },
 ]
 
 function compare(actualBuf, expectedBuf) {
@@ -128,9 +131,15 @@ let failed = 0
 let captured = 0
 
 for (const kase of CASES) {
-  const page = await browser.newPage({ viewport: { width: 640, height: 400 }, deviceScaleFactor: 1 })
+  const page = await browser.newPage({
+    viewport: { width: 640, height: 400 },
+    deviceScaleFactor: 1,
+    reducedMotion: kase.reducedMotion ?? 'no-preference',
+  })
   await page.goto(`http://127.0.0.1:${port}/`)
-  await page.evaluate((cfg) => window.__render(cfg), kase.config)
+  // `speed` overrides the harness default of 0: for the reduced-motion case the
+  // point is that a non-zero speed still produces a frozen field.
+  await page.evaluate((cfg) => window.__render(cfg), { ...kase.config, ...(kase.speed !== undefined ? { speed: kase.speed } : {}) })
   // Two rAF-driven frames is plenty when every frame is identical; the wait
   // is for first paint and shader compilation, not for the animation.
   await page.waitForTimeout(300)
