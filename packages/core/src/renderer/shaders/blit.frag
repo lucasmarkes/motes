@@ -4,5 +4,7 @@
 uniform sampler2D u_src;
 
 void main() {
-  fragColor = vec4(texelFetch(u_src, ivec2(gl_FragCoord.xy), 0).rgb, 1.0);
+  // Alpha carries through: the accumulation target is premultiplied, and a
+  // transparent background needs that alpha to reach the compositor.
+  fragColor = texelFetch(u_src, ivec2(gl_FragCoord.xy), 0);
 }
