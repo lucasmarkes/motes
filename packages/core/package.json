@@ -34,6 +34,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:browser": "node test/diagnostics.browser.mjs",
+    "test:look": "node test/look.browser.mjs",
     "clean": "rm -rf dist .turbo"
   },
   "devDependencies": {
