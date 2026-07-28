@@ -2,18 +2,30 @@ export type RGB = [number, number, number]
 
 const HEX = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i
 
+/**
+ * `parseHexColor` and `parseColorRGBA` both accept 3- and 6-digit hex bodies
+ * and would drift out of sync if each expanded shorthand its own way.
+ */
+function expandBody(body: string): string {
+  return body.length === 3
+    ? body[0]! + body[0]! + body[1]! + body[1]! + body[2]! + body[2]!
+    : body
+}
+
+/**
+ * Shared by both parsers so the bit-shift math that turns a 6-digit hex body
+ * into normalised components lives in exactly one place.
+ */
+function rgbFrom(body6: string): RGB {
+  const n = parseInt(body6, 16)
+  return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255]
+}
+
 /** Parse `#rgb` or `#rrggbb` into normalised 0..1 components. */
 export function parseHexColor(hex: string): RGB {
   const match = HEX.exec(hex.trim())
   if (!match) throw new Error(`[motes] invalid accent color: "${hex}"`)
-
-  let body = match[1]!
-  if (body.length === 3) {
-    body = body[0]! + body[0]! + body[1]! + body[1]! + body[2]! + body[2]!
-  }
-
-  const n = parseInt(body, 16)
-  return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255]
+  return rgbFrom(expandBody(match[1]!))
 }
 
 export type RGBA = [number, number, number, number]
@@ -35,14 +47,10 @@ export function parseColorRGBA(input: string): RGBA {
   const match = HEX_RGBA.exec(text)
   if (!match) throw new Error(`[motes] invalid colour: "${input}"`)
 
-  let body = match[1]!
-  if (body.length === 3) {
-    body = body[0]! + body[0]! + body[1]! + body[1]! + body[2]! + body[2]!
-  }
-
-  const n = parseInt(body.slice(0, 6), 16)
+  const body = expandBody(match[1]!)
   const a = body.length === 8 ? parseInt(body.slice(6, 8), 16) / 255 : 1
-  return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255, a]
+  const [r, g, b] = rgbFrom(body.slice(0, 6))
+  return [r, g, b, a]
 }
 
 /**
