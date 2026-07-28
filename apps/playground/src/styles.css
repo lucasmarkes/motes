@@ -1828,6 +1828,52 @@ input {
   color: var(--ink);
 }
 
+/* Presets ---------------------------------------------------------------- */
+
+/* Same button treatment as .seg — height, radius, font, hover/press motion —
+   but bordered and independent rather than sharing one sliding pill, because
+   these five aren't mutually exclusive positions on a track: none, one, or
+   (in practice, never) more than one can be lit at a time. */
+.presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  width: 100%;
+}
+
+.preset {
+  min-height: 30px;
+  padding: 0 10px;
+  font-family: var(--mono);
+  font-size: var(--fs-fine);
+  color: var(--ink-2);
+  background: transparent;
+  border: 1px solid rgba(0, 0, 0, 0.14);
+  border-radius: 4px;
+  cursor: pointer;
+  transition:
+    color var(--t-hover) var(--ease),
+    border-color var(--t-hover) var(--ease),
+    background var(--t-hover) var(--ease),
+    scale var(--t-press) var(--ease);
+}
+
+.preset:hover {
+  color: var(--ink);
+}
+
+.preset:active {
+  scale: 0.96;
+}
+
+/* The lit preset says which look is live, the same way .chip.is-on says
+   which channel the picker is bound to. */
+.preset.is-on {
+  color: var(--ink);
+  border-color: var(--ink);
+  background: var(--paper-2);
+}
+
 /* Palette -------------------------------------------------------------------*/
 
 .palette {
