@@ -28,6 +28,12 @@ function clamp01(n: number) {
   return n < 0 ? 0 : n > 1 ? 1 : n
 }
 
+function tabId(key: Channel) {
+  return `palette-tab-${key}`
+}
+
+const PANEL_ID = 'palette-panel'
+
 function hsvToHex({ h, s, v }: Hsv) {
   const S = s / 100
   const V = v / 100
@@ -88,6 +94,7 @@ function hexToHsv(hex: string): Hsv {
  */
 export function Palette({ background, ink, accent, onChange }: PaletteProps) {
   const [channel, setChannel] = useState<Channel>('accent')
+  const tabRefs = useRef<Array<HTMLButtonElement | null>>([])
 
   const value = channel === 'background' ? background : channel === 'ink' ? ink : accent
   // A transparent background has no hue to show; the picker edits an opaque
@@ -168,18 +175,44 @@ export function Palette({ background, ink, accent, onChange }: PaletteProps) {
 
   const hueColor = hsvToHex({ h: hsv.h, s: 100, v: 100 })
 
+  // A tab, not a radio: selecting a chip doesn't choose a value, it rebinds
+  // the one shared editor below to a different channel. Arrow keys roam the
+  // tabs (wrapping at the ends); Home/End jump to the first/last. Activation
+  // is automatic — switching channels is instant and free, so there's no
+  // reason to make a screen-reader user press twice.
+  function onTablistKey(e: RKeyboardEvent<HTMLDivElement>) {
+    const i = CHANNELS.findIndex((c) => c.key === channel)
+    let next: number
+    if (e.key === 'ArrowRight') next = (i + 1) % CHANNELS.length
+    else if (e.key === 'ArrowLeft') next = (i - 1 + CHANNELS.length) % CHANNELS.length
+    else if (e.key === 'Home') next = 0
+    else if (e.key === 'End') next = CHANNELS.length - 1
+    else return
+    e.preventDefault()
+    const nextChannel = CHANNELS[next]
+    if (!nextChannel) return
+    setChannel(nextChannel.key)
+    tabRefs.current[next]?.focus()
+  }
+
   return (
     <div className="palette">
-      <div className="chips" role="radiogroup" aria-label="Palette">
-        {CHANNELS.map((c) => {
+      <div className="chips" role="tablist" aria-label="Palette" onKeyDown={onTablistKey}>
+        {CHANNELS.map((c, i) => {
           const v = c.key === 'background' ? background : c.key === 'ink' ? ink : accent
           const on = c.key === channel
           return (
             <button
               key={c.key}
+              ref={(el) => {
+                tabRefs.current[i] = el
+              }}
+              id={tabId(c.key)}
               type="button"
-              role="radio"
-              aria-checked={on}
+              role="tab"
+              aria-selected={on}
+              aria-controls={PANEL_ID}
+              tabIndex={on ? 0 : -1}
               className={`chip${on ? ' is-on' : ''}${v === 'transparent' ? ' is-transparent' : ''}`}
               onClick={() => setChannel(c.key)}
             >
@@ -208,7 +241,12 @@ export function Palette({ background, ink, accent, onChange }: PaletteProps) {
         </label>
       ) : null}
 
-      <div className={`picker${transparent ? ' is-disabled' : ''}`}>
+      <div
+        className={`picker${transparent ? ' is-disabled' : ''}`}
+        role="tabpanel"
+        id={PANEL_ID}
+        aria-labelledby={tabId(channel)}
+      >
         <div
           className="sv-area"
           role="slider"
