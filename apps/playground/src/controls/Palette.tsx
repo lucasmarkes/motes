@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { KeyboardEvent as RKeyboardEvent, PointerEvent as RPointerEvent } from 'react'
+import { DEFAULT_OPTIONS } from '@lucasmarkes/motes'
 
 type Channel = 'background' | 'ink' | 'accent'
 
@@ -234,7 +235,7 @@ export function Palette({ background, ink, accent, onChange }: PaletteProps) {
             type="checkbox"
             checked={transparent}
             onChange={(e) =>
-              onChange({ background: e.target.checked ? 'transparent' : '#050403' })
+              onChange({ background: e.target.checked ? 'transparent' : DEFAULT_OPTIONS.background })
             }
           />
           <span>transparent</span>

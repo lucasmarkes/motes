@@ -57,7 +57,15 @@ export function Presets({ config, onChange }: Props) {
             aria-pressed={on}
             tabIndex={i === focusIndex ? 0 : -1}
             onFocus={() => setFocusIndex(i)}
-            onClick={() => onChange(p.values)}
+            onClick={() => {
+              // Desktop Safari does not focus a <button> on click by default,
+              // so onFocus alone would leave the roving index on whichever
+              // button was last focused by keyboard, not the one just
+              // clicked. Syncing here too keeps the two paths consistent
+              // regardless of whether the click happened to move DOM focus.
+              setFocusIndex(i)
+              onChange(p.values)
+            }}
           >
             {p.label}
           </button>
