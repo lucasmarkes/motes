@@ -1992,6 +1992,15 @@ input {
   background: var(--paper-2);
 }
 
+/* `align-items: center` centres the label's line box, and a line box is not
+   its letters. Archivo's ascent and descent are 878 and 210 per 1000 em, so
+   that centre lands (878 - 210) / 2 = 0.334em above the baseline — near enough
+   the middle of a capital. These three labels are lowercase by design, so the
+   eye centres them on the x-height instead, 526 / 2 = 0.263em up, and the well
+   reads 0.071em high. Nudge it down by exactly that, off the label's own size
+   rather than an em, which here would resolve against the chip's font-size.
+   The fallback face is cut to the same ascent and descent, so the figure holds
+   whichever one the view lands on. */
 .chip-well {
   flex: none;
   box-sizing: border-box;
@@ -1999,6 +2008,7 @@ input {
   height: 14px;
   border-radius: 3px;
   border: 1px solid rgba(0, 0, 0, 0.14);
+  translate: 0 calc(var(--fs-fine) * 0.071);
 }
 
 /* A transparent well has no fill to show; the checkerboard is the shorthand
