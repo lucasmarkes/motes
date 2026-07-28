@@ -62,7 +62,12 @@ export function ApiPage() {
   density: number        // cell size, CSS px
   charset: string        // index 0 must be space
   accent: string         // hex
+  background: string     // hex, #rrggbbaa, or 'transparent'
+  ink: string            // hex
+  contrast: number       // ambient tone gain, 1 is neutral
+  brightness: number     // ambient tone bias, 0 is neutral
   trail: number          // 0..1
+  respectMotionPreference: boolean
 }
 
 type MotesConfig = Partial<MotesOptions>

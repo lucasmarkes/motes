@@ -15,6 +15,23 @@ const ROWS = [
     description: 'Dark-to-bright glyph ramp. Index 0 must be a space.',
   },
   { name: 'accent' as const, description: 'Hex color the field intensifies toward.' },
+  {
+    name: 'background' as const,
+    description: "Field background. Hex, 8-digit hex, or 'transparent'.",
+  },
+  { name: 'ink' as const, description: 'Hex color of the ambient glyphs.' },
+  {
+    name: 'contrast' as const,
+    description: 'Ambient tone curve gain. Reshapes the glyph distribution.',
+  },
+  {
+    name: 'brightness' as const,
+    description: 'Ambient tone curve bias. Negative thins the field out.',
+  },
+  {
+    name: 'respectMotionPreference' as const,
+    description: 'Freeze ambient motion under prefers-reduced-motion.',
+  },
   { name: 'trail' as const, description: 'Phosphor persistence, 0 to 1. 0 is crisp.' },
 ]
 
