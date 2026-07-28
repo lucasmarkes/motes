@@ -222,6 +222,25 @@ export function createMotes(
     dprQuery.addEventListener('change', onDprChange)
   }
 
+  /**
+   * A full-screen field animating on its own is exactly the autoplaying motion
+   * WCAG 2.2.2 is about. Freeze the ambient animation when the OS asks; leave
+   * the pointer pass alone, because a response to the user's own cursor is
+   * user-initiated and is the entire product.
+   */
+  let motionQuery: MediaQueryList | null = null
+  let reduceMotion = false
+
+  function onMotionChange(): void {
+    reduceMotion = motionQuery?.matches ?? false
+  }
+
+  function watchMotion(): void {
+    motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
+    reduceMotion = motionQuery.matches
+    motionQuery.addEventListener('change', onMotionChange)
+  }
+
   function render(now: number): void {
     if (startTime === 0) {
       startTime = now
@@ -243,7 +262,7 @@ export function createMotes(
       cellH: h,
       cols,
       rows,
-      speed: options.speed,
+      speed: options.respectMotionPreference && reduceMotion ? 0 : options.speed,
       accent,
       ink,
       contrast: options.contrast,
@@ -276,6 +295,7 @@ export function createMotes(
   rebuildAtlas()
   observer.observe(canvas)
   watchDpr()
+  watchMotion()
   pointer.attach()
 
   return {
@@ -345,6 +365,8 @@ export function createMotes(
       observer.disconnect()
       dprQuery?.removeEventListener('change', onDprChange)
       dprQuery = null
+      motionQuery?.removeEventListener('change', onMotionChange)
+      motionQuery = null
       pointer.detach()
       renderer.destroy()
     },
