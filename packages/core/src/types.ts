@@ -24,6 +24,18 @@ export interface MotesOptions {
   charset: string
   /** Hex color the field intensifies toward. */
   accent: string
+  /** Field background. `#rgb`, `#rrggbb`, `#rrggbbaa`, or `'transparent'`. */
+  background: string
+  /** Hex colour of the ambient glyphs — the bright end of the value ramp. */
+  ink: string
+  /** Ambient tone curve gain. 1 is neutral; higher thins the field to its
+   *  extremes, lower flattens it toward the middle of the glyph ramp. */
+  contrast: number
+  /** Ambient tone curve bias. 0 is neutral; negative thins the field out. */
+  brightness: number
+  /** Freeze ambient animation under `prefers-reduced-motion: reduce`.
+   *  Pointer reactivity is user-initiated and stays live either way. */
+  respectMotionPreference: boolean
   /** Phosphor persistence, 0..1. 0 is crisp. */
   trail: number
 }
@@ -67,5 +79,10 @@ export const DEFAULT_OPTIONS: MotesOptions = {
   density: 13,
   charset: ' .:-=+*#%@',
   accent: '#d8531f',
+  background: '#050403',
+  ink: '#827865',
+  contrast: 1,
+  brightness: 0,
+  respectMotionPreference: true,
   trail: 0.3,
 }

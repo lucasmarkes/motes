@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { parseColorRGBA, parseHexColor, premultiply } from '../color'
 import { validateCharset } from '../atlas'
+import { DEFAULT_OPTIONS } from '../types'
 
 describe('parseHexColor', () => {
   it('parses six-digit hex', () => {
@@ -74,5 +75,35 @@ describe('premultiply', () => {
 
   it('collapses a transparent colour to zero', () => {
     expect(premultiply([1, 1, 1, 0])).toEqual([0, 0, 0, 0])
+  })
+})
+
+describe('DEFAULT_OPTIONS', () => {
+  it('defaults the background to the colour the shader used to hardcode', () => {
+    expect(DEFAULT_OPTIONS.background).toBe('#050403')
+    expect(parseColorRGBA(DEFAULT_OPTIONS.background)).toEqual([5 / 255, 4 / 255, 3 / 255, 1])
+  })
+
+  /**
+   * #827865 is not a taste decision. It is the solution to "reproduce the old
+   * (60 + val*70)/255 ramp with mix(bg, ink, 0.44 + val*0.56)": at val = 1 the
+   * ramp reaches ink exactly, so ink must equal the old ramp's bright end,
+   * 130 * (1, 0.92, 0.78) = (130, 119.6, 101.4).
+   */
+  it('defaults ink to the bright end of the old warm-grey ramp', () => {
+    expect(DEFAULT_OPTIONS.ink).toBe('#827865')
+    const [r, g, b] = parseColorRGBA(DEFAULT_OPTIONS.ink)
+    expect(Math.round(r * 255)).toBe(130)
+    expect(Math.round(g * 255)).toBe(120) // 119.6 rounded
+    expect(Math.round(b * 255)).toBe(101) // 101.4 rounded
+  })
+
+  it('defaults the tone curve to a no-op', () => {
+    expect(DEFAULT_OPTIONS.contrast).toBe(1)
+    expect(DEFAULT_OPTIONS.brightness).toBe(0)
+  })
+
+  it('respects the motion preference by default', () => {
+    expect(DEFAULT_OPTIONS.respectMotionPreference).toBe(true)
   })
 })
