@@ -1,6 +1,6 @@
 import { buildGlyphAtlas, validateCharset } from './atlas'
 import { parseColorRGBA, parseHexColor, premultiply, type RGB, type RGBA } from './color'
-import { diagnose } from './diagnostics'
+import { diagnose, diagnoseContrast } from './diagnostics'
 import { getEffect, listEffects } from './effects/registry'
 import { createRenderer, type Renderer } from './renderer/gl'
 import { createPointer, type PointerController } from './renderer/pointer'
@@ -157,6 +157,11 @@ export function createMotes(
     })
 
     if (result) console.warn(result.message)
+
+    // The palette check runs on resolved options, not on the DOM, but it
+    // shares this function's once-per-instance gate and its quiet attribute.
+    const palette = diagnoseContrast(background, ink, canvas.hasAttribute('data-motes-quiet'))
+    if (palette) console.warn(palette.message)
   }
 
   function armDiagnostics(): void {
