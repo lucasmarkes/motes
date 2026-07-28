@@ -21,10 +21,16 @@ function rgbFrom(body6: string): RGB {
   return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255]
 }
 
-/** Parse `#rgb` or `#rrggbb` into normalised 0..1 components. */
-export function parseHexColor(hex: string): RGB {
+/**
+ * Parse `#rgb` or `#rrggbb` into normalised 0..1 components.
+ *
+ * `what` names the option in the thrown message — this parser now backs
+ * both `accent` and `ink`, and a message hardcoded to one of them would send
+ * a caller who mistyped the other looking in the wrong place.
+ */
+export function parseHexColor(hex: string, what: string): RGB {
   const match = HEX.exec(hex.trim())
-  if (!match) throw new Error(`[motes] invalid accent color: "${hex}"`)
+  if (!match) throw new Error(`[motes] invalid ${what} color: "${hex}"`)
   return rgbFrom(expandBody(match[1]!))
 }
 

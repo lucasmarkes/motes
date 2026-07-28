@@ -84,6 +84,52 @@ canvas { display: block; width: ${W}px; height: ${H}px; }</style>
   // that — if the freeze is honoured, elapsed rAF ticks cannot move a single
   // pixel; if it is not, cfg.speed guarantees the field has advanced by the
   // later frame.
+  // Used only by the set() atomicity property assertion below. Settles one
+  // instance, snapshots its resolved options and rendered pixels, then fires
+  // a single set() carrying both a valid unrelated change (density) and an
+  // invalid colour (ink), catching the throw. Everything is read from that
+  // one instance, before and after, so any drift can only be explained by the
+  // failed call itself having partially applied.
+  window.__testAtomicity = (cfg) => new Promise((resolve) => {
+    const c = document.createElement('canvas')
+    c.id = 'field'
+    c.setAttribute('data-motes-quiet', '')
+    document.body.appendChild(c)
+    const m = createMotes(c, { ...cfg, speed: 0, pointer: false, trail: 0 })
+    m.start()
+    function settle() {
+      return new Promise((res) => {
+        let n = 0
+        function grab() {
+          if (++n < 3) { requestAnimationFrame(grab); return }
+          res(c.toDataURL('image/png'))
+        }
+        requestAnimationFrame(grab)
+      })
+    }
+    ;(async () => {
+      const before = await settle()
+      const optionsBefore = m.getOptions()
+      let threw = null
+      try {
+        m.set({ density: 20, ink: 'nonsense' })
+      } catch (err) {
+        threw = err instanceof Error ? err.message : String(err)
+      }
+      const optionsAfter = m.getOptions()
+      const after = await settle()
+      m.stop()
+      resolve({
+        before,
+        after,
+        threw,
+        inkBefore: optionsBefore.ink,
+        inkAfter: optionsAfter.ink,
+        densityBefore: optionsBefore.density,
+        densityAfter: optionsAfter.density,
+      })
+    })()
+  })
   window.__captureTwo = (cfg, n1, n2) => new Promise((resolve) => {
     const c = document.createElement('canvas')
     c.id = 'field'
@@ -215,6 +261,19 @@ async function readPixels(config) {
  * has on the library's own `matchMedia` read — there is no config option for
  * it.
  */
+/**
+ * Drives `window.__testAtomicity`: one instance, one failed `set()` call
+ * mixing a valid `density` change with an invalid `ink`, read before and
+ * after from that same instance.
+ */
+async function testAtomicity(config) {
+  const page = await browser.newPage({ viewport: { width: 640, height: 400 }, deviceScaleFactor: 1 })
+  await page.goto(`http://127.0.0.1:${port}/`)
+  const result = await page.evaluate((cfg) => window.__testAtomicity(cfg), config)
+  await page.close()
+  return result
+}
+
 async function readPixelsPair(config, n1, n2, reducedMotion) {
   const page = await browser.newPage({
     viewport: { width: 640, height: 400 },
@@ -432,6 +491,37 @@ console.log('\n[look] property assertions (non-default options)\n')
     'reduced motion: unfrozen field animates from frame 3 to frame 120 under no-preference',
     diff > 40,
     `max channel diff ${diff}/255 between frame 3 and frame 120`,
+  )
+}
+
+// set() atomicity: a patch that mixes a valid unrelated change (density)
+// with an invalid colour (ink) must leave the instance exactly as it was.
+// `resolveOptions` throwing on a bad effect/charset was already atomic —
+// it builds its return value before touching `options` — but the colour
+// parse used to run after `options` had already been reassigned, so a bad
+// hex left `getOptions()` reporting a value the renderer, and the parsed
+// `ink`/`accent`/`background` locals, never received, with no way back for
+// a caller who retries with the same good value. This is the assertion
+// that regresses if that ordering slips back: it checks both the reported
+// options and the actual rendered pixels, because a throw with no state
+// captured proves nothing about atomicity.
+{
+  const result = await testAtomicity({ effect: 'flow' })
+  const before = PNG.sync.read(Buffer.from(result.before.split(',')[1], 'base64'))
+  const after = PNG.sync.read(Buffer.from(result.after.split(',')[1], 'base64'))
+  const diff = maxChannelDiff(before, after)
+  assertProp(
+    'set() atomicity: a failed set() throws and getOptions() still reports the old ink',
+    result.threw !== null &&
+      /invalid ink/.test(result.threw) &&
+      result.inkAfter === result.inkBefore &&
+      result.densityAfter === result.densityBefore,
+    `threw ${JSON.stringify(result.threw)}, ink ${result.inkBefore} -> ${result.inkAfter}, density ${result.densityBefore} -> ${result.densityAfter}`,
+  )
+  assertProp(
+    'set() atomicity: rendered pixels are unchanged after the failed set()',
+    diff === 0,
+    `max channel diff ${diff}/255 between the frame before and after the failed set()`,
   )
 }
 

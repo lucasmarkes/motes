@@ -107,8 +107,8 @@ export function createMotes(
   const renderer: Renderer = createRenderer(canvas)
   const pointer: PointerController = createPointer(canvas)
 
-  let accent: RGB = parseHexColor(options.accent)
-  let ink: RGB = parseHexColor(options.ink)
+  let accent: RGB = parseHexColor(options.accent, 'accent')
+  let ink: RGB = parseHexColor(options.ink, 'ink')
   let background: RGBA = premultiply(parseColorRGBA(options.background))
   let dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR)
   let cols = 0
@@ -322,19 +322,34 @@ export function createMotes(
       if (destroyed) return
 
       const previous = options
-      options = resolveOptions(options, patch)
+      // resolveOptions never mutates `previous`, so a thrown validation error
+      // (bad effect name, bad charset) already leaves the instance untouched.
+      // Colour parsing needs the same guarantee: parse every colour that
+      // changed here, into locals, before anything below is committed. If a
+      // hex is bad this throws and returns having touched nothing — `options`,
+      // `accent`/`ink`/`background`, and the renderer all still agree, so the
+      // call is a clean no-op the caller can correct and retry. Committing
+      // `options` first (the old shape) made a bad retry unrecoverable: with
+      // `options.ink` already equal to the bad value, a later retry with the
+      // very same good value would see `options.ink === previous.ink` and
+      // skip the reparse forever.
+      const next = resolveOptions(previous, patch)
+      const nextAccent = next.accent !== previous.accent ? parseHexColor(next.accent, 'accent') : accent
+      const nextInk = next.ink !== previous.ink ? parseHexColor(next.ink, 'ink') : ink
+      const nextBackground =
+        next.background !== previous.background
+          ? premultiply(parseColorRGBA(next.background))
+          : background
+
+      options = next
+      accent = nextAccent
+      ink = nextInk
 
       if (options.effect !== previous.effect) {
         renderer.setEffect(getEffect(options.effect)!)
       }
-      if (options.accent !== previous.accent) {
-        accent = parseHexColor(options.accent)
-      }
-      if (options.ink !== previous.ink) {
-        ink = parseHexColor(options.ink)
-      }
       if (options.background !== previous.background) {
-        background = premultiply(parseColorRGBA(options.background))
+        background = nextBackground
         renderer.setBackground(background)
       }
       if (options.density !== previous.density) {
