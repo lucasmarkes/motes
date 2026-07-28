@@ -7,7 +7,7 @@ import { CheckIcon, CopyIcon } from './icons'
 import { Swap } from './Swap'
 import { Slider } from './controls/Slider'
 import { CharsetSelect } from './controls/CharsetSelect'
-import { AccentSwatches } from './controls/AccentSwatches'
+import { Palette } from './controls/Palette'
 
 interface PanelProps {
   config: MotesOptions
@@ -175,9 +175,11 @@ export function Panel({ config, onChange }: PanelProps) {
             value={config.charset}
             onChange={(charset) => onChange({ charset })}
           />
-          <AccentSwatches
-            value={config.accent}
-            onChange={(accent) => onChange({ accent })}
+          <Palette
+            background={config.background}
+            ink={config.ink}
+            accent={config.accent}
+            onChange={onChange}
           />
         </section>
       </div>
