@@ -1,10 +1,12 @@
 import { useState } from 'react'
+import type { CSSProperties } from 'react'
 import { Motes } from '@lucasmarkes/motes-react'
 import type { MotesOptions } from '@lucasmarkes/motes'
 import { Panel } from './Panel'
 import type { CatalogEntry } from './effects'
 import { Link } from './router'
 import { POINTER_HINT } from './hint'
+import { fieldTone } from './tone'
 
 interface EffectProps {
   entry: CatalogEntry
@@ -15,8 +17,16 @@ interface EffectProps {
 export function Effect({ entry, config, onChange }: EffectProps) {
   const [touched, setTouched] = useState(false)
 
+  // The head and the hint sit on the field with no container, so both read
+  // their colours from what the field currently is. See tone.ts.
+  const tone = fieldTone(config.background)
+
   return (
-    <div className="stage-shell">
+    <div
+      className="stage-shell"
+      data-tone={tone.light ? 'light' : 'dark'}
+      style={{ '--field-wash': tone.rgb } as CSSProperties}
+    >
       <Motes
         {...config}
         className="stage"
