@@ -5,20 +5,25 @@ import { DEFAULT_OPTIONS } from '../types'
 
 describe('parseHexColor', () => {
   it('parses six-digit hex', () => {
-    expect(parseHexColor('#d8531f')).toEqual([216 / 255, 83 / 255, 31 / 255])
+    expect(parseHexColor('#d8531f', 'accent')).toEqual([216 / 255, 83 / 255, 31 / 255])
   })
 
   it('expands three-digit shorthand', () => {
-    expect(parseHexColor('#f00')).toEqual([1, 0, 0])
+    expect(parseHexColor('#f00', 'accent')).toEqual([1, 0, 0])
   })
 
   it('accepts a missing hash and surrounding space', () => {
-    expect(parseHexColor('  ffffff ')).toEqual([1, 1, 1])
+    expect(parseHexColor('  ffffff ', 'accent')).toEqual([1, 1, 1])
   })
 
-  it('rejects garbage', () => {
-    expect(() => parseHexColor('rebeccapurple')).toThrow(/invalid accent/)
-    expect(() => parseHexColor('#12345')).toThrow(/invalid accent/)
+  it('rejects garbage, naming the accent option', () => {
+    expect(() => parseHexColor('rebeccapurple', 'accent')).toThrow(/invalid accent/)
+    expect(() => parseHexColor('#12345', 'accent')).toThrow(/invalid accent/)
+  })
+
+  it('rejects garbage, naming the ink option', () => {
+    expect(() => parseHexColor('rebeccapurple', 'ink')).toThrow(/invalid ink/)
+    expect(() => parseHexColor('#12345', 'ink')).toThrow(/invalid ink/)
   })
 })
 
