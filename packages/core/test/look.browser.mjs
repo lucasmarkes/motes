@@ -414,6 +414,27 @@ console.log('\n[look] property assertions (non-default options)\n')
   )
 }
 
+// reduced motion (no-preference): the converse of the freeze check above. A
+// regression that froze the field unconditionally — an inverted gate, a
+// `matchMedia` query that always matches, `u_speed` wired to a constant —
+// would pass every assertion above unchanged, because every golden case
+// pins `speed: 0` by design and nothing else in this suite proves the field
+// ever moves. `diff !== 0` alone would be satisfied by a single stray bit,
+// so the bar is set to the same order of magnitude the property assertions
+// above treat as "this actually moved" (the ink and background checks both
+// use a +40/255-or-larger margin) — large enough that only real per-pixel
+// field evolution across 117 rAF ticks, not float rounding noise, could
+// produce it.
+{
+  const [early, late] = await readPixelsPair({ effect: 'flow', speed: 1 }, 3, 120, 'no-preference')
+  const diff = maxChannelDiff(early, late)
+  assertProp(
+    'reduced motion: unfrozen field animates from frame 3 to frame 120 under no-preference',
+    diff > 40,
+    `max channel diff ${diff}/255 between frame 3 and frame 120`,
+  )
+}
+
 await browser.close()
 server.close()
 
