@@ -23,7 +23,13 @@ uniform float u_pointerOn;     // 0 or 1
 uniform float u_radius;
 uniform float u_force;
 
-const vec3 MOTES_BG = vec3(5.0 / 255.0, 4.0 / 255.0, 3.0 / 255.0);
+// --- colour block ---
+uniform vec4  u_background;  // premultiplied: (rgb * a, a)
+uniform vec3  u_ink;         // the bright end of the ambient ramp
+
+// --- ambient tone curve: shapes field(), never the pointer pass ---
+uniform float u_contrast;
+uniform float u_brightness;
 
 // The atlas is a horizontal strip of u_charCount monospace glyphs, drawn
 // white on transparent. Coverage is the alpha channel.

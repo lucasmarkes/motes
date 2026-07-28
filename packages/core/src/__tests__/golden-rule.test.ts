@@ -66,4 +66,31 @@ describe('the golden rule: pointer is orthogonal to every effect', () => {
     expect(order).toEqual([...order].sort((a, b) => a - b))
     expect(order.every((i) => i >= 0)).toBe(true)
   })
+
+  /**
+   * The tone curve shapes the ambient field, and only the ambient field.
+   *
+   * Applied after the pointer boost is added, `contrast: 0` would flatten the
+   * cursor away along with everything else — a field control silently
+   * modulating the interaction layer. Applied before, the field goes flat and
+   * the cursor still carves into it. Nothing else in the codebase would fail
+   * if a refactor swapped the order, so it is asserted here.
+   */
+  it.each(BUILTINS)('%s applies the tone curve before the pointer pass', (name) => {
+    const src = assembleFragmentShader(getEffect(name)!)
+    // The *application* site, not `u_contrast` on its own: the uniform is also
+    // declared in common.glsl, which is concatenated ahead of everything, so
+    // searching for the bare name would pass no matter where the maths landed.
+    const tone = src.indexOf('(v - 0.5) * u_contrast')
+    const boost = src.indexOf('float boost = pointerForce(px);')
+    expect(tone).toBeGreaterThan(-1)
+    expect(boost).toBeGreaterThan(-1)
+    expect(tone).toBeLessThan(boost)
+  })
+
+  it.each(BUILTINS)('%s keeps tone uniforms out of the effect itself', (name) => {
+    const effect = getEffect(name)!
+    expect(effect.glsl).not.toContain('u_contrast')
+    expect(effect.glsl).not.toContain('u_brightness')
+  })
 })
