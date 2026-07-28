@@ -1828,17 +1828,17 @@ input {
   color: var(--ink);
 }
 
-/* Accent ------------------------------------------------------------------- */
+/* Palette -------------------------------------------------------------------*/
 
-.accent {
+.palette {
   display: flex;
   flex-direction: column;
-  /* Swatch row down to the picker card. */
+  /* Chip row down to the picker card. */
   gap: 8px;
 }
 
-/* One step through the whole stack — label to select, select to swatch row —
-   set to 12px so the swatches sit clear of the select and read as their own
+/* One step through the whole stack — label to select, select to chip row —
+   set to 12px so the chips sit clear of the select and read as their own
    control rather than as a tail of it. Both gaps move together, so the section
    keeps a single rhythm instead of three different measures. Overrides the
    group's shared * + * for this section only. */
@@ -1846,99 +1846,95 @@ input {
   margin-top: 12px;
 }
 
-/* Five neutral quick picks and a door to the rest. Spaced, not tiled: each is
-   a rounded tile carrying its own colour, so a hairline gap reads as five
-   objects while a shared edge would read as one swatch cut into fifths. */
-.swatches {
+/* Three channels, each its own labelled chip. A bare well could get away with
+   implying "one of these" the way the old five neutrals did; background, ink
+   and accent are not interchangeable, so the label carries which is which. */
+.chips {
   display: flex;
   gap: 6px;
   width: 100%;
 }
 
-.swatch,
-.swatch-add {
-  flex: none;
-  width: 26px;
-  height: 22px;
-  padding: 0;
+.chip {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 4px 8px;
   border-radius: 4px;
+  background: transparent;
+  border: 1px solid rgba(0, 0, 0, 0.14);
   cursor: pointer;
   transition:
     scale var(--t-press) var(--ease),
     color var(--t-hover) var(--ease),
-    border-color var(--t-hover) var(--ease);
-}
-
-/* One border on every chip, not just the white one, so the row reads as five
-   like objects rather than one outlined and four bare. At 0.14 it is plain
-   against the paper on the light end and all but gone on the dark, but the
-   geometry is identical across the row, which is the point. box-sizing keeps
-   the border inside the 26×22; the selection check is drawn centred within. */
-.swatch {
-  box-sizing: border-box;
-  display: grid;
-  place-items: center;
-  border: 1px solid rgba(0, 0, 0, 0.14);
+    border-color var(--t-hover) var(--ease),
+    background var(--t-hover) var(--ease);
 }
 
 /* Behind a hover query: on a touch screen `:hover` sticks to the last-tapped
-   tile, which would leave a swatch frozen at 1.08 until something else was
-   tapped. The press scale below stays ungated — it keys off :active, which
-   touch fires and releases correctly. */
+   chip, which would leave one frozen at 1.02 until something else was tapped.
+   The press scale below stays ungated — it keys off :active, which touch
+   fires and releases correctly. */
 @media (hover: hover) and (pointer: fine) {
-  .swatch:hover {
-    scale: 1.08;
+  .chip:hover {
+    border-color: var(--ink-3);
   }
 }
 
-.swatch:active,
-.swatch-add:active {
+.chip:active {
   scale: 0.96;
 }
 
-/* Selection is a check drawn on the swatch, not a ring around it. A ring had to
-   thread a gap between the fill and the border, which vanished on white where
-   the gap and the paper were the same colour; the check states "chosen" outright
-   and, sitting inside the tile, can never clip against the scroll container. Its
-   colour is chosen per swatch from that swatch's own luminance (see the button),
-   so it stays legible on white and on near-black alike. The outer border stays. */
-.swatch-check {
-  width: 12px;
-  height: 12px;
-  pointer-events: none;
+/* The selected channel is the one the picker below is bound to; border and
+   fill say so, the way the toggle track says which state is live. */
+.chip.is-on {
+  border-color: var(--ink);
+  background: var(--paper-2);
 }
 
-/* The "+" has no fill to carry a check, so its active state reads through the
-   border and glyph instead — the same ink emphasis the hover and open states
-   use, held on while the picker is the source. */
-.swatch-add.is-on {
-  border-color: var(--ink);
+.chip-well {
+  flex: none;
+  box-sizing: border-box;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.14);
+}
+
+/* A transparent well has no fill to show; the checkerboard is the shorthand
+   every image editor already uses for "nothing here". */
+.chip.is-transparent .chip-well {
+  background-image: repeating-conic-gradient(rgba(0, 0, 0, 0.14) 0% 25%, transparent 0% 50%);
+  background-size: 6px 6px;
+}
+
+.chip-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-fine);
+  color: var(--ink-2);
+}
+
+.chip.is-on .chip-label {
   color: var(--ink);
 }
 
-/* The door to every other colour: dashed, because it is not a colour itself
-   until you pick one. */
-.swatch-add {
-  display: grid;
-  place-items: center;
-  font-family: var(--mono);
-  font-size: 14px;
-  line-height: 1;
-  background: transparent;
-  border: 1px dashed var(--ink-3);
-  color: var(--ink-3);
-}
-
-.swatch-add:hover,
-.swatch-add.is-open {
-  border-color: var(--ink);
-  color: var(--ink);
+.transparent-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-fine);
+  color: var(--ink-2);
+  cursor: pointer;
 }
 
 /* The picker, inline in the panel and built from its own parts — mono foot,
    4px radii, the same borders the controls above it use. No OS dialog.
    A card of its own — white, a hairline border, 6px corners — so the seam
-   from the swatch row is a surface stepping forward, not a naked margin. */
+   from the chip row is a surface stepping forward, not a naked margin. */
 .picker {
   display: flex;
   flex-direction: column;
@@ -1947,6 +1943,19 @@ input {
   background: #fff;
   border: 1px solid rgba(0, 0, 0, 0.14);
   border-radius: 6px;
+  /* A transparent background fades the editor rather than snapping it away,
+     so the checkbox above reads as the cause. */
+  transition: opacity var(--t-hover) var(--ease);
+}
+
+.picker.is-disabled {
+  opacity: 0.4;
+}
+
+.picker.is-disabled .sv-area,
+.picker.is-disabled .hue-strip,
+.picker.is-disabled .hex-input {
+  cursor: not-allowed;
 }
 
 .sv-area {
