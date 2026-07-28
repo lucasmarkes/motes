@@ -26,3 +26,7 @@ docs/superpowers/
 # Canvas2D prototype — behavioural reference for the port, kept local
 ascii-flux.html
 .env*
+
+# Scratch diffs the golden-image harness writes on a mismatch; the goldens
+# themselves stay tracked.
+packages/core/test/golden/*.actual.png

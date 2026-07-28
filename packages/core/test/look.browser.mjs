@@ -10,8 +10,10 @@
  * first line, and `trail: 0` sets the fade to 1 so no frame depends on the
  * accumulation history. Every frame is the same frame.
  *
- * Not wired into `pnpm test` / CI — CI has no browser. Run after a build:
- *   pnpm -C packages/core build && pnpm -C packages/core test:look
+ * Not wired into `pnpm test` / CI — CI has no browser. `test:look` builds
+ * first, so the bundle under comparison can never be stale relative to
+ * `src/`. Run it directly with:
+ *   pnpm -C packages/core test:look
  * Capture or re-capture baselines with:
  *   pnpm -C packages/core test:look -- --update
  */
