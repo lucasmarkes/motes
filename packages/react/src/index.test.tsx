@@ -1,7 +1,7 @@
 import { createRef, StrictMode } from 'react'
 import { render, cleanup } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { MotesConfig, MotesInstance } from '@lucasmarkes/motes'
+import type { MotesConfig, MotesInstance, MotesOptions } from '@lucasmarkes/motes'
 
 /**
  * The core needs a real WebGL2 context, which jsdom has none of. Mock it and
@@ -33,7 +33,7 @@ vi.mock('@lucasmarkes/motes', async () => {
     brightness: 0,
     respectMotionPreference: true,
     trail: 0.3,
-  }
+  } satisfies MotesOptions
   return {
     DEFAULT_OPTIONS,
     createMotes(canvas: HTMLCanvasElement, config: MotesConfig = {}) {
@@ -171,6 +171,29 @@ describe('prop diffing', () => {
     view.rerender(<Motes effect="pulse" radius={90} trail={0.9} />)
     expect(latest().sets).toEqual([
       { effect: 'pulse', radius: 90, trail: 0.9 },
+    ])
+  })
+
+  it('forwards every new colour and tone prop', () => {
+    const { rerender } = render(<Motes effect="flow" />)
+    rerender(
+      <Motes
+        effect="flow"
+        background="#101010"
+        ink="#cccccc"
+        contrast={2}
+        brightness={-0.2}
+        respectMotionPreference={false}
+      />,
+    )
+    expect(latest().sets).toEqual([
+      {
+        background: '#101010',
+        ink: '#cccccc',
+        contrast: 2,
+        brightness: -0.2,
+        respectMotionPreference: false,
+      },
     ])
   })
 })

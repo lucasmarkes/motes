@@ -22,6 +22,11 @@ const OPTION_KEYS = [
   'density',
   'charset',
   'accent',
+  'background',
+  'ink',
+  'contrast',
+  'brightness',
+  'respectMotionPreference',
   'trail',
 ] as const
 
@@ -66,6 +71,11 @@ export const Motes = forwardRef<MotesInstance, MotesProps>(
       density,
       charset,
       accent,
+      background,
+      ink,
+      contrast,
+      brightness,
+      respectMotionPreference,
       trail,
       style,
       ...canvasProps
@@ -80,6 +90,11 @@ export const Motes = forwardRef<MotesInstance, MotesProps>(
       density,
       charset,
       accent,
+      background,
+      ink,
+      contrast,
+      brightness,
+      respectMotionPreference,
       trail,
     }
 
