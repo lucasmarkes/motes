@@ -48,10 +48,8 @@ canvas { display: block; width: ${W}px; height: ${H}px; }</style>
     c.id = 'field'
     c.setAttribute('data-motes-quiet', '')
     document.body.appendChild(c)
-    // speed 0 + pointer off + trail 0 => every frame is identical, unless the
-    // caller's cfg overrides one of them (e.g. the reduced-motion case, which
-    // asserts on a non-zero speed being frozen by the library itself).
-    createMotes(c, { speed: 0, pointer: false, trail: 0, ...cfg }).start()
+    // speed 0 + pointer off + trail 0 => every frame is identical.
+    createMotes(c, { ...cfg, speed: 0, pointer: false, trail: 0 }).start()
   }
   // Used only by the property assertions below, not by the golden loop.
   // The WebGL context has no preserveDrawingBuffer, so the drawing buffer is
@@ -76,6 +74,34 @@ canvas { display: block; width: ${W}px; height: ${H}px; }</style>
     }
     requestAnimationFrame(grab)
   })
+  // Used only by the reduced-motion property assertion below. Captures two
+  // frames from the SAME instance's own rAF-driven clock, at frame counts far
+  // apart, instead of two separately-launched pages compared by wall-clock
+  // screenshot timing. That cross-process comparison is what made an earlier
+  // golden-image version of this check ~50% flaky: a continuously-animating
+  // field can coincidentally look alike from momentary phase alignment
+  // between two independent renders. One instance's own clock forecloses
+  // that — if the freeze is honoured, elapsed rAF ticks cannot move a single
+  // pixel; if it is not, cfg.speed guarantees the field has advanced by the
+  // later frame.
+  window.__captureTwo = (cfg, n1, n2) => new Promise((resolve) => {
+    const c = document.createElement('canvas')
+    c.id = 'field'
+    c.setAttribute('data-motes-quiet', '')
+    document.body.appendChild(c)
+    const m = createMotes(c, { ...cfg, pointer: false, trail: 0 })
+    m.start()
+    let n = 0
+    let first = null
+    function grab() {
+      if (++n === n1) first = c.toDataURL('image/png')
+      if (n < n2) { requestAnimationFrame(grab); return }
+      const second = c.toDataURL('image/png')
+      m.stop()
+      resolve([first, second])
+    }
+    requestAnimationFrame(grab)
+  })
 </script></body></html>`
 
 /** Cases without a golden file are captured and reported, never failed. */
@@ -83,7 +109,6 @@ const CASES = [
   { name: 'flow-default', config: { effect: 'flow' } },
   { name: 'waves-default', config: { effect: 'waves' } },
   { name: 'pulse-default', config: { effect: 'pulse' } },
-  { name: 'flow-reduced-motion', config: { effect: 'flow' }, reducedMotion: 'reduce', speed: 1 },
 ]
 
 function compare(actualBuf, expectedBuf) {
@@ -131,15 +156,9 @@ let failed = 0
 let captured = 0
 
 for (const kase of CASES) {
-  const page = await browser.newPage({
-    viewport: { width: 640, height: 400 },
-    deviceScaleFactor: 1,
-    reducedMotion: kase.reducedMotion ?? 'no-preference',
-  })
+  const page = await browser.newPage({ viewport: { width: 640, height: 400 }, deviceScaleFactor: 1 })
   await page.goto(`http://127.0.0.1:${port}/`)
-  // `speed` overrides the harness default of 0: for the reduced-motion case the
-  // point is that a non-zero speed still produces a frozen field.
-  await page.evaluate((cfg) => window.__render(cfg), { ...kase.config, ...(kase.speed !== undefined ? { speed: kase.speed } : {}) })
+  await page.evaluate((cfg) => window.__render(cfg), kase.config)
   // Two rAF-driven frames is plenty when every frame is identical; the wait
   // is for first paint and shader compilation, not for the animation.
   await page.waitForTimeout(300)
@@ -166,7 +185,8 @@ for (const kase of CASES) {
 }
 
 // ---------------------------------------------------------------------------
-// Property assertions for background / ink / contrast / brightness.
+// Property assertions for background / ink / contrast / brightness / reduced
+// motion.
 //
 // The golden cases above only ever exercise the four defaults, so they prove
 // the uniforms are *uploaded* (if they weren't, the picture would be black),
@@ -185,6 +205,45 @@ async function readPixels(config) {
   const dataUrl = await page.evaluate((cfg) => window.__capture(cfg), config)
   await page.close()
   return PNG.sync.read(Buffer.from(dataUrl.split(',')[1], 'base64'))
+}
+
+/**
+ * Like `readPixels`, but for the reduced-motion check: returns two frames
+ * from one instance's own rAF clock, `n1` and `n2` ticks in, rather than one
+ * frame from one page. `reducedMotion` sets the page's emulated
+ * `prefers-reduced-motion` media feature, which is the only lever this test
+ * has on the library's own `matchMedia` read — there is no config option for
+ * it.
+ */
+async function readPixelsPair(config, n1, n2, reducedMotion) {
+  const page = await browser.newPage({
+    viewport: { width: 640, height: 400 },
+    deviceScaleFactor: 1,
+    reducedMotion: reducedMotion ?? 'no-preference',
+  })
+  await page.goto(`http://127.0.0.1:${port}/`)
+  const [url1, url2] = await page.evaluate(
+    ({ cfg, n1, n2 }) => window.__captureTwo(cfg, n1, n2),
+    { cfg: config, n1, n2 },
+  )
+  await page.close()
+  return [
+    PNG.sync.read(Buffer.from(url1.split(',')[1], 'base64')),
+    PNG.sync.read(Buffer.from(url2.split(',')[1], 'base64')),
+  ]
+}
+
+/** Largest single-channel difference between two same-size PNGs. Unlike
+ *  `compare()`, this has no tolerance and no golden file — it is used to
+ *  assert bit-for-bit equality between two frames of the same running
+ *  instance, not a screenshot against a stored baseline. */
+function maxChannelDiff(a, b) {
+  let worst = 0
+  for (let i = 0; i < a.data.length; i++) {
+    const d = Math.abs(a.data[i] - b.data[i])
+    if (d > worst) worst = d
+  }
+  return worst
 }
 
 function luma(png, i) {
@@ -249,7 +308,9 @@ function blockLumaStdDev(png, bw = 8, bh = 13) {
 }
 
 let propFailed = 0
+let propTotal = 0
 function assertProp(name, condition, detail) {
+  propTotal++
   if (condition) {
     console.log(`  ok        ${name}`)
   } else {
@@ -333,6 +394,26 @@ console.log('\n[look] property assertions (non-default options)\n')
   )
 }
 
+// reduced motion: a field animating on its own is exactly the autoplaying
+// motion WCAG 2.2.2 targets. `speed: 1` on its own would move the field
+// continuously, so if `prefers-reduced-motion: reduce` is honoured, frame 3
+// and frame 120 of the SAME instance's own rAF clock must be bit-identical —
+// `u_time * u_speed` in main.frag collapses to 0 regardless of how much
+// elapsed time `u_time` carries once `u_speed` is actually 0. Comparing two
+// frames from one running instance, rather than a screenshot against a
+// stored baseline from a separately-launched page, is what makes this a
+// direction-and-margin-free, exact check with no cross-process wall-clock
+// dependency to introduce flakiness.
+{
+  const [early, late] = await readPixelsPair({ effect: 'flow', speed: 1 }, 3, 120, 'reduce')
+  const diff = maxChannelDiff(early, late)
+  assertProp(
+    'reduced motion: frozen field is pixel-identical from frame 3 to frame 120',
+    diff === 0,
+    `max channel diff ${diff}/255 between frame 3 and frame 120`,
+  )
+}
+
 await browser.close()
 server.close()
 
@@ -340,4 +421,4 @@ if (failed || propFailed) {
   console.error(`\n[look] ${failed} golden case(s) drifted, ${propFailed} property assertion(s) failed.`)
   process.exit(1)
 }
-console.log(`\n[look] ${CASES.length - captured} compared, ${captured} captured, 5 property assertions passed. All good.`)
+console.log(`\n[look] ${CASES.length - captured} compared, ${captured} captured, ${propTotal} property assertions passed. All good.`)
