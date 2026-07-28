@@ -3,7 +3,10 @@ import { DEFAULT_OPTIONS, type MotesOptions } from '@lucasmarkes/motes'
 export type Tab = 'core' | 'react'
 
 /** Options worth showing: the two that carry the pitch, plus anything tuned. */
-const TUNABLE = ['radius', 'force', 'density', 'speed', 'trail', 'charset', 'accent'] as const
+const TUNABLE = [
+  'radius', 'force', 'density', 'speed', 'contrast', 'brightness',
+  'trail', 'charset', 'background', 'ink', 'accent',
+] as const
 
 function tuned(config: MotesOptions): Array<[string, string | number]> {
   const out: Array<[string, string | number]> = []

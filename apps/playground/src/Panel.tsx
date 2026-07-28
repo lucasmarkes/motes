@@ -8,6 +8,7 @@ import { Swap } from './Swap'
 import { Slider } from './controls/Slider'
 import { CharsetSelect } from './controls/CharsetSelect'
 import { Palette } from './controls/Palette'
+import { Presets } from './controls/Presets'
 
 interface PanelProps {
   config: MotesOptions
@@ -159,6 +160,24 @@ export function Panel({ config, onChange }: PanelProps) {
             format={(v) => v.toFixed(1)}
           />
           <Slider
+            label="contrast"
+            value={config.contrast}
+            min={0}
+            max={3}
+            step={0.05}
+            onChange={(contrast) => onChange({ contrast })}
+            format={(v) => v.toFixed(2)}
+          />
+          <Slider
+            label="brightness"
+            value={config.brightness}
+            min={-0.5}
+            max={0.5}
+            step={0.01}
+            onChange={(brightness) => onChange({ brightness })}
+            format={(v) => (v > 0 ? `+${v.toFixed(2)}` : v.toFixed(2))}
+          />
+          <Slider
             label="persistence"
             value={config.trail}
             min={0}
@@ -171,6 +190,7 @@ export function Panel({ config, onChange }: PanelProps) {
 
         <section className="group" aria-label="Look">
           <p className="eyebrow">Look</p>
+          <Presets config={config} onChange={onChange} />
           <CharsetSelect
             value={config.charset}
             onChange={(charset) => onChange({ charset })}
