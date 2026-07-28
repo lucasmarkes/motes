@@ -227,6 +227,11 @@ input {
   outline-color: var(--ink);
 }
 
+/* Same reason, now that the field itself can be paper. */
+.stage-head :focus-visible {
+  outline-color: var(--on-field);
+}
+
 /* Label cross-fade --------------------------------------------------------
    Both labels stack in one grid cell: the box sizes to the longer word, so
    the control cannot resize as the label changes. */
@@ -1066,9 +1071,12 @@ input {
 
 /* The one effect that is not in the library. Its neighbours sit at --text-3;
    this one is simply turned all the way up. */
-.tile-tag.is-yours,
-.stage-tag.is-yours {
+.tile-tag.is-yours {
   color: var(--text);
+}
+
+.stage-tag.is-yours {
+  color: var(--on-field);
 }
 
 /* Capped, because the wide cells are now wide enough to run a one-line blurb
@@ -1135,6 +1143,23 @@ input {
   /* Set per render from the field's own background (see tone.ts). This
      fallback is the page canvas, which is what the field used to always be. */
   --field-wash: 5 4 3;
+  --on-field: var(--text);
+  --on-field-2: var(--text-2);
+  --on-field-3: var(--text-3);
+}
+
+/* The ramp for copy that sits on the field, turned over when the field is
+   light enough that dark type reads better. tone.ts decides; the boundary is
+   measured, not eyeballed.
+
+   The third step is not --ink-3. Against Paper's #f5f2ea that measures 4.45:1
+   and this ramp carries micro type, so it would miss AA by a hair. This one is
+   4.94:1. --ink-3 is unchanged and still serves the panel, where it sits on
+   --paper at 4.53:1. */
+.stage-shell[data-tone='light'] {
+  --on-field: var(--ink);
+  --on-field-2: var(--ink-2);
+  --on-field-3: oklch(0.52 0.013 258);
 }
 
 .stage {
@@ -1234,12 +1259,12 @@ input {
   padding-inline-end: var(--s2);
   font-family: var(--mono);
   font-size: var(--fs-micro);
-  color: var(--text-3);
+  color: var(--on-field-3);
   transition: color var(--t-hover) var(--ease);
 }
 
 .back:hover {
-  color: var(--text);
+  color: var(--on-field);
 }
 
 .stage-head h1 {
@@ -1250,20 +1275,21 @@ input {
   line-height: 1.04;
   letter-spacing: -0.035em;
   margin: var(--s1) 0 var(--s1);
+  color: var(--on-field);
 }
 
 .stage-tag {
   display: block;
   font-family: var(--mono);
   font-size: var(--fs-micro);
-  color: var(--text-3);
+  color: var(--on-field-3);
   margin-bottom: var(--s2);
 }
 
 .stage-head p {
   font-size: var(--fs-ui);
   line-height: 1.6;
-  color: var(--text-2);
+  color: var(--on-field-2);
   text-wrap: pretty;
 }
 
@@ -1278,13 +1304,15 @@ input {
   z-index: 5;
   font-family: var(--mono);
   font-size: var(--fs-micro);
-  color: var(--text-2);
+  color: var(--on-field-2);
   /* The field runs all the way under this one and there is no scrim this low,
      so it holds its own legibility with a shadow rather than a box. The
-     glyphs stay visible straight through it, which a panel would have hidden. */
+     glyphs stay visible straight through it, which a panel would have hidden.
+     The halo is the field's own background, so it disappears into the field
+     instead of being a dark smear on a light one. */
   text-shadow:
-    0 0 3px var(--canvas),
-    0 0 9px var(--canvas);
+    0 0 3px rgb(var(--field-wash)),
+    0 0 9px rgb(var(--field-wash));
   white-space: nowrap;
   pointer-events: none;
   animation: rise 0.5s var(--ease) backwards;
@@ -1302,7 +1330,7 @@ input {
 /* Not a hint — a statement of what the field is currently doing, so it stays
    put and it is the one that gets turned up. */
 .hint-off {
-  color: var(--text);
+  color: var(--on-field);
 }
 
 @keyframes rise {
@@ -2379,11 +2407,17 @@ input {
     display: none; /* Stacked layout: the head no longer overlaps the field. */
   }
 
+  /* Stacked, the head is above the field on the page's own dark body rather
+     than on the field at all, so it stops taking the field's tone. The hint is
+     still over the field at top: 58vh and keeps it. */
   .stage-head {
     position: static;
     padding: var(--s3) var(--s2) 0;
     max-width: none;
     order: -1;
+    --on-field: var(--text);
+    --on-field-2: var(--text-2);
+    --on-field-3: var(--text-3);
   }
 
   .panel {
