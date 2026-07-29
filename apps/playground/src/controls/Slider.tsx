@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import type { PointerEvent as RPointerEvent, KeyboardEvent as RKeyboardEvent } from 'react'
+import { quantise } from '../config/quantise'
 
 export interface SliderProps {
   label: string
@@ -11,21 +12,6 @@ export interface SliderProps {
   disabled?: boolean
   onChange: (v: number) => void
   format: (v: number) => string
-}
-
-/**
- * Snap to the step grid, clamp to the range, and stop float drift there.
- *
- * Three of the five sliders on this panel step by 0.1 or 0.01, and naive
- * arithmetic on those produces 0.30000000000000004. That is not a display
- * problem to be papered over by `format` — the number goes on to the renderer
- * as a uniform, so it gets fixed at the source.
- */
-function quantise(raw: number, min: number, max: number, step: number): number {
-  const snapped = min + Math.round((raw - min) / step) * step
-  const clamped = Math.min(max, Math.max(min, snapped))
-  const decimals = (String(step).split('.')[1] ?? '').length
-  return decimals ? parseFloat(clamped.toFixed(decimals)) : clamped
 }
 
 /**
