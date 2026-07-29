@@ -215,8 +215,9 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* Inverted, not tinted. The panel is a light surface inside a dark page, so
-   each ground gets the inversion that is actually legible on it. */
+/* Inverted, not tinted. The panel carries its own ink and surface — taken
+   from whatever the field currently is — so each ground gets the inversion
+   that is actually legible on it rather than the page's. */
 ::selection {
   background: var(--text);
   color: var(--canvas);
@@ -225,6 +226,31 @@ body {
 .panel ::selection {
   background: var(--ink);
   color: var(--paper);
+}
+
+/* Everything the interface moves, held still on request.
+ *
+ * Blanket rather than per-rule, because the promise is about the interface as
+ * a whole and a list would silently stop covering it the first time someone
+ * adds a transition without reading this. Nothing here listens for
+ * transitionend or animationend, so collapsing a duration to a single tick is
+ * safe: handlers still fire, immediately.
+ *
+ * 0.01ms rather than `none` — a zero duration means some engines never fire
+ * the end event at all, which turns "held still" into "never finishes" for
+ * any code that waits on one. The field itself is separate: the renderer
+ * reads the same preference through respectMotionPreference, and the panel's
+ * staggered rise checks it before running.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 a {

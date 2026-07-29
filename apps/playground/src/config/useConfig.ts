@@ -64,14 +64,33 @@ export function useConfig() {
     [cancel],
   )
 
+  /**
+   * Swap the whole config.
+   *
+   * `url` exists for the one case where the two differ. A journey paints its
+   * first frame at the origin, but the address bar should already describe the
+   * destination — otherwise copying a link during the three hundred
+   * milliseconds of a Randomize hands over the field you just left. Arming it
+   * once at the start also keeps the debounce from being pushed back by every
+   * frame of the animation, which would delay the write until long after the
+   * values had settled.
+   */
   const replace = useCallback(
-    (next: MotesOptions) => {
+    (next: MotesOptions, url: MotesOptions = next) => {
       latest.current = next
       setConfigState(next)
-      schedule(next)
+      schedule(url)
     },
     [schedule],
   )
+
+  /** A frame of a journey: state only. The destination was written to the
+   *  address bar when the journey began, and re-scheduling it sixty times a
+   *  second would only postpone it. */
+  const preview = useCallback((next: MotesOptions) => {
+    latest.current = next
+    setConfigState(next)
+  }, [])
 
   const setConfig = useCallback(
     (patch: Partial<MotesOptions>) => {
@@ -112,5 +131,5 @@ export function useConfig() {
     }
   }, [cancel, schedule])
 
-  return { config, setConfig, replace }
+  return { config, setConfig, replace, preview }
 }

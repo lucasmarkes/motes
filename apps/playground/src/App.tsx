@@ -4,11 +4,18 @@ import { Index } from './Index'
 import { entryFor } from './effects'
 import { usePath } from './router'
 import { useConfig } from './config/useConfig'
+import { useTravel } from './config/useTravel'
 
 export function App() {
   // Held above the route so tuning survives switching between effects — and
   // now mirrored into the URL, so it survives a reload and a paste too.
-  const { config, setConfig, replace } = useConfig()
+  const { config, setConfig, replace, preview } = useConfig()
+
+  // Wrapped here rather than inside useConfig: a slider being dragged should
+  // land where the hand put it, immediately. Only the whole-config swaps —
+  // reset and randomize — are journeys, and those are the ones that go
+  // through `replace`.
+  const { travel, arrivals } = useTravel(config, replace, preview)
 
   const path = usePath()
 
@@ -26,7 +33,8 @@ export function App() {
       entry={entry}
       config={{ ...config, effect: entry.id }}
       onChange={setConfig}
-      onReplace={replace}
+      onReplace={travel}
+      arrivals={arrivals}
     />
   )
 }

@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import type { MotesOptions } from '@lucasmarkes/motes'
 import { CATALOG } from './effects'
 import { highlight, snippetFor, type Tab } from './snippet'
@@ -17,7 +17,13 @@ interface PanelProps {
   onChange: (patch: Partial<MotesOptions>) => void
   /** Swaps the whole config at once — what reset and randomize need. */
   onReplace: (next: MotesOptions) => void
+  /** Journeys completed. Each increment restages the groups; see below. */
+  arrivals: number
 }
+
+/** How long one group takes to settle, and how far apart they start. */
+const RISE_MS = 260
+const RISE_STAGGER = 45
 
 interface EyebrowProps {
   title: string
@@ -60,11 +66,53 @@ function Eyebrow({ title, section, config, onReplace }: EyebrowProps) {
  * becomes legible as cause and effect, because the things that dim are the
  * rest of the block the toggle is in.
  */
-export function Panel({ config, onChange, onReplace }: PanelProps) {
+export function Panel({ config, onChange, onReplace, arrivals }: PanelProps) {
   const [tab, setTab] = useState<Tab>('react')
   const [copied, setCopied] = useState(false)
   const [linked, setLinked] = useState(false)
   const tabsRef = useRef<HTMLDivElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  /**
+   * The groups restage themselves when a journey lands.
+   *
+   * Randomize moves every control at once, and without this the panel simply
+   * holds a new set of numbers — the values have changed but the instrument
+   * has not acknowledged anything. Taking the groups in order gives the change
+   * a direction to be read in, and makes it obvious that all four were touched
+   * rather than the one you happened to be looking at.
+   *
+   * Driven by the animation API rather than a class, because the whole
+   * difficulty here is restarting: a CSS animation does not replay when the
+   * attribute that selected it changes, and the usual fixes are a forced
+   * reflow or remounting the subtree — which would drop focus out of whatever
+   * control the reader was using. `animate()` simply runs again.
+   *
+   * Skipped entirely, rather than shortened, when the reader has asked for
+   * stillness. There is no information in the stagger that is not already in
+   * the values, so the honest reduced-motion answer is to not run it.
+   */
+  useEffect(() => {
+    if (arrivals === 0) return
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
+    const groups = scrollRef.current?.querySelectorAll<HTMLElement>('.group')
+    groups?.forEach((group, i) => {
+      group.animate(
+        [
+          { opacity: 0.45, translate: '0 10px' },
+          { opacity: 1, translate: '0 0' },
+        ],
+        {
+          duration: RISE_MS,
+          delay: i * RISE_STAGGER,
+          easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+          // Held at the first keyframe through the delay, so a group waiting
+          // its turn is already down rather than popping when its turn comes.
+          fill: 'backwards',
+        },
+      )
+    })
+  }, [arrivals])
 
   // The underline is one line that slides between two labels of unequal width,
   // so it has to be measured rather than assumed. It rides on transform alone —
@@ -129,7 +177,7 @@ export function Panel({ config, onChange, onReplace }: PanelProps) {
 
       {/* Only the controls scroll. The snippet stays pinned to the foot of
           the panel, so it never has to be hunted for after a tweak. */}
-      <div className="panel-scroll">
+      <div className="panel-scroll" ref={scrollRef}>
         <section className="group" aria-label="Effect">
           <p className="eyebrow">Effect</p>
           <div
