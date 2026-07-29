@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mulberry32, valueX, expand } from './tune-lib.mjs'
+import { mulberry32, valueX, expand, placementComplaints } from './tune-lib.mjs'
 
 test('mulberry32 is deterministic for a seed', () => {
   const a = mulberry32(0x9e3779b9)
@@ -127,4 +127,65 @@ test('expand names a button it cannot resolve', () => {
     () => expand([{ t: 1, click: 'Reset', hold: 0.1 }], ANCHORS),
     /no button "Reset"/,
   )
+})
+
+const PLACED = {
+  ...ANCHORS,
+  panel: { x: 637, y: 13, width: 430, height: 1054 },
+  scrim: { w: 734, h: 440 },
+  frame: { width: 1080, height: 1080 },
+}
+
+const field = (t, x, y) => ({ t, x, y, frozen: false, pressed: false, linear: false, zone: 'field', target: null })
+
+test('placementComplaints accepts a knot in the clear band', () => {
+  assert.deepEqual(placementComplaints([field(0, 180, 900)], PLACED), [])
+})
+
+test('placementComplaints rejects a field knot under the panel', () => {
+  const [msg] = placementComplaints([field(1, 800, 600)], PLACED)
+  assert.match(msg, /t=1s \(800,600\) is under the panel/)
+})
+
+test('placementComplaints rejects a field knot under the title scrim', () => {
+  // 100/734 + 100/440 = 0.363, well under the 0.85 the scrim stops biting at.
+  const [msg] = placementComplaints([field(2, 100, 100)], PLACED)
+  assert.match(msg, /is under the title scrim/)
+})
+
+test('placementComplaints rejects a field knot close enough to clip the arrow', () => {
+  const [msg] = placementComplaints([field(3, 8, 900)], PLACED)
+  assert.match(msg, /would clip against the frame edge/)
+})
+
+test('placementComplaints accepts a panel knot inside its own control', () => {
+  const onTrack = { t: 4, x: 800, y: 520, frozen: false, pressed: true, linear: true, zone: 'panel', target: 'contrast' }
+  assert.deepEqual(placementComplaints([onTrack], PLACED), [])
+})
+
+test('placementComplaints rejects a panel knot that has slid off its control', () => {
+  const offTrack = { t: 5, x: 1050, y: 520, frozen: false, pressed: true, linear: true, zone: 'panel', target: 'contrast' }
+  const [msg] = placementComplaints([offTrack], PLACED)
+  assert.match(msg, /t=5s \(1050,520\) is outside contrast/)
+})
+
+test('placementComplaints rejects a panel knot that has slid off its button', () => {
+  const offButton = { t: 6, x: 900, y: 715, frozen: true, pressed: true, linear: false, zone: 'panel', target: 'Paper' }
+  const [msg] = placementComplaints([offButton], PLACED)
+  assert.match(msg, /is outside Paper/)
+})
+
+test('placementComplaints lets a travel knot cross the panel', () => {
+  const via = { t: 7, x: 800, y: 640, frozen: false, pressed: false, linear: false, zone: 'travel', target: null }
+  assert.deepEqual(placementComplaints([via], PLACED), [])
+})
+
+test('placementComplaints still holds a travel knot to the frame', () => {
+  const via = { t: 8, x: 1078, y: 640, frozen: false, pressed: false, linear: false, zone: 'travel', target: null }
+  const [msg] = placementComplaints([via], PLACED)
+  assert.match(msg, /would clip against the frame edge/)
+})
+
+test('placementComplaints reports every bad knot, not just the first', () => {
+  assert.equal(placementComplaints([field(1, 800, 600), field(2, 100, 100)], PLACED).length, 2)
 })

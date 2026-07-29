@@ -105,3 +105,61 @@ export function expand(keys, anchors) {
   events.sort((a, b) => a.t - b.t)
   return { knots, events }
 }
+
+/** How close to the frame edge the arrow may go before it clips. The cursor
+ *  SVG is 26×40 with its tip at the origin, so the tip is what is bounded. */
+const EDGE = 16
+
+/**
+ * Where the scrim has faded far enough to stop hiding the core. The gradient
+ * runs 0.96 → 0 across its box, so the sum of the two normalised coordinates
+ * is a good enough stand-in for "past the bright triangle" — the same rule
+ * `assertClear` uses, kept so the two scenes stay comparable.
+ */
+const SCRIM_CLEAR = 0.85
+
+const within = (k, r) =>
+  k.x >= r.x && k.x <= r.x + r.width && k.y >= r.y && k.y <= r.y + r.height
+
+/**
+ * Keyframes that would put the cursor somewhere it should not be.
+ *
+ * The old rule was one-sided: stay out of the panel. That was right when the
+ * panel was an opaque slab and the video was about the field. This take works
+ * the controls, so "in the panel" is not the failure — being in the panel
+ * without being on the thing you named is.
+ */
+export function placementComplaints(knots, anchors) {
+  const bad = []
+  const at = (k) => `t=${k.t}s (${Math.round(k.x)},${Math.round(k.y)})`
+
+  for (const k of knots) {
+    const { frame } = anchors
+    if (k.x < EDGE || k.y < EDGE || k.x > frame.width - EDGE || k.y > frame.height - EDGE) {
+      bad.push(`  ${at(k)} would clip against the frame edge`)
+      continue
+    }
+
+    if (k.zone === 'travel') continue
+
+    if (k.zone === 'panel') {
+      const target = anchors.controls[k.target] ?? anchors.buttons[k.target]
+      if (!target) {
+        bad.push(`  ${at(k)} names ${k.target}, which is not a control or a button`)
+      } else if (!within(k, target)) {
+        bad.push(`  ${at(k)} is outside ${k.target}`)
+      }
+      continue
+    }
+
+    if (within(k, anchors.panel)) {
+      bad.push(`  ${at(k)} is under the panel`)
+      continue
+    }
+    if (k.x / anchors.scrim.w + k.y / anchors.scrim.h < SCRIM_CLEAR) {
+      bad.push(`  ${at(k)} is under the title scrim`)
+    }
+  }
+
+  return bad
+}
