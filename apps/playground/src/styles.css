@@ -73,6 +73,18 @@
   --rule: oklch(0.935 0.006 258 / 0.13);
   --rule-strong: oklch(0.935 0.006 258 / 0.3);
 
+  /* Fills cut *into* a surface rather than drawn on it: hover washes, the
+     empty half of a track, a tick, a scrollbar thumb. They were sixteen
+     separate rgba(0,0,0,·) literals, which meant the panel could never be
+     anything but light — black at 5% is invisible on a dark surface. Named,
+     they invert with their housing. Collapsing sixteen alphas onto five steps
+     moved a few by 0.01-0.02, which is below the threshold of sight. */
+  --sunk-1: oklch(0 0 0 / 0.05);
+  --sunk-2: oklch(0 0 0 / 0.09);
+  --sunk-3: oklch(0 0 0 / 0.15);
+  --sunk-4: oklch(0 0 0 / 0.24);
+  --sunk-5: oklch(0 0 0 / 0.32);
+
   /* Type ------------------------------------------------------------------ */
   --display: 'Archivo', 'Archivo fallback', ui-sans-serif, system-ui, sans-serif;
   --mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
@@ -1408,12 +1420,12 @@ input {
 }
 
 .panel-acts button:hover {
-  background: oklch(0 0 0 / 0.05);
+  background: var(--sunk-1);
   color: var(--ink);
 }
 
 .panel-acts button:active {
-  background: oklch(0 0 0 / 0.09);
+  background: var(--sunk-2);
 }
 
 /* Link is the odd one out — it copies rather than changes the field — so it
@@ -1444,7 +1456,7 @@ input {
   /* Firefox: thin, and a thumb low enough in contrast to sit under the
      controls rather than beside them. */
   scrollbar-width: thin;
-  scrollbar-color: rgba(0, 0, 0, 0.14) transparent;
+  scrollbar-color: var(--sunk-3) transparent;
 }
 
 /* A 5px overlay-style bar: no track, a rounded low-contrast thumb, and a
@@ -1459,12 +1471,12 @@ input {
 }
 
 .panel-scroll::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.14);
+  background: var(--sunk-3);
   border-radius: 999px;
 }
 
 .panel-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.24);
+  background: var(--sunk-4);
 }
 
 /* Pinned to the foot of the panel. */
@@ -1534,7 +1546,7 @@ input {
 }
 
 .group + .group {
-  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  border-top: 1px solid var(--line);
 }
 
 .group:first-child {
@@ -1554,7 +1566,7 @@ input {
   display: flex;
   gap: 2px;
   padding: 2px;
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--sunk-1);
   border-radius: 5px;
 }
 
@@ -1825,7 +1837,7 @@ input {
   display: block;
   width: 100%;
   height: 3px;
-  background: rgba(0, 0, 0, 0.1);
+  background: var(--sunk-2);
   border-radius: 2px;
 }
 
@@ -1859,11 +1871,11 @@ input {
   width: 1px;
   height: 100%;
   translate: -50% 0;
-  background: rgba(0, 0, 0, 0.16);
+  background: var(--sunk-3);
 }
 
 .ticks i.edge {
-  background: rgba(0, 0, 0, 0.32);
+  background: var(--sunk-5);
 }
 
 /* The origin. Sits under the line rather than across it: a control at its
@@ -2060,7 +2072,7 @@ input {
   font-size: var(--fs-fine);
   color: var(--ink-2);
   background: transparent;
-  border: 1px solid rgba(0, 0, 0, 0.14);
+  border: 1px solid var(--line);
   border-radius: 4px;
   cursor: pointer;
   transition:
@@ -2122,7 +2134,7 @@ input {
   padding: 4px 8px;
   border-radius: 4px;
   background: transparent;
-  border: 1px solid rgba(0, 0, 0, 0.14);
+  border: 1px solid var(--line);
   cursor: pointer;
   transition:
     scale var(--t-press) var(--ease),
@@ -2158,13 +2170,13 @@ input {
   width: 14px;
   height: 14px;
   border-radius: 3px;
-  border: 1px solid rgba(0, 0, 0, 0.14);
+  border: 1px solid var(--line);
 }
 
 /* A transparent well has no fill to show; the checkerboard is the shorthand
    every image editor already uses for "nothing here". */
 .chip.is-transparent .chip-well {
-  background-image: repeating-conic-gradient(rgba(0, 0, 0, 0.14) 0% 25%, transparent 0% 50%);
+  background-image: repeating-conic-gradient(var(--sunk-3) 0% 25%, transparent 0% 50%);
   background-size: 6px 6px;
 }
 
@@ -2211,7 +2223,7 @@ input {
   gap: 8px;
   padding: 10px;
   background: #fff;
-  border: 1px solid rgba(0, 0, 0, 0.14);
+  border: 1px solid var(--line);
   border-radius: 6px;
   /* A transparent background fades the editor rather than snapping it away,
      so the checkbox above reads as the cause. */
@@ -2290,7 +2302,7 @@ input {
   width: 24px;
   height: 24px;
   border-radius: 4px;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+  box-shadow: inset 0 0 0 1px var(--sunk-2);
 }
 
 .hex-input {
