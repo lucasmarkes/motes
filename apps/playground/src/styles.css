@@ -65,6 +65,16 @@
 
   --paper: oklch(0.968 0.003 258);
   --paper-2: oklch(0.938 0.005 258);
+  /* A well that has been lifted rather than sunk — the live toggle, and the
+     hover that previews it. Identical to --paper on a light housing, which is
+     why the two were one name; they part company the moment the housing
+     inverts, where the raised state has to go lighter and the opaque surface
+     under a knob has to go dark. */
+  --raised: var(--paper);
+  /* The snippet's slab. It was --ink, which read as an inversion only because
+     the panel around it was white; it has to stop following the ink either
+     way, since the syntax ramp on top of it is tuned to this exact value. */
+  --code-bg: oklch(0.205 0.012 258);
   --line: oklch(0.878 0.007 258);
   --ink: oklch(0.205 0.012 258);
   --ink-2: oklch(0.455 0.014 258);
@@ -1158,6 +1168,10 @@ input {
   --on-field: var(--text);
   --on-field-2: var(--text-2);
   --on-field-3: var(--text-3);
+  /* What an overlay on this field is made of — the channels behind every
+     hairline and sunken fill in the panel. It turns with the type ramp,
+     because a wash that lightens a dark field has to darken a light one. */
+  --field-ink: 255 255 255;
 }
 
 /* The ramp for copy that sits on the field, turned over when the field is
@@ -1172,6 +1186,7 @@ input {
   --on-field: var(--ink);
   --on-field-2: var(--ink-2);
   --on-field-3: oklch(0.52 0.013 258);
+  --field-ink: 0 0 0;
 }
 
 .stage {
@@ -1358,6 +1373,24 @@ input {
 
 /* Panel ------------------------------------------------------------------- */
 
+/* Every housing that is not paper. The control vocabulary was written for a
+   white slab, so its hairlines and sunken fills are black at low alpha — on a
+   dark housing those are invisible, and the docs block has been quietly
+   painting a dark thumb on a dark card for exactly that reason. Both housings
+   need the same inversion, so the scale lives once; what differs is only which
+   way --field-ink points and where the ink itself comes from. */
+.panel,
+.doc-live-controls {
+  --paper-2: rgb(var(--field-ink) / 0.06);
+  --raised: rgb(var(--field-ink) / 0.13);
+  --line: rgb(var(--field-ink) / 0.16);
+  --sunk-1: rgb(var(--field-ink) / 0.07);
+  --sunk-2: rgb(var(--field-ink) / 0.11);
+  --sunk-3: rgb(var(--field-ink) / 0.16);
+  --sunk-4: rgb(var(--field-ink) / 0.26);
+  --sunk-5: rgb(var(--field-ink) / 0.4);
+}
+
 .panel {
   position: absolute;
   top: var(--s2);
@@ -1372,7 +1405,29 @@ input {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: var(--paper);
+
+  /* The instrument should be quieter than the work. As a paper slab it was the
+     brightest thing on a near-black page — the eye landed on the controls
+     rather than on the thing being controlled.
+
+     Every rule inside the panel already speaks one surface vocabulary, so
+     redefining those names here turns the whole housing at once instead of
+     restyling forty declarations. The values come from the field rather than
+     from a constant: Paper ships a #f5f2ea background and the palette will
+     take any colour at all, so a hardcoded dark panel would be the white one's
+     mistake upside down. tone.ts already decides which way a field reads and
+     the head and hint already ride it; the panel now rides it too. */
+  --paper: rgb(var(--field-wash));
+  --ink: var(--on-field);
+  --ink-2: var(--on-field-2);
+  --ink-3: var(--on-field-3);
+
+  /* Enough of the field to sit on the work rather than beside it, blurred so
+     what shows through is the field's light and not its glyphs — a legible
+     backing for the type, not a second thing to read. */
+  background: rgb(var(--field-wash) / 0.78);
+  backdrop-filter: blur(20px) saturate(1.1);
+  border: 1px solid var(--line);
   color: var(--ink);
   padding: 18px;
   /* The largest surface, so the largest radius on the scale — everything it
@@ -1382,11 +1437,11 @@ input {
      the root fade and drops to ~10% luminance mid-transition — the brightest
      thing on screen blinking out and back. */
   view-transition-name: panel;
-  /* Layered and transparent, so it reads as depth rather than a drawn edge. */
-  box-shadow:
-    0 1px 1px oklch(0 0 0 / 0.13),
-    0 8px 16px oklch(0 0 0 / 0.16),
-    0 24px 56px oklch(0 0 0 / 0.34);
+  /* One deep, soft shadow rather than the old three-layer stack. Glass gets
+     its edge from the border and its depth from what it blurs; the stacked
+     contact shadows were doing a job the hairline now does, and on a dark
+     field the two tight layers were invisible anyway. */
+  box-shadow: 0 24px 64px oklch(0 0 0 / 0.45);
 }
 
 /* Above .panel-scroll rather than inside it, so the actions stay put while the
@@ -1451,8 +1506,22 @@ input {
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding-bottom: 20px;
-  mask-image: linear-gradient(to bottom, #000 calc(100% - 20px), transparent 100%);
+  /* The same trick at the head of the list. Scrolled down, the panel used to
+     guillotine whatever was passing under the actions row — the bottom edge
+     said "there is more here" and the top edge said nothing at all.
+
+     The 12px of padding is what the 12px of fade eats, and the negative margin
+     hands those 12px back to the layout, so at rest the faded band contains
+     nothing and the first eyebrow sits exactly where it always did. */
+  padding-block: 12px 20px;
+  margin-top: -12px;
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 12px,
+    #000 calc(100% - 20px),
+    transparent 100%
+  );
   /* Firefox: thin, and a thumb low enough in contrast to sit under the
      controls rather than beside them. */
   scrollbar-width: thin;
@@ -1653,7 +1722,7 @@ input {
    is already at full ink and a hover has nothing left to say. */
 .toggle:not(.on):hover {
   border-color: var(--ink-3);
-  background: var(--paper);
+  background: var(--raised);
 }
 
 .toggle:active {
@@ -1662,7 +1731,7 @@ input {
 
 .toggle.on {
   border-color: var(--ink);
-  background: var(--paper);
+  background: var(--raised);
 }
 
 .toggle-text {
@@ -2429,8 +2498,15 @@ input {
   filter: blur(4px);
 }
 
+/* On glass the slab needs an edge to read as recessed rather than as a hole
+   punched through to the field. Scoped to the panel: in the docs the same
+   block sits on an opaque surface and a hairline there is just a box. */
+.panel .code pre {
+  border: 1px solid var(--line);
+}
+
 .code pre {
-  background: var(--ink);
+  background: var(--code-bg);
   padding: var(--s2);
   overflow-x: auto;
   border-radius: 5px;
@@ -3206,10 +3282,18 @@ input {
   background: var(--raise);
   border: 1px solid var(--rule);
   border-radius: 6px;
-}
 
-.doc-live-controls .slider {
-  color: var(--text-2);
+  /* This card is dark and the docs never invert, so the ink points one way and
+     stays there. It had been taking the sliders' own defaults, which are tuned
+     for the white panel: thumb and value both landed on --ink, four hundredths
+     of a lightness step away from the card behind them, and the track drew
+     black on near-black. Naming the vocabulary here turns all of it at once. */
+  --field-ink: 255 255 255;
+  --paper: var(--raise);
+  --ink: var(--text);
+  --ink-2: var(--text-2);
+  --ink-3: var(--text-3);
+  color: var(--ink-2);
 }
 
 .doc-toc {
