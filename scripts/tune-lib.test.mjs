@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mulberry32, valueX, expand, placementComplaints } from './tune-lib.mjs'
+import { mulberry32, valueX, expand, placementComplaints, makeKnotPath } from './tune-lib.mjs'
 
 test('mulberry32 is deterministic for a seed', () => {
   const a = mulberry32(0x9e3779b9)
@@ -188,4 +188,59 @@ test('placementComplaints still holds a travel knot to the frame', () => {
 
 test('placementComplaints reports every bad knot, not just the first', () => {
   assert.equal(placementComplaints([field(1, 800, 600), field(2, 100, 100)], PLACED).length, 2)
+})
+
+const straight = [
+  { t: 0, x: 0, y: 100, frozen: false, pressed: false, linear: false, zone: 'field', target: null },
+  { t: 1, x: 100, y: 100, frozen: false, pressed: true, linear: true, zone: 'panel', target: 'contrast' },
+  { t: 2, x: 300, y: 100, frozen: false, pressed: false, linear: false, zone: 'panel', target: 'contrast' },
+  { t: 3, x: 200, y: 400, frozen: false, pressed: false, linear: false, zone: 'field', target: null },
+]
+
+test('makeKnotPath lands exactly on its knots', () => {
+  const path = makeKnotPath(straight, 4)
+  assert.equal(Math.round(path(1).x), 100)
+  assert.equal(Math.round(path(2).x), 300)
+})
+
+test('makeKnotPath interpolates a linear span in a straight line', () => {
+  const path = makeKnotPath(straight, 4)
+  // Halfway through the drag: exactly halfway along it, and no vertical bow.
+  assert.equal(Math.round(path(1.5).x), 200)
+  assert.equal(Math.round(path(1.5).y), 100)
+})
+
+test('makeKnotPath reports pressed across a drag and not after it', () => {
+  const path = makeKnotPath(straight, 4)
+  assert.equal(path(1.0).pressed, true)
+  assert.equal(path(1.5).pressed, true)
+  assert.equal(path(2.5).pressed, false)
+})
+
+test('makeKnotPath holds a frozen knot still and pressed', () => {
+  const held = [
+    { t: 0, x: 0, y: 0, frozen: false, pressed: false, linear: false, zone: 'field', target: null },
+    { t: 1, x: 50, y: 50, frozen: true, pressed: true, linear: false, zone: 'panel', target: 'Paper' },
+    { t: 1.2, x: 50, y: 50, frozen: false, pressed: false, linear: false, zone: 'panel', target: 'Paper' },
+  ]
+  const path = makeKnotPath(held, 2)
+  assert.deepEqual(path(1.1), { x: 50, y: 50, pressed: true })
+})
+
+test('makeKnotPath closes the loop — position matches across the seam', () => {
+  const path = makeKnotPath(straight, 4)
+  const a = path(0)
+  const b = path(4)
+  assert.equal(Math.round(a.x), Math.round(b.x))
+  assert.equal(Math.round(a.y), Math.round(b.y))
+})
+
+test('makeKnotPath has matching velocity across the seam', () => {
+  const path = makeKnotPath(straight, 4)
+  const dt = 1 / 600
+  const before = path(4 - dt)
+  const after = path(dt)
+  const vIn = (path(0).x - before.x) / dt
+  const vOut = (after.x - path(0).x) / dt
+  assert.ok(Math.abs(vIn - vOut) < 1, `velocity jumps by ${Math.abs(vIn - vOut)}`)
 })

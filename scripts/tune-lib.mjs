@@ -163,3 +163,64 @@ export function placementComplaints(knots, anchors) {
 
   return bad
 }
+
+/**
+ * A closed, non-uniform Catmull-Rom through pre-expanded knots.
+ *
+ * The same curve `video.mjs`'s `makePath` draws, and for the same reasons:
+ * closed so that position and velocity match across the loop point, and
+ * non-uniform so the timing column carries the rhythm rather than an easing
+ * parameter.
+ *
+ * Two things it does that the original does not. `pressed` is carried per
+ * knot rather than implied by `frozen`, because a drag is pressed *and*
+ * moving. And a span marked `linear` is interpolated as a straight line —
+ * Catmull-Rom bows on the outside of a turn, and a drag sits between two
+ * turns, so a splined drag walks the arrow off the track it is holding.
+ */
+export function makeKnotPath(knots, duration) {
+  const n = knots.length
+
+  return function sample(time) {
+    const t = ((time % duration) + duration) % duration
+    let i = n - 1
+    while (i > 0 && knots[i].t > t) i--
+
+    const a = knots[i]
+    const b = i + 1 < n ? knots[i + 1] : { ...knots[0], t: knots[0].t + duration }
+    if (a.frozen) return { x: a.x, y: a.y, pressed: true }
+
+    const h = b.t - a.t
+    const u = h <= 0 ? 0 : (t - a.t) / h
+    const pressed = Boolean(a.pressed)
+
+    if (a.linear) {
+      return { x: a.x + (b.x - a.x) * u, y: a.y + (b.y - a.y) * u, pressed }
+    }
+
+    // Neighbours, wrapped, so the seam has real tangents on both sides.
+    const prev = i === 0
+      ? { ...knots[n - 1], t: knots[n - 1].t - duration }
+      : knots[i - 1]
+    const next = i + 2 <= n - 1
+      ? knots[i + 2]
+      : { ...knots[(i + 2) % n], t: knots[(i + 2) % n].t + duration }
+
+    const tangent = (p0, p1, axis) => (p1[axis] - p0[axis]) / (p1.t - p0.t)
+
+    const hermite = (axis) => {
+      const ma = a.frozen ? 0 : tangent(prev, b, axis)
+      const mb = b.frozen ? 0 : tangent(a, next, axis)
+      const u2 = u * u
+      const u3 = u2 * u
+      return (
+        (2 * u3 - 3 * u2 + 1) * a[axis] +
+        (u3 - 2 * u2 + u) * h * ma +
+        (-2 * u3 + 3 * u2) * b[axis] +
+        (u3 - u2) * h * mb
+      )
+    }
+
+    return { x: hermite('x'), y: hermite('y'), pressed }
+  }
+}
