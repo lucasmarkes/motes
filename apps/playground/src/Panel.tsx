@@ -6,7 +6,7 @@ import { navigate } from './router'
 import { CheckIcon, CopyIcon, DiceIcon, LinkIcon, ResetIcon } from './icons'
 import { Swap } from './Swap'
 import { Slider } from './controls/Slider'
-import { NUMERIC, type Section } from './config/controls'
+import { BASELINE, NUMERIC, type Section } from './config/controls'
 import { isSectionDirty, randomize, resetAll, resetSection } from './config/actions'
 import { CharsetSelect } from './controls/CharsetSelect'
 import { Palette } from './controls/Palette'
@@ -180,12 +180,14 @@ export function Panel({ config, onChange, onReplace }: PanelProps) {
           <Slider
             {...NUMERIC.radius}
             value={config.radius}
+            baseline={BASELINE.radius}
             disabled={!config.pointer}
             onChange={(radius) => onChange({ radius })}
           />
           <Slider
             {...NUMERIC.force}
             value={config.force}
+            baseline={BASELINE.force}
             disabled={!config.pointer}
             onChange={(force) => onChange({ force })}
           />
@@ -196,26 +198,31 @@ export function Panel({ config, onChange, onReplace }: PanelProps) {
           <Slider
             {...NUMERIC.density}
             value={config.density}
+            baseline={BASELINE.density}
             onChange={(density) => onChange({ density })}
           />
           <Slider
             {...NUMERIC.speed}
             value={config.speed}
+            baseline={BASELINE.speed}
             onChange={(speed) => onChange({ speed })}
           />
           <Slider
             {...NUMERIC.contrast}
             value={config.contrast}
+            baseline={BASELINE.contrast}
             onChange={(contrast) => onChange({ contrast })}
           />
           <Slider
             {...NUMERIC.brightness}
             value={config.brightness}
+            baseline={BASELINE.brightness}
             onChange={(brightness) => onChange({ brightness })}
           />
           <Slider
             {...NUMERIC.trail}
             value={config.trail}
+            baseline={BASELINE.trail}
             onChange={(trail) => onChange({ trail })}
           />
         </section>

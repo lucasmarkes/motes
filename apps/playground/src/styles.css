@@ -1751,6 +1751,42 @@ input {
   margin-inline-start: 2px;
 }
 
+/* The readout is also the type target. It keeps the label's scrub cursor —
+   dragging it still works — and only announces the second affordance on
+   hover, where a permanent underline would read as a link on every row. */
+.lab-value {
+  border-bottom: 1px dashed transparent;
+  transition: border-color var(--t-hover) var(--ease);
+}
+
+.lab:hover .lab-value {
+  border-bottom-color: var(--ink-3);
+}
+
+.slider.is-disabled .lab-value {
+  border-bottom-color: transparent;
+}
+
+/* Sized to the widest value any control shows, so opening the editor does not
+   shift the label row under the cursor that opened it. */
+.lab-input {
+  font: inherit;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  background: var(--paper-2);
+  border: 1px solid var(--ink-3);
+  border-radius: 3px;
+  padding: 0 3px;
+  width: 62px;
+  text-align: right;
+  outline: none;
+}
+
+.lab-input:focus-visible {
+  border-color: var(--ink);
+}
+
 .slider {
   /* Turning interaction off makes radius and force irrelevant; fading rather
      than snapping shows the toggle causing it. */
@@ -1793,12 +1829,69 @@ input {
   border-radius: 2px;
 }
 
+/* Positioned by both inline edges rather than sized from the start, because
+   the fill no longer begins at the minimum — it spans baseline to value, in
+   whichever order those fall. A control resting at its baseline draws a bar
+   of zero width, which is the correct picture of having changed nothing. */
 .track-fill {
   position: absolute;
-  inset: 0 auto 0 0;
+  inset-block: 0;
   display: block;
   background: var(--ink);
   border-radius: 2px;
+}
+
+/* Countable ranges only — see tickStops. Density has fifteen positions and
+   should look like fifteen positions; radius has three hundred and twenty and
+   would draw a grey smear promising precision the eye cannot use. */
+.ticks {
+  position: absolute;
+  inset-inline: 0;
+  top: 50%;
+  height: 7px;
+  translate: 0 -50%;
+  pointer-events: none;
+}
+
+.ticks i {
+  position: absolute;
+  top: 0;
+  width: 1px;
+  height: 100%;
+  translate: -50% 0;
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.ticks i.edge {
+  background: rgba(0, 0, 0, 0.32);
+}
+
+/* The origin. Sits under the line rather than across it: a control at its
+   baseline puts the thumb exactly on this mark, and that is the one moment
+   the origin most needs to be legible. */
+.notch {
+  position: absolute;
+  top: 50%;
+  width: 2px;
+  height: 5px;
+  translate: -50% 9px;
+  background: var(--ink-3);
+  border-radius: 1px;
+  pointer-events: none;
+}
+
+/* The bounds, printed once under the only track that draws its stops. Worth a
+   row of panel there — the ticks raise the question of what they count — and
+   not worth it anywhere else. */
+.scale {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-3);
+  margin-top: -7px;
+  padding-bottom: 3px;
+  user-select: none;
 }
 
 /* A bar, not a circle — 8x15, radius 2px, so it reads as a handle you take

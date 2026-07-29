@@ -25,11 +25,16 @@ export function LiveExample({
   controls = false,
   height = 220,
 }: LiveExampleProps) {
-  const [config, setConfig] = useState<MotesOptions>({
+  // Where this example opened, kept so its sliders have an origin to draw
+  // from. A doc example's baseline is whatever the page chose to show, not
+  // the library default — the point of the control is to show the reader how
+  // far they have moved the thing in front of them.
+  const [origin] = useState<MotesOptions>(() => ({
     ...DEFAULT_OPTIONS,
     accent: POINTER_ACCENT,
     ...initial,
-  })
+  }))
+  const [config, setConfig] = useState<MotesOptions>(origin)
 
   const snippet = tab === 'react' ? reactSnippet(config) : coreSnippet(config)
 
@@ -50,6 +55,7 @@ export function LiveExample({
             label="radius"
             unit="px"
             value={config.radius}
+            baseline={origin.radius}
             min={40}
             max={280}
             step={10}
@@ -59,6 +65,7 @@ export function LiveExample({
           <Slider
             label="force"
             value={config.force}
+            baseline={origin.force}
             min={0.2}
             max={3}
             step={0.1}
@@ -68,6 +75,7 @@ export function LiveExample({
           <Slider
             label="trail"
             value={config.trail}
+            baseline={origin.trail}
             min={0}
             max={0.95}
             step={0.05}
