@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import type { PointerEvent as RPointerEvent, KeyboardEvent as RKeyboardEvent } from 'react'
 import { quantise } from '../config/quantise'
-import { fillSpan, parseTyped, tickStops } from './geometry'
+import { detent, fillSpan, keyRepeatStep, parseTyped, tickStops } from './geometry'
 
 export interface SliderProps {
   label: string
@@ -82,6 +82,10 @@ export function Slider({
   // Set when Enter or Escape has already decided the edit, so the blur that
   // follows returning focus to the track does not decide it a second time.
   const resolved = useRef(false)
+  /** How many auto-repeats the held arrow has fired, which is what the ramp
+   *  reads. A ref: the count changes faster than the value does and nothing
+   *  is drawn from it. */
+  const repeats = useRef(0)
 
   const pct = ((value - min) / (max - min)) * 100
   const basePct = ((baseline - min) / (max - min)) * 100
@@ -98,11 +102,33 @@ export function Slider({
     return Math.min(max, Math.max(min, at))
   }
 
+  /** Value units per pixel of track, or 0 before the track has been laid out. */
+  function perPixel(): number {
+    const r = track.current?.getBoundingClientRect()
+    if (!r || r.width === 0) return 0
+    return (max - min) / r.width
+  }
+
+  /**
+   * The value a gesture position should emit.
+   *
+   * Applied on the way out and never written back to `raw`, which is the
+   * whole trick: `raw` stays the honest position of the hand, so the well
+   * resists the value once on each event instead of compounding until the
+   * control is welded to its origin. A fine gesture skips it — someone
+   * holding Shift is asking for precision, and resistance is the opposite of
+   * what they asked for.
+   */
+  function settle(v: number, fine: boolean): number {
+    const at = fine ? v : detent(v, baseline, perPixel())
+    return quantise(at, min, max, step)
+  }
+
   /** Move the gesture's own value, then emit it snapped. Clamped as it goes,
    *  so dragging past an end and back does not spend the overshoot first. */
-  function nudge(by: number) {
+  function nudge(by: number, fine: boolean) {
     raw.current = Math.min(max, Math.max(min, raw.current + by))
-    onChange(quantise(raw.current, min, max, step))
+    onChange(settle(raw.current, fine))
   }
 
   /**
@@ -116,9 +142,7 @@ export function Slider({
    * however many events the browser chooses to send.
    */
   function finePerPixel(): number {
-    const r = track.current?.getBoundingClientRect()
-    if (!r || r.width === 0) return 0
-    return ((max - min) / r.width) * FINE
+    return perPixel() * FINE
   }
 
   function onTrackDown(e: RPointerEvent<HTMLDivElement>) {
@@ -136,7 +160,7 @@ export function Slider({
       return
     }
     raw.current = rawFromClientX(e.clientX)
-    onChange(quantise(raw.current, min, max, step))
+    onChange(settle(raw.current, false))
   }
 
   function onTrackMove(e: RPointerEvent<HTMLDivElement>) {
@@ -144,13 +168,13 @@ export function Slider({
     const dx = e.clientX - lastX.current
     lastX.current = e.clientX
     if (e.shiftKey) {
-      nudge(dx * finePerPixel())
+      nudge(dx * finePerPixel(), true)
       return
     }
     // Absolute: the thumb comes to the pointer. The gesture value follows, so
     // reaching for Shift mid-drag carries on from here rather than jumping.
     raw.current = rawFromClientX(e.clientX)
-    onChange(quantise(raw.current, min, max, step))
+    onChange(settle(raw.current, false))
   }
 
   function endDrag(e: RPointerEvent<HTMLDivElement>) {
@@ -169,16 +193,21 @@ export function Slider({
       openEditor()
       return
     }
+    // A fresh press reports repeat: false, which is the reset — hold Right,
+    // then press Left, and the ramp starts over in the new direction.
+    repeats.current = e.repeat ? repeats.current + 1 : 0
+    // Arrows only. Page is already worth ten, and Home/End are absolute.
+    const arrow = step * keyRepeatStep(repeats.current, (max - min) / step)
     const page = step * 10
     let next: number
     switch (e.key) {
       case 'ArrowLeft':
       case 'ArrowDown':
-        next = value - step
+        next = value - arrow
         break
       case 'ArrowRight':
       case 'ArrowUp':
-        next = value + step
+        next = value + arrow
         break
       case 'PageDown':
         next = value - page
@@ -237,7 +266,7 @@ export function Slider({
       moved.current = true
     }
     const travel = e.shiftKey ? SCRUB_TRAVEL / FINE : SCRUB_TRAVEL
-    nudge(dx * ((max - min) / travel))
+    nudge(dx * ((max - min) / travel), e.shiftKey)
   }
 
   function endScrub(e: RPointerEvent<HTMLDivElement>) {

@@ -1824,6 +1824,26 @@ input {
   /* The value changes every frame of a drag; proportional digits would make
      the number jitter its own width while you read it. */
   font-variant-numeric: tabular-nums;
+  /* Anchored at its own right edge so that growing pushes nothing: the row is
+     a space-between flex, and a value that widened would shove the label. */
+  transform-origin: 100% 100%;
+  transition:
+    scale var(--t-press) var(--ease),
+    translate var(--t-press) var(--ease);
+}
+
+/* The number is the thing being set, so for the length of the gesture it comes
+   forward. Both properties are transforms rather than size or position, so the
+   value can change every frame without reflowing the row it sits in. */
+.slider[data-drag] .lab b {
+  scale: 1.18;
+  translate: 0 -2px;
+}
+
+/* And the label stays lit for the whole gesture. Hover alone would drop it the
+   moment a drag left the row, which is most of any real drag. */
+.slider[data-drag] .lab {
+  color: var(--ink);
 }
 
 .lab b em {
@@ -1988,12 +2008,24 @@ input {
   translate: -50% -50%;
   background: var(--ink);
   border-radius: 2px;
-  transition: scale var(--t-press) var(--ease);
+  transition:
+    scale var(--t-press) var(--ease),
+    box-shadow var(--t-press) var(--ease);
 }
 
-.track-hit:hover .thumb,
+/* Hovering is not holding. The two used to draw the same thumb, which meant
+   the control announced itself as loudly for a pointer passing over it as for
+   a hand actually on it — and so the moment of taking hold registered as
+   nothing at all. Hover now only acknowledges; the grab is the event. */
+.track-hit:hover .thumb {
+  scale: 1 1.12;
+}
+
 .track-hit[data-drag] .thumb {
-  scale: 1 1.2;
+  scale: 1.25 1.5;
+  /* Not a glow — the halo is the same sunken fill as the track, so the thumb
+     reads as having pressed into the surface rather than lit up above it. */
+  box-shadow: 0 0 0 5px var(--sunk-2);
 }
 
 /* The ring goes on the band, not on the line inside it. Ringing the child

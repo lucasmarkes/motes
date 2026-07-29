@@ -51,6 +51,70 @@ export function fillSpan(value: number, baseline: number, min: number, max: numb
   return { start: Math.min(pct, base), end: Math.max(pct, base) }
 }
 
+/** Half-width of the well at the origin, in pixels of track. About a thumb. */
+const DETENT_PX = 8
+
+/**
+ * How much slower the value moves at dead centre. 0 is no well at all; 1 would
+ * be a full stop, and a full stop is a trap — the values inside the well would
+ * become unreachable by drag.
+ */
+const DETENT_PULL = 0.8
+
+/**
+ * Resistance as the value crosses its origin.
+ *
+ * Snapping would be the easy version and the wrong one: it makes every value
+ * within the well unreachable, and on radius the well is seven units wide.
+ * This slows the value instead. Pointer travel maps to value at a fifth speed
+ * at the centre and at full speed by the rim, so the origin is easy to find,
+ * easy to leave, and nothing between is lost.
+ *
+ * The curve is `u - k·u(1-u²)²` over the well, in units of half-width. That
+ * shape is chosen for its two derivatives: `1-k` at the centre, which is the
+ * drag you feel, and exactly 1 at the rim, so the well has no lip — the value
+ * neither jumps nor stalls at the moment it enters.
+ *
+ * @param perPixel value units per pixel of track, which is what sets the
+ *   well's width in value terms; a slider's feel should not depend on how
+ *   wide its range happens to be.
+ */
+export function detent(value: number, baseline: number, perPixel: number): number {
+  const half = DETENT_PX * perPixel
+  if (!(half > 0)) return value
+  const u = (value - baseline) / half
+  if (Math.abs(u) >= 1) return value
+  const bump = u * (1 - u * u) ** 2
+  return baseline + half * (u - DETENT_PULL * bump)
+}
+
+/** Repeats to absorb before accelerating, so deliberate taps stay exact. */
+const RAMP_AFTER = 4
+/** Repeats between each extra step of speed. */
+const RAMP_EVERY = 4
+/** A held key should cross the whole range in about this many repeats —
+ *  roughly two seconds at a typical repeat rate. */
+const HELD_CROSSING = 60
+
+/**
+ * How many steps one keypress is worth, given how long the key has been held.
+ *
+ * A held arrow used to crawl: radius is three hundred and sixty steps, so
+ * reaching an end took twelve seconds of holding. Accelerating fixes that
+ * without costing precision, because the first few repeats are still worth
+ * one step each — a tap, or a short burst of taps, lands exactly where it did.
+ *
+ * The ceiling is derived from the range rather than fixed. Density has
+ * fourteen steps in total; multiplying anything there would turn a hold into
+ * a jump between the bounds, so it never accelerates at all.
+ */
+export function keyRepeatStep(repeats: number, stops: number): number {
+  if (repeats <= RAMP_AFTER) return 1
+  const top = Math.max(1, Math.round(stops / HELD_CROSSING))
+  const grown = Math.floor((repeats - RAMP_AFTER) / RAMP_EVERY) + 1
+  return Math.min(top, grown)
+}
+
 /** Leading sign, then digits with an optional point either side of them. */
 const NUMBER = /^[+-]?(?:\d+\.?\d*|\.\d+)/
 

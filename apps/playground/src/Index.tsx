@@ -21,7 +21,7 @@ export function Index() {
   const entering = useEntrance()
 
   return (
-    <main className={`index ${entering ? 'is-entering' : ''}`}>
+    <main className={`index ${entering ? "is-entering" : ""}`}>
       <SiteHeader />
 
       <header className="hero" onPointerMove={() => setTouched(true)}>
@@ -77,11 +77,11 @@ export function Index() {
                   at the command that would install it. MIT is deliberately not
                   here: it is a click away in the repo, and a third fact in a
                   row is how the badge row started. */}
-              <p className="hero-meta">zero dependencies · WebGL2</p>
+              {/* <p className="hero-meta">zero dependencies · WebGL2</p> */}
             </div>
 
             <p
-              className={`hero-hint ${touched ? 'is-out' : ''}`}
+              className={`hero-hint ${touched ? "is-out" : ""}`}
               aria-hidden={touched}
             >
               {POINTER_HINT}
@@ -100,7 +100,7 @@ export function Index() {
         <SiteFooter />
       </div>
     </main>
-  )
+  );
 }
 
 function Tile({ entry }: { entry: CatalogEntry }) {
