@@ -87,6 +87,7 @@ import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { PNG } from 'pngjs'
 import ffmpeg from 'ffmpeg-static'
+import { mulberry32 } from './tune-lib.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(here, '..')
@@ -103,6 +104,8 @@ const NO_ENCODE = argv.has('--no-encode')
 const ENCODE_ONLY = argv.has('--encode')
 /** The homepage cut, rather than the playground stage. */
 const HOME = argv.has('--home')
+/** The square feed cut: the panel is worked, not avoided. */
+const TUNE = argv.has('--tune')
 
 const W = 1280
 const H = 720
@@ -116,6 +119,29 @@ const SWEEP_SECONDS = 3
 /** The homepage cut: no panel, no controls, the headline carrying the message. */
 const HOME_SECONDS = 12
 const HOME_SWEEP_SECONDS = 3
+
+/** The `--tune` cut: the square feed master for the 0.2.0 announcement. */
+const TUNE_SECONDS = 18
+const TUNE_SIZE = 1080
+/** Supersampled and downscaled at encode; see `encodeMp4`'s scale argument. */
+const TUNE_SCALE = 2
+
+/**
+ * The seed `randomize()` rolls against.
+ *
+ * `config/actions.ts` samples seven numeric controls, then picks a charset and
+ * a whole preset. On the real `Math.random` that is a different take every run
+ * — and a roll into Terminal or Amber, which this video does not use.
+ *
+ * So the roll is pinned, and the seed is chosen the way a keyframe is: by
+ * looking at what it produces. The run reports which preset this one lands on;
+ * if it is ever not one of Void, Paper or Glass, the seed is wrong and the
+ * render fails rather than shipping the wrong palette.
+ */
+const TUNE_SEED = 0x5eed1a0
+
+/** Presets the take is allowed to show. See the design doc's palette section. */
+const NEUTRAL_PRESETS = ['Void', 'Paper', 'Glass']
 
 /**
  * Frames of crossfade that close the loop over the field — see `dissolveLoop`.
@@ -534,6 +560,22 @@ function INSTALL_CLOCK() {
   window.__now = () => now
 }
 
+/**
+ * Replaces `Math.random` with a seeded stream, before any page script runs.
+ *
+ * Built as source text rather than as a function reference because an init
+ * script is serialised away from node's module scope — a plain closure over
+ * `mulberry32` would arrive undefined. Stringifying the tested function is the
+ * only way to keep one definition of the algorithm.
+ */
+const INSTALL_RANDOM = (seed) =>
+  `(() => {
+     const mulberry32 = ${mulberry32.toString()};
+     const rand = mulberry32(${seed});
+     Math.random = rand;
+     window.__seeded = true;
+   })()`
+
 // ── the composited cursor ──────────────────────────────────────────────────
 
 /**
@@ -713,9 +755,10 @@ function dissolveLoop(dir, total, overlap) {
 
 // ── capture ────────────────────────────────────────────────────────────────
 
-async function capture({ origin, route, keys, duration, dir, label, frames: frameCount, measure, scene = 'stage', dissolve = 0 }) {
+async function capture({ origin, route, keys, duration, dir, label, frames: frameCount, measure, scene = 'stage', dissolve = 0, seeded = false }) {
   const total = frameCount ?? Math.round(duration * FPS)
   const home = scene === 'home'
+  const tune = scene === 'tune'
   // `.hero` is `100svh` less the strip of tiles that has to clear the fold, so
   // at a 720-tall viewport it is 544 and the tiles are in shot. The frame is
   // produced by choosing a viewport that makes the hero exactly 1280×720 —
@@ -728,8 +771,10 @@ async function capture({ origin, route, keys, duration, dir, label, frames: fram
     args: ['--use-gl=angle', '--use-angle=metal', '--hide-scrollbars', '--force-color-profile=srgb'],
   })
   const context = await browser.newContext({
-    viewport: { width: W, height: home ? H + 284 : H },
-    deviceScaleFactor: 1,
+    viewport: tune
+      ? { width: TUNE_SIZE, height: TUNE_SIZE }
+      : { width: W, height: home ? H + 284 : H },
+    deviceScaleFactor: tune ? TUNE_SCALE : 1,
     reducedMotion: 'no-preference',
     colorScheme: 'dark',
   })
@@ -738,6 +783,8 @@ async function capture({ origin, route, keys, duration, dir, label, frames: fram
   page.on('console', (m) => { if (m.type() === 'error') console.error(`  ✗ console: ${m.text()}`) })
 
   await page.addInitScript(INSTALL_CLOCK)
+  // After the clock, so the two init scripts run in a fixed order.
+  if (seeded) await page.addInitScript({ content: INSTALL_RANDOM(TUNE_SEED) })
 
   /**
    * One frame. Everything the picture depends on is downstream of this call:
@@ -760,9 +807,13 @@ async function capture({ origin, route, keys, duration, dir, label, frames: fram
     gl: Boolean(document.querySelector('canvas')?.getContext?.('webgl2')),
     anchor: Boolean(document.querySelector(sel)),
     clock: typeof window.__tick === 'function',
+    seeded: Boolean(window.__seeded),
   }), anchor)
   if (!ready.clock || !ready.gl || !ready.anchor) {
     throw new Error(`page did not settle: ${JSON.stringify(ready)}`)
+  }
+  if (seeded && !ready.seeded) {
+    throw new Error('the seeded Math.random did not install; randomize would roll live')
   }
 
   const box = () => page.evaluate((sel) => {
@@ -1018,6 +1069,33 @@ function encodeGif(dir, out, width = 900, fps = 20, colors = 64) {
 
 const kb = (p) => `${(statSync(p).size / 1024).toFixed(0)}KB`
 const mb = (p) => `${(statSync(p).size / 1024 / 1024).toFixed(2)}MB`
+
+/**
+ * Two cold loads, same numbers.
+ *
+ * `--probe` captures forty frames, which is the first two thirds of a second —
+ * it never reaches the randomize beat at 0:14, so it cannot see this. Checking
+ * the stream directly is cheap and lands on the actual claim: that two renders
+ * of this take roll identically.
+ */
+async function probeSeed(origin) {
+  const browser = await chromium.launch({
+    args: ['--use-gl=angle', '--use-angle=metal', '--hide-scrollbars', '--force-color-profile=srgb'],
+  })
+  const runs = []
+  for (const pass of [1, 2]) {
+    const context = await browser.newContext({ viewport: { width: TUNE_SIZE, height: TUNE_SIZE }, colorScheme: 'dark' })
+    const page = await context.newPage()
+    await page.addInitScript(INSTALL_CLOCK)
+    await page.addInitScript({ content: INSTALL_RANDOM(TUNE_SEED) })
+    await page.goto(`${origin}/flow`, { waitUntil: 'load', timeout: 20_000 })
+    runs.push(await page.evaluate(() => Array.from({ length: 8 }, () => Math.random())))
+    await context.close()
+  }
+  await browser.close()
+  const [a, b] = runs
+  return { identical: a.every((v, i) => v === b[i]), sample: a.slice(0, 3) }
+}
 
 // ── run ────────────────────────────────────────────────────────────────────
 
