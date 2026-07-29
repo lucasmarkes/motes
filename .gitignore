@@ -30,3 +30,7 @@ ascii-flux.html
 # Scratch diffs the golden-image harness writes on a mismatch; the goldens
 # themselves stay tracked.
 packages/core/test/golden/*.actual.png
+
+# Agent scratch: checked-out worktrees and local tool settings. The branches
+# they point at live in the repo either way, so nothing here is worth tracking.
+.claude/
