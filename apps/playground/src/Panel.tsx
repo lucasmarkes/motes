@@ -164,11 +164,14 @@ export function Panel({ config, onChange, onReplace, arrivals }: PanelProps) {
           glyph, but Randomize is a discovery affordance, and nobody goes
           looking behind an unlabelled die. */}
       <div className="panel-acts" role="group" aria-label="Field actions">
+        {/* Wrapped rather than left as bare text: a text node becomes an
+            anonymous flex item, and nothing in the stylesheet can reach one to
+            trim its line box down to the letters. */}
         <button type="button" onClick={() => onReplace(resetAll(config))}>
-          <ResetIcon /> Reset
+          <ResetIcon /> <span className="act-label">Reset</span>
         </button>
         <button type="button" onClick={() => onReplace(randomize(config))}>
-          <DiceIcon /> Randomize
+          <DiceIcon /> <span className="act-label">Randomize</span>
         </button>
         <button type="button" onClick={copyLink}>
           <LinkIcon /> <Swap on="Copied" off="Link" active={linked} />

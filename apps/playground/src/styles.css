@@ -1470,6 +1470,67 @@ input {
   box-shadow: 0 24px 64px oklch(0 0 0 / 0.45);
 }
 
+/* Centring on the letters instead of on the line box.
+ *
+ * Every row below pairs a box with a word — an icon beside Reset, a swatch
+ * beside background, a label inside a preset — and centres them with
+ * `align-items: center` or the equivalent. That centres the text's LINE box,
+ * which carries ascender and descender room the word may not use a single
+ * pixel of, so the box it is paired with lands consistently low: 0.81px under
+ * the cap-height centre in the action row, 0.97px in the presets, 1.56px in
+ * the chips.
+ *
+ * The obvious fix is a hand-computed lift, and the chip label carried one for
+ * exactly this reason. It did not land. The figure came from Archivo's
+ * published ascent and descent, 878 and 210 per 1000 em, which put the
+ * line-box centre 0.334em above the baseline; Chrome renders it at 0.213em.
+ * So the lift corrected 0.85px of a 1.45px error and left 0.6px behind, which
+ * is why the row still read as crooked.
+ *
+ * text-box-trim asks the browser for the figure instead of guessing at it: the
+ * box collapses onto the letterforms themselves, and every existing centring
+ * rule then does what it already looked like it was doing. No constants to
+ * drift when a font or a size changes.
+ *
+ * Which edge to trim to depends on what the word is made of. A capitalised
+ * label is read on its capitals; an all-lowercase one is read on its body, and
+ * centring it on a cap height it does not reach would sit it high. So the two
+ * sets are split by case, which is also where the component boundaries fall.
+ *
+ * Where text-box-trim is missing the rows render exactly as they do today —
+ * uncorrected, but no worse — except the chip, whose lift is handed back below
+ * so that view keeps the partial correction it has now. */
+.panel-acts button .act-label,
+.panel-acts button .swap > span,
+.code .tabs button.copy .swap > span,
+.chip-label,
+.preset,
+.seg button {
+  text-box-trim: trim-both;
+}
+
+/* Read on their capitals. */
+.panel-acts button .act-label,
+.panel-acts button .swap > span,
+.code .tabs button.copy .swap > span,
+.preset {
+  text-box-edge: cap alphabetic;
+}
+
+/* Read on their x-height — lowercase by design, both of them. */
+.chip-label,
+.seg button {
+  text-box-edge: ex alphabetic;
+}
+
+@supports not (text-box-trim: trim-both) {
+  /* The old approximation, kept only where the real thing is unavailable. It
+     is short of the mark by 0.6px, but it is nearer than nothing. */
+  .chip-label {
+    translate: 0 calc(var(--fs-fine) * -0.071);
+  }
+}
+
 /* Above .panel-scroll rather than inside it, so the actions stay put while the
    controls move under them. Labelled, not iconographic: Reset survives as a
    glyph, but Randomize is a discovery affordance, and nobody goes looking
@@ -2326,24 +2387,16 @@ input {
   background-size: 6px 6px;
 }
 
-/* `align-items: center` centres the label's line box, and a line box is not
-   its letters. Archivo's ascent and descent are 878 and 210 per 1000 em, so the
-   box's centre lands (878 - 210) / 2 = 0.334em above the baseline — near enough
-   the middle of a capital. These three labels are lowercase by design, so the
-   eye centres them on the x-height instead, 526 / 2 = 0.263em up, which leaves
-   the word sitting 0.071em low in the chip. Lift it by exactly that, off the
-   label's own size rather than an em, which here would resolve against the
-   chip's inherited font-size and overshoot. The well is left alone: a square is
-   its own optical centre, and moving it to meet the text would only carry both
-   of them low. The fallback face is cut to the same ascent and descent, so the
-   figure holds whichever one the view lands on. */
+/* Trimmed to the x-height by the block above, because these three labels are
+   lowercase by design and the eye centres a lowercase word on its body, not on
+   the capital it does not have. The well is left alone: a square is its own
+   optical centre, and moving it to meet the text would only carry both low. */
 .chip-label {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: var(--fs-fine);
   color: var(--ink-2);
-  translate: 0 calc(var(--fs-fine) * -0.071);
 }
 
 .chip.is-on .chip-label {
