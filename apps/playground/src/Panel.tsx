@@ -6,6 +6,7 @@ import { navigate } from './router'
 import { CheckIcon, CopyIcon } from './icons'
 import { Swap } from './Swap'
 import { Slider } from './controls/Slider'
+import { NUMERIC } from './config/controls'
 import { CharsetSelect } from './controls/CharsetSelect'
 import { Palette } from './controls/Palette'
 import { Presets } from './controls/Presets'
@@ -116,75 +117,45 @@ export function Panel({ config, onChange }: PanelProps) {
           </button>
 
           <Slider
-            label="radius"
-            unit="px"
+            {...NUMERIC.radius}
             value={config.radius}
-            min={40}
-            max={360}
-            step={1}
             disabled={!config.pointer}
             onChange={(radius) => onChange({ radius })}
-            format={(v) => v.toFixed(0)}
           />
           <Slider
-            label="force"
+            {...NUMERIC.force}
             value={config.force}
-            min={0}
-            max={3}
-            step={0.1}
             disabled={!config.pointer}
             onChange={(force) => onChange({ force })}
-            format={(v) => v.toFixed(1)}
           />
         </section>
 
         <section className="group" aria-label="Field">
           <p className="eyebrow">Field</p>
           <Slider
-            label="density"
-            unit="px"
+            {...NUMERIC.density}
             value={config.density}
-            min={8}
-            max={22}
-            step={1}
             onChange={(density) => onChange({ density })}
-            format={(v) => v.toFixed(0)}
           />
           <Slider
-            label="speed"
+            {...NUMERIC.speed}
             value={config.speed}
-            min={0}
-            max={3}
-            step={0.1}
             onChange={(speed) => onChange({ speed })}
-            format={(v) => v.toFixed(1)}
           />
           <Slider
-            label="contrast"
+            {...NUMERIC.contrast}
             value={config.contrast}
-            min={0}
-            max={3}
-            step={0.05}
             onChange={(contrast) => onChange({ contrast })}
-            format={(v) => v.toFixed(2)}
           />
           <Slider
-            label="brightness"
+            {...NUMERIC.brightness}
             value={config.brightness}
-            min={-0.5}
-            max={0.5}
-            step={0.01}
             onChange={(brightness) => onChange({ brightness })}
-            format={(v) => (v > 0 ? `+${v.toFixed(2)}` : v.toFixed(2))}
           />
           <Slider
-            label="persistence"
+            {...NUMERIC.trail}
             value={config.trail}
-            min={0}
-            max={1}
-            step={0.01}
             onChange={(trail) => onChange({ trail })}
-            format={(v) => v.toFixed(2)}
           />
         </section>
 
