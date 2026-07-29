@@ -33,7 +33,11 @@ export function navigate(to: string): void {
   if (to === window.location.pathname) return
 
   const commit = (): void => {
-    window.history.pushState({}, '', to)
+    // The search rides along, so switching effects keeps the tuning — the
+    // promise App.tsx has always made, now that the tuning lives in the URL.
+    // Read inside commit rather than above it, so a view transition captures
+    // one write of whatever the search is at the moment it lands.
+    window.history.pushState({}, '', `${to}${window.location.search}`)
     window.dispatchEvent(new PopStateEvent('popstate'))
   }
 
