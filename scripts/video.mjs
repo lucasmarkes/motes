@@ -87,7 +87,7 @@ import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { PNG } from 'pngjs'
 import ffmpeg from 'ffmpeg-static'
-import { mulberry32 } from './tune-lib.mjs'
+import { mulberry32, expand, placementComplaints, makeKnotPath } from './tune-lib.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(here, '..')
@@ -831,6 +831,52 @@ async function capture({ origin, route, keys, duration, dir, label, frames: fram
     }
   }, anchor)
 
+  /**
+   * Everything the choreography aims at, measured from the live DOM.
+   *
+   * Read once, after fonts have loaded and before the first captured frame.
+   * The panel does not reflow during the take — nothing in it changes size
+   * when a value changes — so a single read is honest, and re-reading each
+   * frame would put a layout flush inside the frame loop.
+   */
+  const readAnchors = () => page.evaluate(() => {
+    const rect = (el) => {
+      const r = el.getBoundingClientRect()
+      return { x: r.x, y: r.y, width: r.width, height: r.height, cx: r.x + r.width / 2, cy: r.y + r.height / 2 }
+    }
+
+    const controls = {}
+    for (const el of document.querySelectorAll('.panel .track-hit[role="slider"]')) {
+      controls[el.getAttribute('aria-label')] = {
+        ...rect(el),
+        min: Number(el.getAttribute('aria-valuemin')),
+        max: Number(el.getAttribute('aria-valuemax')),
+        value: Number(el.getAttribute('aria-valuenow')),
+      }
+    }
+
+    const buttons = {}
+    for (const el of document.querySelectorAll('.panel .presets button')) {
+      buttons[el.textContent.trim()] = rect(el)
+    }
+    for (const el of document.querySelectorAll('.panel .panel-acts button')) {
+      const label = el.querySelector('.act-label')?.textContent.trim()
+      if (label) buttons[label] = rect(el)
+    }
+
+    const shell = document.querySelector('.stage-shell')
+    const before = getComputedStyle(shell, '::before')
+    return {
+      controls,
+      buttons,
+      panel: rect(document.querySelector('.panel')),
+      // Measured rather than written down: the CSS is min(760px, 68%) × 440px,
+      // so the constant that used to live here was wrong at every width.
+      scrim: { w: Number.parseFloat(before.width), h: Number.parseFloat(before.height) },
+      frame: { width: window.innerWidth, height: window.innerHeight },
+    }
+  })
+
   // Geometry is measured, never assumed — on the stage the toggle moves
   // whenever the panel above it changes; on the homepage the hero's height is
   // a function of the viewport, and the copy column's width is a function of
@@ -869,7 +915,17 @@ async function capture({ origin, route, keys, duration, dir, label, frames: fram
     ? { x: Math.round(geometry.toggle.cx), y: Math.round(geometry.toggle.cy) }
     : null
 
-  if (!home) {
+  let anchors = null
+  let expanded = null
+
+  if (tune) {
+    anchors = await readAnchors()
+    expanded = expand(keys, anchors)
+    const complaints = placementComplaints(expanded.knots, anchors)
+    if (complaints.length) {
+      throw new Error(`keyframes in dead zones:\n${complaints.join('\n')}`)
+    }
+  } else if (!home) {
     const complaints = assertClear(keys, toggle, geometry.panel)
     if (complaints.length) {
       throw new Error(`keyframes in dead zones:\n${complaints.join('\n')}`)
@@ -881,8 +937,16 @@ async function capture({ origin, route, keys, duration, dir, label, frames: fram
   // Field only, no pointer: let the phosphor reach steady state.
   for (let i = 0; i < AMBIENT_FRAMES; i++) await advance()
 
-  const path = makePath(keys, duration, toggle)
-  const cues = keys.filter((k) => k.cue).map((k) => ({ frame: Math.round(k.t * FPS), cue: k.cue }))
+  const path = tune ? makeKnotPath(expanded.knots, duration) : makePath(keys, duration, toggle)
+  const cues = tune
+    ? []
+    : keys.filter((k) => k.cue).map((k) => ({ frame: Math.round(k.t * FPS), cue: k.cue }))
+  // A press and a release at a button's centre is a real click, dispatched by
+  // the browser — no `el.click()` shortcut, so the `:active` state, the focus
+  // move and the ripple all happen the way a visitor's would.
+  const buttonEvents = tune
+    ? expanded.events.map((e) => ({ frame: Math.round(e.t * FPS), type: e.type }))
+    : []
 
   const setCursor = ([x, y, pressed]) => window.__cursorAt(x, y, pressed)
 
@@ -924,6 +988,12 @@ async function capture({ origin, route, keys, duration, dir, label, frames: fram
       const key = keys.find((k) => Math.round(k.t * FPS) === c.frame)
       if (f === c.frame + Math.round(key.hold * FPS)) await page.mouse.up()
     }
+    // The tune scene's presses. `page.mouse.move` above has already put the
+    // pointer on this frame's knot, so a down here lands where it is aimed.
+    for (const e of buttonEvents.filter((e) => e.frame === f)) {
+      if (e.type === 'down') await page.mouse.down()
+      else await page.mouse.up()
+    }
 
     await page.evaluate(setCursor, [p.x, p.y, p.pressed])
     const drained = await advance()
@@ -950,9 +1020,27 @@ async function capture({ origin, route, keys, duration, dir, label, frames: fram
     }
   }
 
+  let landed = null
+  let rolled = null
+  if (tune) {
+    landed = await page.evaluate(() => {
+      const out = {}
+      for (const el of document.querySelectorAll('.panel .track-hit[role="slider"]')) {
+        out[el.getAttribute('aria-label')] = Number(el.getAttribute('aria-valuenow'))
+      }
+      return out
+    })
+    // Which preset the seeded roll chose. `Presets.tsx` marks the matching
+    // chip `aria-pressed`, so the page has already done the comparison.
+    rolled = await page.evaluate(() => {
+      const on = document.querySelector('.panel .presets button[aria-pressed="true"]')
+      return on ? on.textContent.trim() : null
+    })
+  }
+
   await browser.close()
   if (dissolve) dissolveLoop(dir, total, dissolve)
-  return { digests, drift, cadence, toggle, geometry, total, guard, dissolve }
+  return { digests, drift, cadence, toggle, geometry, total, guard, dissolve, anchors, landed, rolled }
 }
 
 // ── encode ─────────────────────────────────────────────────────────────────
