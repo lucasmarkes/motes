@@ -1523,6 +1523,27 @@ input {
   text-box-edge: ex alphabetic;
 }
 
+@supports (text-box-trim: trim-both) {
+  /* Trimming to `ex alphabetic` puts the box top on the x-height and its
+     bottom on the baseline, which is the whole point — but .chip-label also
+     carries `overflow: hidden` for its ellipsis, and a box that tight clips
+     the letters that stick out of it: 2.36px of ascender off b, k and d,
+     2.18px of descender off g. It was cutting the tops and tails off
+     "background".
+
+     Padding gives the clip somewhere to happen. Applied to both block edges
+     so the box grows symmetrically and its centre — the thing the well is
+     aligned to — does not move. 0.3em leaves better than a pixel of slack at
+     each end and still lands the label shorter than the 14px well, so the row
+     keeps its height.
+
+     Only under trim: without it the box already contains the letters, and
+     this padding would just make the chip taller. */
+  .chip-label {
+    padding-block: calc(var(--fs-fine) * 0.3);
+  }
+}
+
 @supports not (text-box-trim: trim-both) {
   /* The old approximation, kept only where the real thing is unavailable. It
      is short of the mark by 0.6px, but it is nearer than nothing. */
