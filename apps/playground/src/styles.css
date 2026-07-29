@@ -1993,6 +1993,25 @@ input {
   background: var(--sunk-5);
 }
 
+/* The two end marks are the only ticks whose width straddles the track's own
+   edge: at 0% and 100% the centring translate hangs half a pixel outside the
+   box. The left half is simply unreachable, but the right one rounds up into a
+   scrollable pixel — and a scroll container offers the gesture whether or not
+   there is anything to see, so the whole column of controls could be dragged
+   sideways to reveal nothing.
+
+   Tucked flush inside instead — same hairline at the same end of the same
+   track, half a pixel over. Done by overriding the centring translate rather
+   than the offset, because the offset is an inline style the component
+   computes per tick and a stylesheet cannot outrank it. */
+.ticks i.edge:first-child {
+  translate: 0 0;
+}
+
+.ticks i.edge:last-child {
+  translate: -100% 0;
+}
+
 /* The origin. Sits under the line rather than across it: a control at its
    baseline puts the thumb exactly on this mark, and that is the one moment
    the origin most needs to be legible. */
