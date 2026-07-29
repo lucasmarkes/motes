@@ -12,6 +12,7 @@
     "dev": "turbo run dev",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
+    "test:scripts": "node --test scripts/*.test.mjs",
     "clean": "turbo run clean",
     "release": "node scripts/release.mjs",
     "og": "node scripts/og.mjs",
