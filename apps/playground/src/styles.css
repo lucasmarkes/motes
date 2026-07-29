@@ -1377,6 +1377,52 @@ input {
     0 24px 56px oklch(0 0 0 / 0.34);
 }
 
+/* Above .panel-scroll rather than inside it, so the actions stay put while the
+   controls move under them. Labelled, not iconographic: Reset survives as a
+   glyph, but Randomize is a discovery affordance, and nobody goes looking
+   behind an unlabelled die. */
+.panel-acts {
+  flex: none;
+  display: flex;
+  gap: 4px;
+  padding-bottom: var(--s1);
+  margin-bottom: var(--s1);
+  border-bottom: 1px solid var(--line);
+}
+
+.panel-acts button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ink-2);
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
+}
+
+.panel-acts button:hover {
+  background: oklch(0 0 0 / 0.05);
+  color: var(--ink);
+}
+
+.panel-acts button:active {
+  background: oklch(0 0 0 / 0.09);
+}
+
+/* Link is the odd one out — it copies rather than changes the field — so it
+   sits apart from the two that do. Swap already reserves the width of the
+   longer label, so the row does not shift when it reads "Copied". */
+.panel-acts button:last-child {
+  margin-left: auto;
+}
+
 /* The controls scroll, and the cut says so.
    There is no viewport height at which all four groups always fit — at 1000px
    they do, at 900 they are 27px over, at 800 far more — so this is a scroll
@@ -1431,8 +1477,29 @@ input {
 /* No bottom margin: the group's own gap is what separates the eyebrow from
    the first control, and having both meant every group opened with 10px of
    air where every other step in the panel is 6.5. */
+/* Flex, so the section reset can sit at the far end of the row it titles.
+   The min-height holds the row whether or not the button is there, so a
+   section going dirty does not shift the controls under it. */
 .panel .eyebrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 16px;
   color: var(--ink-2);
+}
+
+.eyebrow-reset {
+  display: inline-flex;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+  transition: color 120ms ease;
+}
+
+.eyebrow-reset:hover {
+  color: var(--ink);
 }
 
 /* Groups ------------------------------------------------------------------

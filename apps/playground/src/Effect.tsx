@@ -12,9 +12,11 @@ interface EffectProps {
   entry: CatalogEntry
   config: MotesOptions
   onChange: (patch: Partial<MotesOptions>) => void
+  /** Swaps the whole config at once — what reset and randomize need. */
+  onReplace: (next: MotesOptions) => void
 }
 
-export function Effect({ entry, config, onChange }: EffectProps) {
+export function Effect({ entry, config, onChange, onReplace }: EffectProps) {
   const [touched, setTouched] = useState(false)
 
   // The head and the hint sit on the field with no container, so both read
@@ -56,7 +58,7 @@ export function Effect({ entry, config, onChange }: EffectProps) {
         <p className="hint hint-off">interaction off — time is the only input</p>
       )}
 
-      <Panel config={config} onChange={onChange} />
+      <Panel config={config} onChange={onChange} onReplace={onReplace} />
     </div>
   )
 }

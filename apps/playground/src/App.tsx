@@ -1,19 +1,14 @@
-import { useState } from 'react'
-import { DEFAULT_OPTIONS, type MotesOptions } from '@lucasmarkes/motes'
-import { POINTER_ACCENT } from './accent'
 import { Docs } from './docs/Docs'
 import { Effect } from './Effect'
 import { Index } from './Index'
 import { entryFor } from './effects'
 import { usePath } from './router'
+import { useConfig } from './config/useConfig'
 
 export function App() {
-  // Held above the route so tuning survives switching between effects.
-  const [config, setConfig] = useState<MotesOptions>({
-    ...DEFAULT_OPTIONS,
-    // The library ships a warm accent; this page does not use one.
-    accent: POINTER_ACCENT,
-  })
+  // Held above the route so tuning survives switching between effects — and
+  // now mirrored into the URL, so it survives a reload and a paste too.
+  const { config, setConfig, replace } = useConfig()
 
   const path = usePath()
 
@@ -30,7 +25,8 @@ export function App() {
     <Effect
       entry={entry}
       config={{ ...config, effect: entry.id }}
-      onChange={(patch) => setConfig((prev) => ({ ...prev, ...patch }))}
+      onChange={setConfig}
+      onReplace={replace}
     />
   )
 }

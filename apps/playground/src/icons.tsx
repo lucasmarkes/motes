@@ -1,9 +1,9 @@
 /**
- * Three marks, drawn here rather than installed.
+ * Six marks, drawn here rather than installed.
  *
  * An icon package would be a runtime dependency on a page whose install
- * command sits under the words "zero dependencies". Three paths is a smaller
- * cost than making that sentence untrue.
+ * command sits under the words "zero dependencies". A handful of paths is a
+ * smaller cost than making that sentence untrue.
  *
  * All on a 16 box, `currentColor`, and hidden from the accessibility tree —
  * each one sits beside a word that already says what it is.
@@ -48,6 +48,68 @@ export function CheckIcon({ className }: IconProps) {
       aria-hidden="true"
     >
       <path d="M3 8.5l3.5 3.5L13 5" />
+    </svg>
+  )
+}
+
+/** An arrow closing most of a circle — the gap is what stops it reading as a
+ *  loading spinner, which is the one thing a reset must not look like. */
+export function ResetIcon({ className }: IconProps) {
+  return (
+    <svg
+      className={className}
+      width="14"
+      height="14"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
+      <path d="M13 8a5 5 0 1 1-1.6-3.7" />
+      <path d="M13.2 2.2v2.9h-2.9" />
+    </svg>
+  )
+}
+
+/** Three pips on a square. Two would read as a domino, five as noise. */
+export function DiceIcon({ className }: IconProps) {
+  return (
+    <svg
+      className={className}
+      width="14"
+      height="14"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      aria-hidden="true"
+    >
+      <rect x="2.5" y="2.5" width="11" height="11" rx="2.5" />
+      <circle cx="5.6" cy="5.6" r="0.9" fill="currentColor" stroke="none" />
+      <circle cx="8" cy="8" r="0.9" fill="currentColor" stroke="none" />
+      <circle cx="10.4" cy="10.4" r="0.9" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+
+/** Two links of a chain, drawn as the join rather than as two full ovals. */
+export function LinkIcon({ className }: IconProps) {
+  return (
+    <svg
+      className={className}
+      width="14"
+      height="14"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
+      <path d="M6.5 9.5a2.5 2.5 0 0 0 3.5 0l2-2a2.5 2.5 0 0 0-3.5-3.5l-1 1" />
+      <path d="M9.5 6.5a2.5 2.5 0 0 0-3.5 0l-2 2a2.5 2.5 0 0 0 3.5 3.5l1-1" />
     </svg>
   )
 }

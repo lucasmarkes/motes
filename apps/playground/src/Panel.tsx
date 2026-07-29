@@ -3,10 +3,11 @@ import type { MotesOptions } from '@lucasmarkes/motes'
 import { CATALOG } from './effects'
 import { highlight, snippetFor, type Tab } from './snippet'
 import { navigate } from './router'
-import { CheckIcon, CopyIcon } from './icons'
+import { CheckIcon, CopyIcon, DiceIcon, LinkIcon, ResetIcon } from './icons'
 import { Swap } from './Swap'
 import { Slider } from './controls/Slider'
-import { NUMERIC } from './config/controls'
+import { NUMERIC, type Section } from './config/controls'
+import { isSectionDirty, randomize, resetAll, resetSection } from './config/actions'
 import { CharsetSelect } from './controls/CharsetSelect'
 import { Palette } from './controls/Palette'
 import { Presets } from './controls/Presets'
@@ -14,6 +15,39 @@ import { Presets } from './controls/Presets'
 interface PanelProps {
   config: MotesOptions
   onChange: (patch: Partial<MotesOptions>) => void
+  /** Swaps the whole config at once — what reset and randomize need. */
+  onReplace: (next: MotesOptions) => void
+}
+
+interface EyebrowProps {
+  title: string
+  section: Section
+  config: MotesOptions
+  onReplace: (next: MotesOptions) => void
+}
+
+/**
+ * The section title, and a reset that only exists when there is something to
+ * undo. A permanently visible per-section reset would put three dead controls
+ * on a panel that opens at its own baseline.
+ */
+function Eyebrow({ title, section, config, onReplace }: EyebrowProps) {
+  const dirty = isSectionDirty(config, section)
+  return (
+    <p className="eyebrow">
+      {title}
+      {dirty ? (
+        <button
+          type="button"
+          className="eyebrow-reset"
+          aria-label={`Reset ${title}`}
+          onClick={() => onReplace(resetSection(config, section))}
+        >
+          <ResetIcon />
+        </button>
+      ) : null}
+    </p>
+  )
 }
 
 /**
@@ -26,9 +60,10 @@ interface PanelProps {
  * becomes legible as cause and effect, because the things that dim are the
  * rest of the block the toggle is in.
  */
-export function Panel({ config, onChange }: PanelProps) {
+export function Panel({ config, onChange, onReplace }: PanelProps) {
   const [tab, setTab] = useState<Tab>('react')
   const [copied, setCopied] = useState(false)
+  const [linked, setLinked] = useState(false)
   const tabsRef = useRef<HTMLDivElement>(null)
 
   // The underline is one line that slides between two labels of unequal width,
@@ -64,8 +99,34 @@ export function Panel({ config, onChange }: PanelProps) {
     }
   }
 
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(window.location.href)
+      setLinked(true)
+      window.setTimeout(() => setLinked(false), 1400)
+    } catch {
+      // Clipboard unavailable; the address bar already holds the same URL.
+    }
+  }
+
   return (
     <aside className="panel" aria-label="Field controls">
+      {/* Above the scroller, so the actions stay put while the controls move
+          under them. Labelled rather than iconographic: Reset survives as a
+          glyph, but Randomize is a discovery affordance, and nobody goes
+          looking behind an unlabelled die. */}
+      <div className="panel-acts" role="group" aria-label="Field actions">
+        <button type="button" onClick={() => onReplace(resetAll(config))}>
+          <ResetIcon /> Reset
+        </button>
+        <button type="button" onClick={() => onReplace(randomize(config))}>
+          <DiceIcon /> Randomize
+        </button>
+        <button type="button" onClick={copyLink}>
+          <LinkIcon /> <Swap on="Copied" off="Link" active={linked} />
+        </button>
+      </div>
+
       {/* Only the controls scroll. The snippet stays pinned to the foot of
           the panel, so it never has to be hunted for after a tweak. */}
       <div className="panel-scroll">
@@ -96,7 +157,7 @@ export function Panel({ config, onChange }: PanelProps) {
         </section>
 
         <section className="group" aria-label="Pointer">
-          <p className="eyebrow">Pointer</p>
+          <Eyebrow title="Pointer" section="pointer" config={config} onReplace={onReplace} />
 
           {/* The hero control: this flip is the whole pitch. */}
           <button
@@ -131,7 +192,7 @@ export function Panel({ config, onChange }: PanelProps) {
         </section>
 
         <section className="group" aria-label="Field">
-          <p className="eyebrow">Field</p>
+          <Eyebrow title="Field" section="field" config={config} onReplace={onReplace} />
           <Slider
             {...NUMERIC.density}
             value={config.density}
@@ -160,7 +221,7 @@ export function Panel({ config, onChange }: PanelProps) {
         </section>
 
         <section className="group" aria-label="Look">
-          <p className="eyebrow">Look</p>
+          <Eyebrow title="Look" section="look" config={config} onReplace={onReplace} />
           <Presets config={config} onChange={onChange} />
           <CharsetSelect
             value={config.charset}
