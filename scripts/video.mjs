@@ -137,8 +137,14 @@ const TUNE_SCALE = 2
  * looking at what it produces. The run reports which preset this one lands on;
  * if it is ever not one of Void, Paper or Glass, the seed is wrong and the
  * render fails rather than shipping the wrong palette.
+ *
+ * This one lands on Paper with the hairline charset, and moves all seven
+ * sliders a visible distance without pushing any of them somewhere the field
+ * stops reading — speed to a standstill, brightness far enough down that a
+ * light page goes blank. Staying on Paper is deliberate: it leaves the closing
+ * reset holding the only return to dark.
  */
-const TUNE_SEED = 0x5eed1a0
+const TUNE_SEED = 0x85777
 
 /** Presets the take is allowed to show. See the design doc's palette section. */
 const NEUTRAL_PRESETS = ['Void', 'Paper', 'Glass']
@@ -152,6 +158,21 @@ const NEUTRAL_PRESETS = ['Void', 'Paper', 'Glass']
  */
 const HOME_DISSOLVE = Math.round(0.6 * FPS)
 const HOME_SWEEP_DISSOLVE = Math.round(0.3 * FPS)
+
+/**
+ * The square cut needs one too, and measurably: across the seam the field
+ * lands 16dB PSNR from frame 0 where a neighbouring frame sits at 32dB, so
+ * untreated it pops every time the feed repeats.
+ *
+ * A crossfade over a composited cursor would normally mean two arrows on
+ * screen at once. It does not here, and the closed path is why: the tail
+ * frames run at `duration + i/FPS`, `makeKnotPath` takes that modulo the
+ * duration, so the arrow in a tail frame is at the same pixel as the head
+ * frame it is blended into. Only the field differs, which is the whole point.
+ * The panel is at baseline on both sides of the seam — reset put it there —
+ * so it blends with itself and holds still.
+ */
+const TUNE_DISSOLVE = Math.round(0.6 * FPS)
 
 /**
  * Frames run before the first captured one, with the cursor still off-canvas.
@@ -366,6 +387,87 @@ const HOME_SWEEP_PATH = [
   { t: 2.42, x: 1232, y: 300 }, // flick: 296px in 0.32s
   { t: 2.75, x: 1205, y: 205 },
 ]
+
+// ── the square cut ─────────────────────────────────────────────────────────
+
+/**
+ * Eighteen seconds, one shot, closed.
+ *
+ * Coordinates are for the 1080×1080 frame. The clear band is what is left once
+ * the panel takes x 637–1067 and the title scrim takes the top-left 734×440 —
+ * roughly x 40–610, y 470–1040, which is why every field knot below sits low
+ * and left. `placementComplaints` fails the render if one drifts.
+ *
+ * The rhythm is in the timing column, as it is in the other three paths. What
+ * is new is that four of these keyframes name a control instead of a place:
+ * the panel is the subject of this cut rather than something to keep out of.
+ *
+ * The two tone targets are chosen against the shader, not by eye. `main.frag`
+ * computes `v = clamp((v - 0.5) * contrast + 0.5 + brightness, 0, 1)`, and an
+ * ambient field sits mostly below 0.5 — so contrast up pushes the mid tones
+ * down and the peaks up, and the field *thins and sharpens*. Brightness then
+ * lifts the whole curve and it fills back in, denser than it began. Two moves,
+ * two directions, both legible at feed bitrate. Both targets also sit far
+ * outside the ±8px detent well at their baselines, so each lands on its step.
+ */
+const TUNE_PATH = [
+  // 0:00–0:02 — already sweeping, low and left, carrying its wake in.
+  { t: 0.0, x: 200, y: 890 },
+  { t: 0.75, x: 315, y: 745 },
+  { t: 1.5, x: 470, y: 668 },
+
+  // 0:02–0:05 — into the panel, take contrast, and pull it up.
+  { t: 2.15, ctl: 'contrast', to: 2.4, over: 1.15 },
+
+  // 0:05–0:07 — a short transit down to the next slider, then lift the whole
+  // field back in with brightness.
+  { t: 3.85, x: 830, y: 545, via: true },
+  { t: 4.3, ctl: 'brightness', to: 0.22, over: 0.95 },
+
+  // 0:07–0:11 — cross to the presets and press Paper. 320ms of travel in
+  // `useTravel`, and the frame inverts.
+  { t: 6.1, x: 820, y: 660, via: true },
+  { t: 7.0, click: 'Paper', hold: 0.14 },
+
+  // 0:11–0:14 — back into the field, which is now off-white. The core is
+  // #1a1a1a on #f5f2ea: a dark wake on light, which is the whole release.
+  { t: 8.3, x: 560, y: 640 },
+  { t: 9.2, x: 330, y: 720 },
+  { t: 10.1, x: 205, y: 880 },
+  { t: 11.0, x: 350, y: 1005 },
+  { t: 11.45, x: 585, y: 700 }, // flick: 380px in 0.45s
+  { t: 12.2, x: 505, y: 540 },
+
+  // 0:14–0:16 — randomize. Every slider travels at once, and the charset and
+  // the palette move with them.
+  { t: 13.1, x: 760, y: 200, via: true },
+  { t: 14.0, click: 'Randomize', hold: 0.14 },
+
+  // 0:16–0:18 — reset travels the whole config home, and the cursor drops back
+  // into the field heading where frame 0 leaves.
+  { t: 15.9, click: 'Reset', hold: 0.14 },
+  { t: 16.7, x: 520, y: 560 },
+  { t: 17.3, x: 330, y: 700 },
+  // and wraps to t=0
+]
+
+/**
+ * The bounding box the sampled curve actually visits.
+ *
+ * `placementComplaints` checks knots, and a spline between two legal knots can
+ * still bow somewhere neither of them is. This does not fail the run — a bow
+ * inside the frame is a choreography question, not an error — but it is
+ * printed, so the answer is measured rather than eyeballed frame by frame.
+ */
+function curveExtremes(path, duration) {
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity
+  for (let f = 0; f < Math.round(duration * FPS); f++) {
+    const p = path(f / FPS)
+    minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x)
+    minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y)
+  }
+  return { minX, maxX, minY, maxY }
+}
 
 /**
  * A closed, non-uniform Catmull-Rom through the keyframes.
@@ -855,13 +957,12 @@ async function capture({ origin, route, keys, duration, dir, label, frames: fram
       }
     }
 
+    // Keyed on visible text, for both groups. The icons are `aria-hidden` and
+    // carry no text node, so a button reads as its own label — which is also
+    // what the choreography calls it, so the two cannot drift apart silently.
     const buttons = {}
-    for (const el of document.querySelectorAll('.panel .presets button')) {
-      buttons[el.textContent.trim()] = rect(el)
-    }
-    for (const el of document.querySelectorAll('.panel .panel-acts button')) {
-      const label = el.querySelector('.act-label')?.textContent.trim()
-      if (label) buttons[label] = rect(el)
+    for (const sel of ['.panel .presets button', '.panel .panel-acts button']) {
+      for (const el of document.querySelectorAll(sel)) buttons[el.textContent.trim()] = rect(el)
     }
 
     const shell = document.querySelector('.stage-shell')
@@ -945,8 +1046,14 @@ async function capture({ origin, route, keys, duration, dir, label, frames: fram
   // the browser — no `el.click()` shortcut, so the `:active` state, the focus
   // move and the ripple all happen the way a visitor's would.
   const buttonEvents = tune
-    ? expanded.events.map((e) => ({ frame: Math.round(e.t * FPS), type: e.type }))
+    ? expanded.events.map((e) => ({ frame: Math.round(e.t * FPS), type: e.type, ctl: e.ctl, btn: e.btn }))
     : []
+  /** What each drag reached, read at its own release rather than at the end —
+   *  the take resets everything at 0:16, so the last frame knows nothing. */
+  const landed = {}
+  /** Which palette the seeded roll chose, read once the travel has settled. */
+  let rolledPreset = null
+  let readPresetAt = -1
 
   const setCursor = ([x, y, pressed]) => window.__cursorAt(x, y, pressed)
 
@@ -991,8 +1098,28 @@ async function capture({ origin, route, keys, duration, dir, label, frames: fram
     // The tune scene's presses. `page.mouse.move` above has already put the
     // pointer on this frame's knot, so a down here lands where it is aimed.
     for (const e of buttonEvents.filter((e) => e.frame === f)) {
-      if (e.type === 'down') await page.mouse.down()
-      else await page.mouse.up()
+      if (e.type === 'down') {
+        await page.mouse.down()
+        continue
+      }
+      await page.mouse.up()
+      if (e.ctl) {
+        landed[e.ctl] = await page.evaluate(
+          (label) => Number(document.querySelector(`.panel .track-hit[aria-label="${label}"]`)?.getAttribute('aria-valuenow')),
+          e.ctl,
+        )
+      }
+      // `useTravel` takes 320ms to carry the panel to a rolled config, so the
+      // chip that ends up `aria-pressed` is only settled a little after the
+      // click. Half a second is comfortably past it and still inside the beat.
+      if (e.btn === 'Randomize') readPresetAt = f + Math.round(0.5 * FPS)
+    }
+
+    if (f === readPresetAt) {
+      rolledPreset = await page.evaluate(() => {
+        const on = document.querySelector('.panel .presets button[aria-pressed="true"]')
+        return on ? on.textContent.trim() : null
+      })
     }
 
     await page.evaluate(setCursor, [p.x, p.y, p.pressed])
@@ -1020,27 +1147,14 @@ async function capture({ origin, route, keys, duration, dir, label, frames: fram
     }
   }
 
-  let landed = null
-  let rolled = null
-  if (tune) {
-    landed = await page.evaluate(() => {
-      const out = {}
-      for (const el of document.querySelectorAll('.panel .track-hit[role="slider"]')) {
-        out[el.getAttribute('aria-label')] = Number(el.getAttribute('aria-valuenow'))
-      }
-      return out
-    })
-    // Which preset the seeded roll chose. `Presets.tsx` marks the matching
-    // chip `aria-pressed`, so the page has already done the comparison.
-    rolled = await page.evaluate(() => {
-      const on = document.querySelector('.panel .presets button[aria-pressed="true"]')
-      return on ? on.textContent.trim() : null
-    })
-  }
+  // Which preset the seeded roll chose. Read after Reset has run, so it is the
+  // *record* of the roll rather than the live state — `rolledPreset` is set in
+  // the loop, at the frame randomize lands.
+  const rolled = tune ? rolledPreset : null
 
   await browser.close()
   if (dissolve) dissolveLoop(dir, total, dissolve)
-  return { digests, drift, cadence, toggle, geometry, total, guard, dissolve, anchors, landed, rolled }
+  return { digests, drift, cadence, toggle, geometry, total, guard, dissolve, anchors, landed: tune ? landed : null, rolled }
 }
 
 // ── encode ─────────────────────────────────────────────────────────────────
@@ -1080,7 +1194,7 @@ function run(args) {
   return execFileSync(ffmpeg, args, { stdio: ['ignore', 'pipe', 'pipe'] })
 }
 
-function encodeMp4(dir, out) {
+function encodeMp4(dir, out, scale = null) {
   run([
     '-y',
     '-framerate', String(FPS),
@@ -1091,6 +1205,10 @@ function encodeMp4(dir, out) {
     // usually fine, but a handful of clients treat it as a broken upload.
     '-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100',
     '-shortest',
+    // Supersampled capture, resolved here. Lanczos rather than bilinear
+    // because the source is a grid of hard-edged glyphs: the sharper kernel is
+    // the difference between characters and a halftone.
+    ...(scale ? ['-vf', `scale=${scale}:${scale}:flags=lanczos`] : []),
     '-c:v', 'libx264',
     '-profile:v', 'high',
     '-level', '4.2',
@@ -1243,6 +1361,57 @@ try {
     if (!identical || !live) {
       console.error('\n✗ not deterministic — do not iterate on choreography against this.\n')
       process.exit(1)
+    }
+    console.log('')
+  } else if (TUNE) {
+    mkdirSync(ASSETS, { recursive: true })
+    const dir = join(FRAMES, 'tune')
+
+    if (!ENCODE_ONLY) {
+      console.log(`\n▸ tune — ${TUNE_SECONDS}s, ${TUNE_SECONDS * FPS} frames, ${TUNE_SIZE}×${TUNE_SIZE} at ${TUNE_SCALE}×`)
+      const seed = await probeSeed(origin)
+      console.log(`  seeded Math.random: ${seed.identical ? '✓' : '✗'} reproducible across cold loads`)
+      if (!seed.identical) {
+        console.error('\n✗ the roll is not reproducible — the take would differ every render.\n')
+        process.exit(1)
+      }
+
+      rmSync(dir, { recursive: true, force: true })
+      const r = await capture({
+        origin, route: '/flow', keys: TUNE_PATH, duration: TUNE_SECONDS,
+        scene: 'tune', dir, label: 'tune', seeded: true, dissolve: TUNE_DISSOLVE,
+      })
+
+      const ex = curveExtremes(makeKnotPath(expand(TUNE_PATH, r.anchors).knots, TUNE_SECONDS), TUNE_SECONDS)
+      console.log(`  ${r.total} frames  ·  ${r.cadence.min}–${r.cadence.max} rAF per tick    `)
+      console.log(`  panel x ${Math.round(r.anchors.panel.x)}–${Math.round(r.anchors.panel.x + r.anchors.panel.width)}, ` +
+        `scrim ${Math.round(r.anchors.scrim.w)}×${Math.round(r.anchors.scrim.h)}`)
+      console.log(`  curve spans x ${Math.round(ex.minX)}–${Math.round(ex.maxX)}, y ${Math.round(ex.minY)}–${Math.round(ex.maxY)}`)
+      console.log(`  sliders landed at contrast ${r.landed.contrast}, brightness ${r.landed.brightness}`)
+      console.log(`  randomize rolled ${r.rolled ?? 'a palette matching no preset'}`)
+      console.log(`  field looped with a ${(r.dissolve / FPS).toFixed(1)}s dissolve into frame 0`)
+
+      // The drags are aimed at values, so a miss means the track moved or the
+      // detent grew — either way the choreography is no longer describing what
+      // the viewer sees.
+      const missed = [
+        ['contrast', 2.4, 0.05],
+        ['brightness', 0.22, 0.01],
+      ].filter(([key, want, step]) => Math.abs(r.landed[key] - want) > step)
+      if (missed.length) {
+        console.error(`\n✗ a drag did not land: ${missed.map(([k, w]) => `${k} wanted ${w}, got ${r.landed[k]}`).join('; ')}\n`)
+        process.exit(1)
+      }
+      if (r.rolled !== null && !NEUTRAL_PRESETS.includes(r.rolled)) {
+        console.error(`\n✗ the seed rolls ${r.rolled}, which is outside the neutral palette. Pick another TUNE_SEED.\n`)
+        process.exit(1)
+      }
+    }
+
+    if (!NO_ENCODE) {
+      const out = join(ASSETS, 'tune.mp4')
+      encodeMp4(dir, out, TUNE_SIZE)
+      console.log(`\n▸ assets/tune.mp4\n  ${TUNE_SIZE}×${TUNE_SIZE} · ${FPS}fps · H.264 high · ${mb(out)}`)
     }
     console.log('')
   } else if (HOME) {

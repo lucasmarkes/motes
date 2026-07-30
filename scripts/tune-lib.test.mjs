@@ -87,9 +87,14 @@ test('expand turns a drag into a straight, pressed span', () => {
   })
 })
 
-test('expand emits down and up for a drag', () => {
+// The release names its control, so the run can read back what the drag
+// reached at the moment it reached it — not after reset has undone it.
+test('expand emits down and up for a drag, both naming the control', () => {
   const { events } = expand([{ t: 2, ctl: 'contrast', to: 2.4, over: 1 }], ANCHORS)
-  assert.deepEqual(events, [{ t: 2, type: 'down' }, { t: 3, type: 'up' }])
+  assert.deepEqual(events, [
+    { t: 2, type: 'down', ctl: 'contrast', btn: null },
+    { t: 3, type: 'up', ctl: 'contrast', btn: null },
+  ])
 })
 
 test('expand freezes a click for its hold', () => {
@@ -98,7 +103,10 @@ test('expand freezes a click for its hold', () => {
     { t: 5, x: 730, y: 715, frozen: true, pressed: true, linear: false, zone: 'panel', target: 'Paper' },
     { t: 5.14, x: 730, y: 715, frozen: false, pressed: false, linear: false, zone: 'panel', target: 'Paper' },
   ])
-  assert.deepEqual(events, [{ t: 5, type: 'down' }, { t: 5.14, type: 'up' }])
+  assert.deepEqual(events, [
+    { t: 5, type: 'down', ctl: null, btn: 'Paper' },
+    { t: 5.14, type: 'up', ctl: null, btn: 'Paper' },
+  ])
 })
 
 test('expand keeps knots in time order across mixed forms', () => {

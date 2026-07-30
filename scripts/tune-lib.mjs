@@ -84,7 +84,10 @@ export function expand(keys, anchors) {
       // before the travel had begun.
       knots.push(knot({ t: k.t, x: valueX(track, track.value), y: track.cy, pressed: true, linear: true, zone: 'panel', target: k.ctl }))
       knots.push(knot({ t: end, x: valueX(track, k.to), y: track.cy, zone: 'panel', target: k.ctl }))
-      events.push({ t: k.t, type: 'down' }, { t: end, type: 'up' })
+      // The release carries the control's name so the run can read back what
+      // the drag actually reached — at the moment it reached it, rather than
+      // at the end of a take that resets everything on the way out.
+      events.push({ t: k.t, type: 'down', ctl: k.ctl, btn: null }, { t: end, type: 'up', ctl: k.ctl, btn: null })
       continue
     }
 
@@ -94,7 +97,7 @@ export function expand(keys, anchors) {
       const end = k.t + k.hold
       knots.push(knot({ t: k.t, x: b.cx, y: b.cy, frozen: true, pressed: true, zone: 'panel', target: k.click }))
       knots.push(knot({ t: end, x: b.cx, y: b.cy, zone: 'panel', target: k.click }))
-      events.push({ t: k.t, type: 'down' }, { t: end, type: 'up' })
+      events.push({ t: k.t, type: 'down', ctl: null, btn: k.click }, { t: end, type: 'up', ctl: null, btn: k.click })
       continue
     }
 
