@@ -101,10 +101,13 @@ import { chromium } from 'playwright'
 import { PNG } from 'pngjs'
 import ffmpeg from 'ffmpeg-static'
 import { mulberry32, expand, placementComplaints, makeKnotPath } from './tune-lib.mjs'
+import { normaliseBrandSvg, maskAlpha, revealEnvelope, revealComplaints } from './oss-lib.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(here, '..')
 const DIST = join(ROOT, 'apps', 'playground', 'dist')
+/** The built bundle, not the dev graph: the `--oss` card imports this directly. */
+const CORE_BUNDLE = join(ROOT, 'packages', 'core', 'dist', 'index.js')
 const ASSETS = join(ROOT, 'assets')
 const FRAMES = join(ASSETS, 'frames')
 
@@ -119,6 +122,8 @@ const ENCODE_ONLY = argv.has('--encode')
 const HOME = argv.has('--home')
 /** The square feed cut: the panel is worked, not avoided. */
 const TUNE = argv.has('--tune')
+/** The announcement cut: two marks, lit by the field rather than drawn on it. */
+const OSS = argv.has('--oss')
 
 const W = 1280
 const H = 720
@@ -138,6 +143,17 @@ const TUNE_SECONDS = 18
 const TUNE_SIZE = 1080
 /** Supersampled and downscaled at encode; see `encodeMp4`'s scale argument. */
 const TUNE_SCALE = 2
+
+/** The `--oss` cut: the Mintlify OSS program announcement. */
+const OSS_SECONDS = 8
+const OSS_SIZE = 1080
+const OSS_SCALE = 2
+const OSS_DISSOLVE = Math.round(0.6 * FPS)
+/** When the mask stops being the pointer's halo and becomes the whole frame. */
+const OSS_OPEN_AT = 4.6
+const OSS_OPEN_FOR = 0.4
+/** The caption arrives after both marks have resolved, not with them. */
+const OSS_CAPTION_AT = 5.2
 
 /**
  * The seed `randomize()` rolls against.
@@ -756,9 +772,21 @@ const MIME = {
   '.woff2': 'font/woff2',
 }
 
-function serve(root) {
+/**
+ * `extra` is consulted before the file lookup, and therefore before the SPA
+ * fallback that would otherwise answer `/__oss` with the playground's shell.
+ * Everything not named there still resolves out of `apps/playground/dist`,
+ * which is what keeps the card's `@font-face` pointing at a real woff2.
+ */
+function serve(root, extra = {}) {
   const server = createServer((req, res) => {
     const url = new URL(req.url, 'http://localhost')
+    const synthetic = extra[url.pathname]
+    if (synthetic) {
+      res.writeHead(200, { 'content-type': synthetic.type, 'cache-control': 'no-store' })
+      res.end(synthetic.body)
+      return
+    }
     let file = join(root, decodeURIComponent(url.pathname))
     // SPA fallback: /flow is a route, not a file.
     if (!existsSync(file) || statSync(file).isDirectory()) file = join(root, 'index.html')
@@ -773,6 +801,199 @@ function serve(root) {
       resolve({ server, origin: `http://127.0.0.1:${server.address().port}` })
     })
   })
+}
+
+// ── the --oss card ─────────────────────────────────────────────────────────
+
+/**
+ * The same colour the core paints by default (`#050403`), written the way the
+ * site writes it. The field is opaque and covers the frame, so this is only
+ * ever seen through the scrim — which is why the two have to agree.
+ */
+const OSS_CANVAS = 'oklch(0.108 0.005 71.346)'
+const OSS_INK = '#EEF2F0'
+
+/**
+ * The card, which is not a playground route.
+ *
+ * Same argument as `og.mjs`: the site runs `density: 13`, which at 1080² is a
+ * grid fine enough to average into flat tone behind type, and density is not
+ * reachable from outside the page. This one runs at 22 — about a 49×49 grid —
+ * which still reads as characters at the size a feed renders.
+ *
+ * The lockup is centred by CSS rather than positioned from numbers computed in
+ * node, so the capture reads the rects back from the live DOM. A font that
+ * fails to load, or a mark that reflows, then fails the render instead of
+ * quietly sliding out from under the cursor path that was written for it.
+ */
+const OSS_CARD_HTML = (mintSvg) => `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<style>
+  /* font-display: block, not the site's optional — see og.mjs. A card that is
+     generated once may not render in the fallback. */
+  @font-face {
+    font-family: 'Archivo';
+    src: url('/fonts/archivo-latin-var.woff2') format('woff2-variations');
+    font-weight: 100 900;
+    font-stretch: 62% 125%;
+    font-style: normal;
+    font-display: block;
+  }
+
+  :root {
+    --canvas: ${OSS_CANVAS};
+    --text: ${OSS_INK};
+    --text-3: oklch(0.615 0.014 258);
+    --mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: ${OSS_SIZE}px;
+    height: ${OSS_SIZE}px;
+    overflow: hidden;
+    background: var(--canvas);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  #field { position: absolute; inset: 0; display: block; width: ${OSS_SIZE}px; height: ${OSS_SIZE}px; }
+
+  /* Fades in with the mask opening, so the field is at full strength for the
+     whole reveal and only steps back once the type has to be read. */
+  #scrim {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    background: radial-gradient(
+      ellipse 74% 46% at 50% 46%,
+      oklch(0.108 0.005 71.346 / 0.86) 0%,
+      oklch(0.108 0.005 71.346 / 0.55) 52%,
+      oklch(0.108 0.005 71.346 / 0) 100%
+    );
+  }
+
+  /* The masked layer. Everything readable lives in here, and it is invisible
+     except where the mask says the field is lit. */
+  #reveal {
+    position: absolute;
+    inset: 0;
+    -webkit-mask-size: 100% 100%;
+    mask-size: 100% 100%;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+  }
+
+  /* Optical centre rather than true centre: a lockup on the geometric middle of
+     a square reads as low, because the caption below it adds visual weight the
+     top half has nothing to answer with. */
+  .lockup {
+    position: absolute;
+    left: 50%;
+    top: 46%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    gap: 34px;
+    white-space: nowrap;
+  }
+
+  @supports (text-box: trim-both cap alphabetic) {
+    #motes, #caption { text-box: trim-both cap alphabetic; }
+  }
+
+  #motes {
+    font-family: 'Archivo';
+    font-stretch: 118%;
+    font-weight: 600;
+    font-size: 104px;
+    letter-spacing: -0.04em;
+    color: var(--text);
+  }
+
+  /* "and also", not "×". A programme acceptance is not a joint product. */
+  #rule {
+    width: 1px;
+    height: 74px;
+    background: var(--text);
+    opacity: 0.18;
+  }
+
+  #mint { display: block; height: 74px; width: auto; }
+  #mint svg { display: block; height: 100%; width: auto; }
+
+  /* The punchline, and it arrives after the marks rather than with them. */
+  #caption {
+    position: absolute;
+    left: 50%;
+    top: 46%;
+    transform: translate(-50%, 0);
+    margin-top: 78px;
+    font-family: var(--mono);
+    font-size: 27px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    color: var(--text-3);
+    opacity: 0;
+    white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+  <canvas id="field"></canvas>
+  <div id="scrim"></div>
+  <div id="reveal">
+    <div class="lockup">
+      <div id="motes">motes</div>
+      <div id="rule"></div>
+      <div id="mint">${mintSvg}</div>
+    </div>
+    <div id="caption">oss program</div>
+  </div>
+
+  <script type="module">
+    import { createMotes } from '/__core.js'
+    const field = createMotes(document.getElementById('field'), {
+      effect: 'flow',
+      pointer: true,
+      // Roughly double the site's, so the grid survives being watched at the
+      // size a feed renders a square video.
+      density: 22,
+      // Well above the site's: persistence is what drags the wake through the
+      // letterforms, which is the whole mechanic.
+      trail: 0.74,
+      // The halo is the readable window, so its size is a typographic decision
+      // rather than a physical one.
+      radius: 190,
+      force: 2.3,
+      speed: 1.0,
+      accent: '#ddeafe',
+    })
+    field.start()
+    window.__field = field
+  </script>
+</body>
+</html>`
+
+/**
+ * The routes the card needs that `apps/playground/dist` cannot supply.
+ *
+ * The mark is inlined rather than served as a file so the substitution in
+ * `normaliseBrandSvg` is unavoidable: an `<img>` pointing at the raw SVG would
+ * render the leaf and drop the wordmark, silently.
+ */
+function ossRoutes() {
+  if (!existsSync(CORE_BUNDLE)) {
+    console.error('\n✗ packages/core/dist/index.js is missing. Run `pnpm build` first.\n')
+    process.exit(1)
+  }
+  const mint = normaliseBrandSvg(readFileSync(join(ASSETS, 'brand', 'mintlify.svg'), 'utf8'), OSS_INK)
+  return {
+    '/__oss': { body: OSS_CARD_HTML(mint), type: MIME['.html'] },
+    '/__core.js': { body: readFileSync(CORE_BUNDLE), type: MIME['.js'] },
+  }
 }
 
 // ── core-finding, for --probe only ─────────────────────────────────────────
@@ -1342,7 +1563,7 @@ if (!ENCODE_ONLY && !existsSync(join(DIST, 'index.html'))) {
 
 const { server, origin } = ENCODE_ONLY
   ? { server: { close() {} }, origin: null }
-  : await serve(DIST)
+  : await serve(DIST, OSS ? ossRoutes() : {})
 if (origin) console.log(`\n▸ serving apps/playground/dist\n  ${origin}`)
 
 try {
