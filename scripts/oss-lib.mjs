@@ -43,3 +43,37 @@ export function normaliseBrandSvg(source, ink = '#EEF2F0') {
     .replace(/^(<svg[^>]*?)\swidth="[^"]*"/, '$1')
     .replace(/^(<svg[^>]*?)\sheight="[^"]*"/, '$1')
 }
+
+/**
+ * Field luminance to mask opacity.
+ *
+ * `floor` is what keeps the ambient field from leaking the lockup. The field is
+ * never truly black — the dim cells still sit a few percent above the
+ * background — so a curve through the origin would show the whole lockup
+ * faintly from frame 0 and give away the reveal.
+ *
+ * The curve above the floor is `1 - (1 - t)^gain`, which is monotonic, hits
+ * both endpoints exactly, and lifts the midtones. That last part matters: the
+ * pointer's halo falls off smoothly, so a linear map fades the type out well
+ * inside the lit region and the letters read as shy rather than as lit.
+ */
+export function maskAlpha(luma, floor = 0.06, gain = 2.4) {
+  if (luma <= floor) return 0
+  const t = Math.min(1, (luma - floor) / (1 - floor))
+  return 1 - (1 - t) ** gain
+}
+
+/**
+ * The mask opening, from halo to full frame.
+ *
+ * Cubic ease-out rather than ease-in-out: the opening is the moment the video
+ * stops asking a question and answers it, and an ease-in would put the slow
+ * part at the front, where it reads as hesitation. Out of the mark fast, then
+ * settling into the hold, is the shape of something arriving.
+ */
+export function revealEnvelope(t, openAt, openFor) {
+  if (t <= openAt) return 0
+  if (t >= openAt + openFor) return 1
+  const u = (t - openAt) / openFor
+  return 1 - (1 - u) ** 3
+}
