@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { maskAlpha, normaliseBrandSvg, revealEnvelope } from './oss-lib.mjs'
+import { maskAlpha, normaliseBrandSvg, revealComplaints, revealEnvelope } from './oss-lib.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const BRAND = readFileSync(join(here, '..', 'assets', 'brand', 'mintlify.svg'), 'utf8')
@@ -81,4 +81,45 @@ test('revealEnvelope is monotonic across the opening', () => {
     assert.ok(v >= prev, `dipped at ${i}%`)
     prev = v
   }
+})
+
+const BOXES = {
+  motes: { x: 300, y: 500, w: 200, h: 90 },
+  mint: { x: 580, y: 500, w: 240, h: 90 },
+  rest: { x: 440, y: 700, w: 200, h: 120 },
+}
+
+/** A path that runs left to right through both marks and parks in the rest box. */
+const good = (t) => (t < 4.6 ? { x: 250 + t * 130, y: 545 } : { x: 540, y: 760 })
+
+test('revealComplaints passes a path that crosses both marks and parks', () => {
+  const r = revealComplaints(good, 8, BOXES, { radius: 200, restAt: 6.0 })
+  assert.deepEqual(r.bad, [])
+  assert.equal(r.nearest.motes, 0, 'the path goes straight through motes')
+  assert.equal(r.nearest.mintlify, 0, 'the path goes straight through mintlify')
+})
+
+test('revealComplaints catches a path that never reaches the second mark', () => {
+  const short = (t) => (t < 4.6 ? { x: 250 + t * 20, y: 545 } : { x: 540, y: 760 })
+  const r = revealComplaints(short, 8, BOXES, { radius: 100, restAt: 6.0 })
+  assert.equal(r.bad.length, 1)
+  assert.match(r.bad[0], /mintlify/)
+  assert.match(r.bad[0], /never lights/)
+})
+
+test('revealComplaints catches a cursor resting on top of the type', () => {
+  const parksOnType = (t) => (t < 4.6 ? { x: 250 + t * 130, y: 545 } : { x: 600, y: 540 })
+  const r = revealComplaints(parksOnType, 8, BOXES, { radius: 200, restAt: 6.0 })
+  assert.equal(r.bad.length, 1)
+  assert.match(r.bad[0], /rest box/)
+})
+
+test('revealComplaints measures the closest approach, not just pass or fail', () => {
+  const offBy = (t) => (t < 4.6
+    ? { x: 250 + t * 130, y: 445 } // 55px above the marks' top edge
+    : { x: 540, y: 760 })
+  const r = revealComplaints(offBy, 8, BOXES, { radius: 200, restAt: 6.0 })
+  assert.deepEqual(r.bad, [])
+  assert.equal(r.nearest.motes, 55)
+  assert.equal(r.nearest.mintlify, 55)
 })
