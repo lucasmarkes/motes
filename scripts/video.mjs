@@ -12,12 +12,16 @@
  *
  *   node scripts/video.mjs            # both deliverables, from the stage
  *   node scripts/video.mjs --home     # the homepage cut: 12s spot + 3s GIF
+ *   node scripts/video.mjs --tune     # the 0.2.0 square cut: 18s at 1080²
  *   node scripts/video.mjs --probe    # 40 frames, twice, and diff them
  *   node scripts/video.mjs --sweep    # just the 3s GIF
  *   node scripts/video.mjs --no-encode
  *   node scripts/video.mjs --encode   # re-encode frames already on disk
  *
- * ── Two scenes
+ * `--probe` takes whichever scene the other flags select, so `--tune --probe`
+ * proves the square cut deterministic without waiting for 1080 frames.
+ *
+ * ── Three scenes
  *
  * `/flow` is the stage: the panel is in shot, and the cursor works the
  * controls. `/` is the homepage, and it is a different argument — no panel, no
@@ -26,6 +30,15 @@
  * The hero is sized from the viewport rather than being 720 tall, so that cut
  * chooses a viewport which makes it exactly 1280×720 and clips to it; see
  * `capture`.
+ *
+ * `--tune` is the third, added for 0.2.0, and it is the stage again at 1080×1080
+ * for the feed — where a square earns about a third more height than 16:9 in
+ * the same column. Two differences carry the rest of it. The choreography names
+ * the control it is aiming at instead of a coordinate, so the rect comes from
+ * the live DOM and a panel that reflows fails the render rather than clicking
+ * whatever has moved into that pixel; and because the take presses Randomize,
+ * `Math.random` is seeded, or the roll would be a different video every run and
+ * free to land on a palette this cut does not use.
  *
  * ── Why the production build, served from here
  *
@@ -200,14 +213,22 @@ const PRE_ROLL = 1.5
 /**
  * Where the cursor may go without disappearing.
  *
- * The page is full-bleed but not uniformly readable. The panel is 322px of
- * opaque paper down the right edge, and `.stage-shell::before` lays a 680×380
- * scrim over the top-left corner that runs from 96% down to nothing — under it
- * the core is dimmed to the point of vanishing. So the sweep lives in the
- * band between them, and `assertClear` below fails the run if a keyframe
- * drifts into either during editing rather than letting it ship dark.
+ * The page is full-bleed but not uniformly readable. The panel is a slab of
+ * opaque paper down the right edge — 430px of it since c6a6523 widened it —
+ * and `.stage-shell::before` lays a scrim over the top-left corner that runs
+ * from 96% down to nothing, under which the core is dimmed to the point of
+ * vanishing. So the sweep lives in the band between them, and `assertClear`
+ * below fails the run if a keyframe drifts into either during editing rather
+ * than letting it ship dark.
+ *
+ * The scrim is `min(760px, 68%) × 440px`, so this literal is the 1280-wide cut
+ * specifically: at the square cut's 1080 the 68% binds instead and it measures
+ * 734×440. That is why the square scene reads the rect off the live DOM rather
+ * than sharing this constant. The numbers here were 680×380 for longer than
+ * they were true, which made `assertClear` guard a smaller corner than the
+ * page actually washes out.
  */
-const SCRIM = { w: 680, h: 380 }
+const SCRIM = { w: 760, h: 440 }
 
 /** Resolved from the live DOM; the literal is only a fallback for the check. */
 const TOGGLE = Symbol('interaction toggle')
@@ -1132,7 +1153,14 @@ async function capture({ origin, route, keys, duration, dir, label, frames: fram
 
     // One mid-flick sample of how far the core is trailing the arrow — the
     // number the "arrow at the raw pointer" decision is defended by.
-    if (measure && f === Math.min(total - 1, 24)) {
+    // The square cut is left out on purpose. These boxes are device pixels
+    // sized for a 1280×720 shot, and it films 1080² at 2×, so none of them
+    // contains its cursor; worse, the brightest thing in a Void frame that
+    // size is the panel, so `findCore` would answer confidently about the
+    // wrong object. A second hard-coded box is how `SCRIM` came to be wrong
+    // for two releases, and the lag it would be defending is already measured
+    // by the two scenes below.
+    if (measure && !tune && f === Math.min(total - 1, 24)) {
       const png = PNG.sync.read(buf)
       // Search where that scene's cursor actually is; on the homepage the
       // brightest thing in the stage's box would be the headline.
@@ -1319,17 +1347,22 @@ if (origin) console.log(`\n▸ serving apps/playground/dist\n  ${origin}`)
 
 try {
   if (PROBE) {
-    console.log(`\n▸ probe — 40 frames, twice, on ${HOME ? '/' : '/flow'}`)
+    // Which cut the probe is probing. Determinism is a property of the scene,
+    // not of the script, so each of the three has to be able to prove it for
+    // itself — the square cut most of all, since it is the one whose page
+    // state the choreography reaches in and changes.
+    const scene = TUNE ? 'tune' : HOME ? 'home' : 'stage'
+    console.log(`\n▸ probe — 40 frames, twice, on ${HOME ? '/' : '/flow'} (${scene})`)
     const runs = []
     for (const pass of [1, 2]) {
       const r = await capture({
         origin,
         route: HOME ? '/' : '/flow',
-        keys: HOME ? HOME_PATH : LAUNCH_PATH,
-        duration: HOME ? HOME_SECONDS : LAUNCH_SECONDS,
-        scene: HOME ? 'home' : 'stage',
+        keys: TUNE ? TUNE_PATH : HOME ? HOME_PATH : LAUNCH_PATH,
+        duration: TUNE ? TUNE_SECONDS : HOME ? HOME_SECONDS : LAUNCH_SECONDS,
+        scene,
         dir: join(FRAMES, `probe-${pass}`), label: `probe ${pass}`,
-        frames: 40, measure: true,
+        frames: 40, measure: true, seeded: TUNE,
       })
       runs.push(r)
       console.log(`  pass ${pass}: ${r.digests.length} frames, ${r.cadence.min}–${r.cadence.max} rAF callbacks per tick`)
@@ -1339,7 +1372,16 @@ try {
     const identical = a.digests.every((d, i) => d === b.digests[i])
     const unique = new Set(a.digests).size
     console.log('')
-    if (a.toggle) {
+    if (a.anchors) {
+      // The square cut aims at controls rather than coordinates, so what is
+      // worth printing is what it resolved them to — and the scrim, which is
+      // `min(760px, 68%)` wide and therefore only knowable at a real viewport.
+      const { panel, scrim, controls } = a.anchors
+      console.log(`  panel occupies x ${Math.round(panel.x)}–${Math.round(panel.x + panel.width)}, ` +
+        `scrim ${Math.round(scrim.w)}×${Math.round(scrim.h)}`)
+      console.log(`  resolved ${Object.keys(controls).length} controls: ${Object.keys(controls).join(', ')}`)
+      console.log('  ✓ every keyframe is on the control it names')
+    } else if (a.toggle) {
       console.log(`  toggle measured at ${a.toggle.x},${a.toggle.y}`)
       console.log(`  panel occupies x ${Math.round(a.geometry.panel.x)}–${Math.round(a.geometry.panel.x + a.geometry.panel.width)}`)
     } else {
