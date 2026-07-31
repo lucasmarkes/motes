@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { maskAlpha, normaliseBrandSvg, revealComplaints, revealEnvelope } from './oss-lib.mjs'
+import { maskAlpha, normaliseBrandSvg, revealComplaints, revealEnvelope, revealWindow } from './oss-lib.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const BRAND = readFileSync(join(here, '..', 'assets', 'brand', 'mintlify.svg'), 'utf8')
@@ -35,15 +35,33 @@ test('normaliseBrandSvg rejects an SVG that is not the Mintlify lockup', () => {
   assert.throws(() => normaliseBrandSvg('<svg viewBox="0 0 1 1"></svg>'), /leaf colour/)
 })
 
+/**
+ * Measured off the card at `density: 22` with `flow` running — the percentiles
+ * of the 64×64 mask buffer, and the numbers the defaults are derived from. They
+ * live here rather than in a comment because they are what the curve is *for*:
+ * if the field's tuning changes enough to move them, these tests should fail.
+ */
+const FIELD = { p50: 0.083, p90: 0.24, p99: 0.44, peak: 0.63 }
+
 test('maskAlpha bottoms out at black and tops out at white', () => {
   assert.equal(maskAlpha(0), 0)
   assert.equal(maskAlpha(1), 1)
 })
 
-test('maskAlpha holds the ambient field below the floor at zero', () => {
-  assert.equal(maskAlpha(0.02), 0, 'ambient glyphs would leak the whole lockup')
-  assert.equal(maskAlpha(0.06), 0)
-  assert.ok(maskAlpha(0.07) > 0, 'just above the floor has to start lighting')
+test('maskAlpha hides the ambient field completely', () => {
+  // The first version floored at 0.06, below the ambient median, and the lockup
+  // was faintly legible everywhere the flow effect happened to be bright.
+  assert.equal(maskAlpha(FIELD.p50), 0, 'the median field would leak the lockup')
+  assert.equal(maskAlpha(FIELD.p90), 0, 'nine tenths of the frame is not the halo')
+})
+
+test('maskAlpha fully lights the pointer core', () => {
+  assert.equal(maskAlpha(FIELD.peak), 1, 'the type has to be solid where the cursor is')
+})
+
+test('maskAlpha puts the halo shoulder in mid-reveal', () => {
+  const v = maskAlpha(FIELD.p99)
+  assert.ok(v > 0.5 && v < 1, `the p99 shoulder should be part-lit, got ${v}`)
 })
 
 test('maskAlpha is monotonic', () => {
@@ -58,7 +76,8 @@ test('maskAlpha is monotonic', () => {
 test('maskAlpha lifts the midtones above linear', () => {
   // The pointer halo falls off smoothly; a linear map would make the type fade
   // out long before the halo does, which reads as the letters being shy.
-  assert.ok(maskAlpha(0.5) > 0.5)
+  const mid = (0.26 + 0.6) / 2
+  assert.ok(maskAlpha(mid) > 0.5, 'the middle of the ramp should be past half lit')
 })
 
 test('revealEnvelope is shut before it opens and full after', () => {
@@ -79,6 +98,40 @@ test('revealEnvelope is monotonic across the opening', () => {
   for (let i = 0; i <= 100; i++) {
     const v = revealEnvelope(4.6 + (0.4 * i) / 100, 4.6, 0.4)
     assert.ok(v >= prev, `dipped at ${i}%`)
+    prev = v
+  }
+})
+
+/** The take's own numbers, so these tests fail if the beats move under them. */
+const TAKE = { openAt: 4.6, openFor: 0.4, closeAt: 7.4, closeFor: 0.6 }
+const DURATION = 8
+const OVERLAP = 0.6
+
+test('revealWindow is shut before the open and full across the hold', () => {
+  assert.equal(revealWindow(0, TAKE), 0)
+  assert.equal(revealWindow(4.6, TAKE), 0)
+  assert.equal(revealWindow(5.0, TAKE), 1)
+  assert.equal(revealWindow(7.4, TAKE), 1)
+})
+
+test('revealWindow is shut across the whole dissolve overlap', () => {
+  // The regression this exists for: `dissolveLoop` crossfades the frames past
+  // the end back over the head, so frames 480–516 are composited on top of
+  // frames 0–36. With the lockup still open at the end of the take, the loop
+  // ghosted a fully legible `motes │ mintlify` over the opening beat at up to
+  // 44% — the first 1.2s stopped withholding anything and the hook died. The
+  // mask has to be shut at *both* ends of the crossfade, not just one.
+  for (let f = DURATION * 60; f <= (DURATION + OVERLAP) * 60; f++) {
+    const v = revealWindow(f / 60, TAKE)
+    assert.ok(v < 1e-3, `frame ${f} would ghost the lockup over the head at ${v}`)
+  }
+})
+
+test('revealWindow closes monotonically once the hold ends', () => {
+  let prev = 2
+  for (let i = 0; i <= 100; i++) {
+    const v = revealWindow(TAKE.closeAt + (TAKE.closeFor * i) / 100, TAKE)
+    assert.ok(v <= prev, `rose at ${i}%`)
     prev = v
   }
 })

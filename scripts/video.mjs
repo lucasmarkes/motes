@@ -13,6 +13,7 @@
  *   node scripts/video.mjs            # both deliverables, from the stage
  *   node scripts/video.mjs --home     # the homepage cut: 12s spot + 3s GIF
  *   node scripts/video.mjs --tune     # the 0.2.0 square cut: 18s at 1080²
+ *   node scripts/video.mjs --oss      # the Mintlify OSS cut: 8s at 1080²
  *   node scripts/video.mjs --probe    # 40 frames, twice, and diff them
  *   node scripts/video.mjs --sweep    # just the 3s GIF
  *   node scripts/video.mjs --no-encode
@@ -21,7 +22,7 @@
  * `--probe` takes whichever scene the other flags select, so `--tune --probe`
  * proves the square cut deterministic without waiting for 1080 frames.
  *
- * ── Three scenes
+ * ── Four scenes
  *
  * `/flow` is the stage: the panel is in shot, and the cursor works the
  * controls. `/` is the homepage, and it is a different argument — no panel, no
@@ -39,6 +40,17 @@
  * whatever has moved into that pixel; and because the take presses Randomize,
  * `Math.random` is seeded, or the roll would be a different video every run and
  * free to land on a palette this cut does not use.
+ *
+ * `--oss` is the fourth, for the Mintlify OSS program announcement, and it is
+ * the only one that does not film the playground at all. It serves its own card
+ * — `/__oss`, built in this file — because the site runs `density: 13`, which at
+ * 1080² averages into flat tone behind type, and density is not reachable from
+ * outside the page. It is also the only cut with words in it, and it pays for
+ * them with its mechanic: the lockup is not drawn over the field, it is *masked*
+ * by the field, downsampled off the canvas each frame. A letterform is visible
+ * in proportion to how bright the field is behind it, and the pointer is what
+ * makes the field bright — so `render(time, pointer)` still holds in a cut that
+ * has type in it. That readback is why `__tick` has an `__afterFrame` hook.
  *
  * ── Why the production build, served from here
  *
@@ -101,7 +113,7 @@ import { chromium } from 'playwright'
 import { PNG } from 'pngjs'
 import ffmpeg from 'ffmpeg-static'
 import { mulberry32, expand, placementComplaints, makeKnotPath } from './tune-lib.mjs'
-import { normaliseBrandSvg, maskAlpha, revealEnvelope, revealComplaints } from './oss-lib.mjs'
+import { normaliseBrandSvg, maskAlpha, revealEnvelope, revealWindow, revealComplaints } from './oss-lib.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(here, '..')
@@ -152,8 +164,26 @@ const OSS_DISSOLVE = Math.round(0.6 * FPS)
 /** When the mask stops being the pointer's halo and becomes the whole frame. */
 const OSS_OPEN_AT = 4.6
 const OSS_OPEN_FOR = 0.4
+/**
+ * And when it goes back to being the halo.
+ *
+ * This is the loop's requirement, not a taste decision. `dissolveLoop` folds
+ * `OSS_DISSOLVE` frames captured past the end back over the head, so an open
+ * lockup at the end of the take is an open lockup ghosted over the opening
+ * beat. Shut by frame 480 means the crossfade only ever has two halos to blend.
+ */
+const OSS_CLOSE_AT = 7.4
+const OSS_CLOSE_FOR = 0.6
 /** The caption arrives after both marks have resolved, not with them. */
 const OSS_CAPTION_AT = 5.2
+/**
+ * The pointer's halo, which is also the readable window.
+ *
+ * Written down once because it is two things at once: the field option the card
+ * renders with, and the distance the reveal guard holds the choreography to. If
+ * they drift apart the guard starts passing paths that do not light anything.
+ */
+const OSS_RADIUS = 190
 
 /**
  * The seed `randomize()` rolls against.
@@ -489,6 +519,52 @@ const TUNE_PATH = [
 ]
 
 /**
+ * Eight seconds, one shot, closed.
+ *
+ * The first 1.2s deliberately withhold: the cursor is already moving when the
+ * take opens and it passes near enough to flare fragments of letterform without
+ * resolving any of them. A card that is readable at frame 0 has already spent
+ * everything it has, and a feed gives it about a second.
+ *
+ * Two knots either side of each mark rather than one on it, because the mask is
+ * the halo and a single knot on the centre of a word lights its middle and
+ * leaves both ends dark.
+ */
+const OSS_PATH = [
+  // 0.0–1.2 — arriving from the lower left, already carrying a wake.
+  { t: 0.0, x: 150, y: 760 },
+  { t: 0.7, x: 210, y: 640 },
+
+  // 1.2–2.6 — across `motes`.
+  { t: 1.2, x: 250, y: 520 },
+  { t: 1.9, x: 360, y: 500 },
+  { t: 2.6, x: 470, y: 512 },
+
+  // 2.6–3.4 — the rule.
+  { t: 3.0, x: 530, y: 498 },
+  { t: 3.4, x: 590, y: 505 },
+
+  // 3.4–4.6 — across `mintlify`, and the first colour in the video.
+  { t: 4.0, x: 700, y: 498 },
+  { t: 4.6, x: 830, y: 516 },
+
+  // 4.6–5.0 — decelerating to rest below the lockup, out of the type.
+  { t: 5.0, x: 700, y: 690 },
+
+  // 5.0–7.4 — the held beat. A hold is two knots at one place; the span between
+  // them is frozen, so the arrow is genuinely still rather than drifting slowly
+  // enough to be deniable.
+  { t: 5.4, x: 596, y: 742, hold: 2.0 },
+
+  // 7.4–8.0 — back out to where frame 0 begins. The spline is closed, so
+  // position and velocity both agree across the seam; OSS_CLOSE_AT shuts the
+  // mask over the same span, so the lockup leaves with the cursor that lit it
+  // and the two ends of the dissolve have nothing legible to blend.
+  { t: 7.6, x: 300, y: 780 },
+  // and wraps to t=0
+]
+
+/**
  * The bounding box the sampled curve actually visits.
  *
  * `placementComplaints` checks knots, and a spline between two legal knots can
@@ -693,6 +769,18 @@ function INSTALL_CLOCK() {
       }
     }
     pinAnimations()
+    // Still inside the task the field just drew in, which is the only place a
+    // readback off its canvas is legal: the context is created without
+    // `preserveDrawingBuffer` (renderer/gl.ts), so the drawing buffer is gone
+    // the moment the browser composites. A page that wants to sample its own
+    // field registers here rather than being called from a second evaluate.
+    if (typeof window.__afterFrame === 'function') {
+      try {
+        window.__afterFrame(now)
+      } catch (err) {
+        console.error(err)
+      }
+    }
     return due.size
   }
 
@@ -845,7 +933,9 @@ const OSS_CARD_HTML = (mintSvg) => `<!doctype html>
   :root {
     --canvas: ${OSS_CANVAS};
     --text: ${OSS_INK};
-    --text-3: oklch(0.615 0.014 258);
+    /* One step up from the site's --text-3. The caption sits over a live field
+       rather than a flat page, so it needs the headroom the site does not. */
+    --text-3: oklch(0.735 0.011 258);
     --mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
   }
 
@@ -867,10 +957,13 @@ const OSS_CARD_HTML = (mintSvg) => `<!doctype html>
     position: absolute;
     inset: 0;
     opacity: 0;
+    /* Tall enough to reach the caption. The first version stopped at 46% and
+       left the caption sitting on the un-dimmed wake, where a mono line at
+       --text-3 is not readable. */
     background: radial-gradient(
-      ellipse 74% 46% at 50% 46%,
-      oklch(0.108 0.005 71.346 / 0.86) 0%,
-      oklch(0.108 0.005 71.346 / 0.55) 52%,
+      ellipse 78% 56% at 50% 49%,
+      oklch(0.108 0.005 71.346 / 0.88) 0%,
+      oklch(0.108 0.005 71.346 / 0.62) 54%,
       oklch(0.108 0.005 71.346 / 0) 100%
     );
   }
@@ -918,7 +1011,8 @@ const OSS_CARD_HTML = (mintSvg) => `<!doctype html>
     width: 1px;
     height: 74px;
     background: var(--text);
-    opacity: 0.18;
+    /* 0.18 was the site's hairline value and it vanished over a live field. */
+    opacity: 0.3;
   }
 
   #mint { display: block; height: 74px; width: auto; }
@@ -966,13 +1060,94 @@ const OSS_CARD_HTML = (mintSvg) => `<!doctype html>
       trail: 0.74,
       // The halo is the readable window, so its size is a typographic decision
       // rather than a physical one.
-      radius: 190,
+      radius: ${OSS_RADIUS},
       force: 2.3,
       speed: 1.0,
       accent: '#ddeafe',
     })
     field.start()
     window.__field = field
+
+    // ── the mask ────────────────────────────────────────────────────────────
+    //
+    // The lockup is not drawn over the field, it is masked by it: a letterform
+    // is visible in exact proportion to how bright the field is behind it. The
+    // pointer is what makes the field bright, so the type exists only where the
+    // cursor is touching, and the wake drags through the letters as it leaves.
+    //
+    // 64×64 is deliberately coarser than the ~49×49 glyph grid. Sampling near
+    // the grid's own frequency would beat against it and crawl; below it, the
+    // mask reads as the shape of the lit region rather than as its cells.
+    const maskAlpha = ${maskAlpha.toString()}
+    const revealEnvelope = ${revealEnvelope.toString()}
+    const revealWindow = ${revealWindow.toString()}
+    const TAKE = {
+      openAt: ${OSS_OPEN_AT}, openFor: ${OSS_OPEN_FOR},
+      closeAt: ${OSS_CLOSE_AT}, closeFor: ${OSS_CLOSE_FOR},
+    }
+
+    const N = 64
+    const buf = document.createElement('canvas')
+    buf.width = N
+    buf.height = N
+    const g = buf.getContext('2d', { willReadFrequently: true })
+
+    const canvas = document.getElementById('field')
+    const reveal = document.getElementById('reveal')
+    const scrim = document.getElementById('scrim')
+    const caption = document.getElementById('caption')
+
+    window.__afterFrame = (nowMs) => {
+      // Against the take's own zero, not the clock's. The clock has already run
+      // the ambient settle and the pre-roll by the time frame 0 is captured, so
+      // reading it directly fires every beat ~2.7s early — the mask would open
+      // while the cursor was still crossing the first mark. The capture stamps
+      // __takeZero at the frame the recording actually starts.
+      const t = (nowMs - (window.__takeZero ?? 0)) / 1000
+      const open = revealWindow(t, TAKE)
+
+      // A touch of blur before the downsample, so the mask is the shape of the
+      // lit region and not a mosaic of which cells happened to be bright.
+      g.clearRect(0, 0, N, N)
+      g.filter = 'blur(1.1px)'
+      g.drawImage(canvas, 0, 0, N, N)
+      g.filter = 'none'
+
+      const img = g.getImageData(0, 0, N, N)
+      const d = img.data
+      let sum = 0
+      const lumas = []
+      for (let i = 0; i < d.length; i += 4) {
+        const luma = (0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]) / 255
+        lumas.push(luma)
+        // \`open\` is a floor, not a multiplier: once the mask has opened, the
+        // lockup is fully lit everywhere and the field's own brightness stops
+        // mattering. Before then it contributes nothing.
+        const a = Math.max(maskAlpha(luma), open)
+        sum += a
+        d[i] = 255
+        d[i + 1] = 255
+        d[i + 2] = 255
+        d[i + 3] = Math.round(a * 255)
+      }
+      g.putImageData(img, 0, 0)
+
+      const url = buf.toDataURL()
+      reveal.style.webkitMaskImage = 'url(' + url + ')'
+      reveal.style.maskImage = 'url(' + url + ')'
+      scrim.style.opacity = String(open)
+      // The caption sits inside #reveal, so the mask already governs it. Its own
+      // opacity is the second gate — it is what makes the line arrive after the
+      // marks rather than with them. Closing on the take's schedule rather than
+      // leaving it at 1 stops it lingering half-lit in the departing halo after
+      // the marks have gone dark, which reads as something left behind.
+      caption.style.opacity = String(revealWindow(t, { ...TAKE, openAt: ${OSS_CAPTION_AT}, openFor: 0.5 }))
+
+      window.__maskMean = sum / (d.length / 4)
+      lumas.sort((a, b) => a - b)
+      const q = (p) => lumas[Math.min(lumas.length - 1, Math.round(p * (lumas.length - 1)))]
+      window.__lumaStats = { p50: q(0.5), p90: q(0.9), p99: q(0.99), max: q(1) }
+    }
   </script>
 </body>
 </html>`
@@ -1103,11 +1278,12 @@ async function capture({ origin, route, keys, duration, dir, label, frames: fram
   const total = frameCount ?? Math.round(duration * FPS)
   const home = scene === 'home'
   const tune = scene === 'tune'
+  const oss = scene === 'oss'
   // `.hero` is `100svh` less the strip of tiles that has to clear the fold, so
   // at a 720-tall viewport it is 544 and the tiles are in shot. The frame is
   // produced by choosing a viewport that makes the hero exactly 1280×720 —
   // the height below is only the first guess, corrected from the measurement.
-  const anchor = home ? '.hero-copy' : '.panel'
+  const anchor = home ? '.hero-copy' : oss ? '.lockup' : '.panel'
 
   const browser = await chromium.launch({
     // Same flags as the card: ANGLE on Metal is the only backend on this
@@ -1117,8 +1293,10 @@ async function capture({ origin, route, keys, duration, dir, label, frames: fram
   const context = await browser.newContext({
     viewport: tune
       ? { width: TUNE_SIZE, height: TUNE_SIZE }
-      : { width: W, height: home ? H + 284 : H },
-    deviceScaleFactor: tune ? TUNE_SCALE : 1,
+      : oss
+        ? { width: OSS_SIZE, height: OSS_SIZE }
+        : { width: W, height: home ? H + 284 : H },
+    deviceScaleFactor: tune ? TUNE_SCALE : oss ? OSS_SCALE : 1,
     reducedMotion: 'no-preference',
     colorScheme: 'dark',
   })
@@ -1268,10 +1446,58 @@ async function capture({ origin, route, keys, duration, dir, label, frames: fram
     if (complaints.length) {
       throw new Error(`keyframes in dead zones:\n${complaints.join('\n')}`)
     }
-  } else if (!home) {
+  } else if (!home && !oss) {
     const complaints = assertClear(keys, toggle, geometry.panel)
     if (complaints.length) {
       throw new Error(`keyframes in dead zones:\n${complaints.join('\n')}`)
+    }
+  }
+
+  /**
+   * The lockup, measured rather than computed.
+   *
+   * The page centres itself with CSS, so these are the only honest numbers —
+   * and reading them back is what makes a font that failed to load, or a mark
+   * that reflowed, fail the render rather than slide out from under the cursor
+   * path written for it.
+   */
+  const readLockup = () => page.evaluate(() => {
+    const rect = (sel) => {
+      const el = document.querySelector(sel)
+      if (!el) throw new Error(`[oss] the card has no ${sel}`)
+      const r = el.getBoundingClientRect()
+      return { x: r.x, y: r.y, w: r.width, h: r.height, cx: r.x + r.width / 2, cy: r.y + r.height / 2 }
+    }
+    return {
+      motes: rect('#motes'),
+      rule: rect('#rule'),
+      mint: rect('#mint'),
+      caption: rect('#caption'),
+      frame: { width: window.innerWidth, height: window.innerHeight },
+    }
+  })
+
+  let lockup = null
+  let reveal = null
+
+  if (oss) {
+    lockup = await readLockup()
+    // Below the lockup and inside the frame: where the arrow can park for two
+    // and a half seconds without standing on the thing being announced.
+    const rest = {
+      x: lockup.caption.x - 60,
+      y: lockup.caption.y + lockup.caption.h + 24,
+      w: lockup.caption.w + 120,
+      h: 220,
+    }
+    reveal = revealComplaints(
+      makePath(keys, duration, null),
+      duration,
+      { motes: lockup.motes, mint: lockup.mint, rest },
+      { radius: OSS_RADIUS, restAt: 6.0 },
+    )
+    if (reveal.bad.length) {
+      throw new Error(`the choreography does not reveal the lockup:\n${reveal.bad.map((b) => `  ${b}`).join('\n')}`)
     }
   }
 
@@ -1308,8 +1534,19 @@ async function capture({ origin, route, keys, duration, dir, label, frames: fram
     await advance()
   }
 
+  // Where the take starts, in the clock's own terms. Everything the card times
+  // off — the mask opening, the caption — is measured from here rather than
+  // from the clock's origin, which is 2.7s of ambient settle and pre-roll ago.
+  // Deterministic: it is a function of AMBIENT_FRAMES and PRE_ROLL, not of when
+  // the run happened.
+  if (oss) await page.evaluate(() => { window.__takeZero = window.__now() })
+
   mkdirSync(dir, { recursive: true })
   const digests = []
+  /** Mean mask alpha per frame — zero everywhere means the readback is dead. */
+  const maskMeans = []
+  /** Field luminance percentiles per frame, for tuning the mask's floor. */
+  const lumaStats = []
   let drift = null
   let cadence = { min: Infinity, max: 0 }
 
@@ -1364,9 +1601,17 @@ async function capture({ origin, route, keys, duration, dir, label, frames: fram
       })
     }
 
-    await page.evaluate(setCursor, [p.x, p.y, p.pressed])
+    // `makePath` reports a hold as `pressed`, which the arrow draws as a dip.
+    // That reads as a click on a scene where something is being clicked; here
+    // the hold is the held beat and there is nothing to press, so the arrow
+    // would simply sit dipped for two and a half seconds.
+    await page.evaluate(setCursor, [p.x, p.y, oss ? false : p.pressed])
     const drained = await advance()
     cadence = { min: Math.min(cadence.min, drained), max: Math.max(cadence.max, drained) }
+    if (oss) {
+      maskMeans.push(await page.evaluate(() => window.__maskMean ?? 0))
+      lumaStats.push(await page.evaluate(() => window.__lumaStats ?? null))
+    }
 
     const buf = await page.screenshot(clip ? { type: 'png', clip } : { type: 'png' })
     writeFileSync(join(dir, `f-${String(f).padStart(4, '0')}.png`), buf)
@@ -1374,14 +1619,14 @@ async function capture({ origin, route, keys, duration, dir, label, frames: fram
 
     // One mid-flick sample of how far the core is trailing the arrow — the
     // number the "arrow at the raw pointer" decision is defended by.
-    // The square cut is left out on purpose. These boxes are device pixels
-    // sized for a 1280×720 shot, and it films 1080² at 2×, so none of them
+    // The two square cuts are left out on purpose. These boxes are device
+    // pixels sized for a 1280×720 shot, and both film 1080² at 2×, so neither
     // contains its cursor; worse, the brightest thing in a Void frame that
     // size is the panel, so `findCore` would answer confidently about the
     // wrong object. A second hard-coded box is how `SCRIM` came to be wrong
     // for two releases, and the lag it would be defending is already measured
     // by the two scenes below.
-    if (measure && !tune && f === Math.min(total - 1, 24)) {
+    if (measure && !tune && !oss && f === Math.min(total - 1, 24)) {
       const png = PNG.sync.read(buf)
       // Search where that scene's cursor actually is; on the homepage the
       // brightest thing in the stage's box would be the headline.
@@ -1403,7 +1648,10 @@ async function capture({ origin, route, keys, duration, dir, label, frames: fram
 
   await browser.close()
   if (dissolve) dissolveLoop(dir, total, dissolve)
-  return { digests, drift, cadence, toggle, geometry, total, guard, dissolve, anchors, landed: tune ? landed : null, rolled }
+  return {
+    digests, drift, cadence, toggle, geometry, total, guard, dissolve, anchors,
+    landed: tune ? landed : null, rolled, lockup, reveal, maskMeans, lumaStats,
+  }
 }
 
 // ── encode ─────────────────────────────────────────────────────────────────
@@ -1469,6 +1717,17 @@ function encodeMp4(dir, out, scale = null) {
     '-movflags', '+faststart',
     out,
   ])
+}
+
+/**
+ * One frame of the held beat, at delivery size.
+ *
+ * The capture is supersampled, so the still needs the same lanczos downscale the
+ * video gets — taking the PNG as-is would ship an asset at twice the resolution
+ * of the video it is standing in for, and a differently resampled one.
+ */
+function encodeStill(framePath, out, size) {
+  run(['-y', '-i', framePath, '-vf', `scale=${size}:${size}:flags=lanczos`, '-frames:v', '1', out])
 }
 
 /**
@@ -1569,18 +1828,21 @@ if (origin) console.log(`\n▸ serving apps/playground/dist\n  ${origin}`)
 try {
   if (PROBE) {
     // Which cut the probe is probing. Determinism is a property of the scene,
-    // not of the script, so each of the three has to be able to prove it for
+    // not of the script, so each of the four has to be able to prove it for
     // itself — the square cut most of all, since it is the one whose page
-    // state the choreography reaches in and changes.
-    const scene = TUNE ? 'tune' : HOME ? 'home' : 'stage'
-    console.log(`\n▸ probe — 40 frames, twice, on ${HOME ? '/' : '/flow'} (${scene})`)
+    // state the choreography reaches in and changes, and the oss cut because
+    // its mask is read back off the canvas, which is a second thing that could
+    // differ between two runs of the same eight seconds.
+    const scene = OSS ? 'oss' : TUNE ? 'tune' : HOME ? 'home' : 'stage'
+    const route = OSS ? '/__oss' : HOME ? '/' : '/flow'
+    console.log(`\n▸ probe — 40 frames, twice, on ${route} (${scene})`)
     const runs = []
     for (const pass of [1, 2]) {
       const r = await capture({
         origin,
-        route: HOME ? '/' : '/flow',
-        keys: TUNE ? TUNE_PATH : HOME ? HOME_PATH : LAUNCH_PATH,
-        duration: TUNE ? TUNE_SECONDS : HOME ? HOME_SECONDS : LAUNCH_SECONDS,
+        route,
+        keys: OSS ? OSS_PATH : TUNE ? TUNE_PATH : HOME ? HOME_PATH : LAUNCH_PATH,
+        duration: OSS ? OSS_SECONDS : TUNE ? TUNE_SECONDS : HOME ? HOME_SECONDS : LAUNCH_SECONDS,
         scene,
         dir: join(FRAMES, `probe-${pass}`), label: `probe ${pass}`,
         frames: 40, measure: true, seeded: TUNE,
@@ -1602,6 +1864,22 @@ try {
         `scrim ${Math.round(scrim.w)}×${Math.round(scrim.h)}`)
       console.log(`  resolved ${Object.keys(controls).length} controls: ${Object.keys(controls).join(', ')}`)
       console.log('  ✓ every keyframe is on the control it names')
+    } else if (a.lockup) {
+      // The oss cut lays its own type out, so what is worth printing is where
+      // that landed — and the mask, which is the one output of this scene that
+      // is neither a screenshot nor a DOM measurement. A mask that came back
+      // dead would still produce forty byte-identical frames in both passes,
+      // so "deterministic" on its own does not cover it.
+      const painted = a.maskMeans.filter((m) => m > 0).length
+      console.log(`  lockup band x ${Math.round(a.lockup.motes.x)}–${Math.round(a.lockup.mint.x + a.lockup.mint.w)}, ` +
+        `baseline y ${Math.round(a.lockup.motes.cy)}`)
+      console.log(`  mask painted on ${painted}/${a.maskMeans.length} frames, ` +
+        `peak mean alpha ${Math.max(...a.maskMeans).toFixed(4)}`)
+      if (painted < a.maskMeans.length) {
+        console.error('\n✗ the canvas readback returned nothing on at least one frame — ' +
+          'the mask is not being painted in the same task as the draw.\n')
+        process.exit(1)
+      }
     } else if (a.toggle) {
       console.log(`  toggle measured at ${a.toggle.x},${a.toggle.y}`)
       console.log(`  panel occupies x ${Math.round(a.geometry.panel.x)}–${Math.round(a.geometry.panel.x + a.geometry.panel.width)}`)
@@ -1624,6 +1902,74 @@ try {
     if (!identical || !live) {
       console.error('\n✗ not deterministic — do not iterate on choreography against this.\n')
       process.exit(1)
+    }
+    console.log('')
+  } else if (OSS) {
+    mkdirSync(ASSETS, { recursive: true })
+    const dir = join(FRAMES, 'oss')
+
+    if (!ENCODE_ONLY) {
+      console.log(`\n▸ oss — ${OSS_SECONDS}s, ${OSS_SECONDS * FPS} frames, ${OSS_SIZE}×${OSS_SIZE} at ${OSS_SCALE}×`)
+      rmSync(dir, { recursive: true, force: true })
+      const r = await capture({
+        origin, route: '/__oss', keys: OSS_PATH, duration: OSS_SECONDS,
+        scene: 'oss', dir, label: 'oss', dissolve: OSS_DISSOLVE,
+      })
+
+      const peak = Math.max(...r.maskMeans)
+      const held = r.maskMeans[Math.round(5.5 * FPS)]
+      const ambient = r.lumaStats[Math.round(0.5 * FPS)]
+      // The two ends of the crossfade. `dissolveLoop` composites the overlap
+      // frames over the head, so these are the frames that get added together
+      // and they have to agree — see OSS_CLOSE_AT.
+      const head = Math.max(...r.maskMeans.slice(0, r.dissolve))
+      const seam = Math.max(...r.maskMeans.slice(r.total))
+      console.log(`  ${r.total} frames  ·  ${r.cadence.min}–${r.cadence.max} rAF per tick    `)
+      console.log(`  lockup band x ${Math.round(r.lockup.motes.x)}–${Math.round(r.lockup.mint.x + r.lockup.mint.w)}, ` +
+        `baseline y ${Math.round(r.lockup.motes.cy)}`)
+      console.log(`  closest approach: motes ${Math.round(r.reveal.nearest.motes)}px, ` +
+        `mintlify ${Math.round(r.reveal.nearest.mintlify)}px`)
+      console.log(`  field luma p50 ${ambient.p50.toFixed(3)}, p90 ${ambient.p90.toFixed(3)}, ` +
+        `peak ${ambient.max.toFixed(3)} — the mask floor sits above p90`)
+      console.log(`  mask peak ${peak.toFixed(3)}, held beat ${held.toFixed(3)}`)
+      console.log(`  crossfade ends: head ${head.toFixed(3)}, seam ${seam.toFixed(3)} — both halo only`)
+      console.log(`  field looped with a ${(r.dissolve / FPS).toFixed(1)}s dissolve into frame 0`)
+
+      if (peak === 0) {
+        console.error('\n✗ the mask is dead — the canvas readback returned nothing. ' +
+          'Fall back to the analytic radial described in the spec.\n')
+        process.exit(1)
+      }
+      // The held beat is the thumbnail. If the mask has not opened by then the
+      // video ends on a lockup nobody can read, and no single frame of the
+      // reveal would show it — during the reveal a part-open mask is correct.
+      if (held < 0.98) {
+        console.error(`\n✗ the mask is only ${(held * 100).toFixed(1)}% open during the held beat — ` +
+          'the lockup never fully resolves.\n')
+        process.exit(1)
+      }
+      // And the opposite failure, which is the one that actually happened: the
+      // mask still open at the end of the take, so the dissolve ghosted a
+      // legible lockup over the first 0.6s and the withheld opening stopped
+      // withholding. No frame of the *take* shows it — it only exists after the
+      // loop is folded — which is exactly why it is measured here.
+      if (seam > 0.25) {
+        console.error(`\n✗ the mask is ${(seam * 100).toFixed(1)}% open across the dissolve overlap — ` +
+          'the loop would ghost the lockup over the opening beat.\n')
+        process.exit(1)
+      }
+    }
+
+    if (!NO_ENCODE) {
+      const out = join(ASSETS, 'oss.mp4')
+      encodeMp4(dir, out, OSS_SIZE)
+      const still = join(ASSETS, 'oss-still.png')
+      // 6.6s, not the 5.0s the beat table calls the start of the hold: the
+      // caption only finishes fading up at 5.7s, and a still of the held beat
+      // without the line that says what the beat is about is the wrong frame.
+      encodeStill(join(dir, `f-${String(Math.round(6.6 * FPS)).padStart(4, '0')}.png`), still, OSS_SIZE)
+      console.log(`\n▸ assets/oss.mp4\n  ${OSS_SIZE}×${OSS_SIZE} · ${FPS}fps · H.264 high · ${mb(out)}`)
+      console.log(`▸ assets/oss-still.png\n  ${OSS_SIZE}×${OSS_SIZE} · ${kb(still)}`)
     }
     console.log('')
   } else if (TUNE) {

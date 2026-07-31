@@ -47,19 +47,26 @@ export function normaliseBrandSvg(source, ink = '#EEF2F0') {
 /**
  * Field luminance to mask opacity.
  *
- * `floor` is what keeps the ambient field from leaking the lockup. The field is
- * never truly black — the dim cells still sit a few percent above the
- * background — so a curve through the origin would show the whole lockup
- * faintly from frame 0 and give away the reveal.
+ * The defaults are measured, not chosen. Sampled off the card at `density: 22`
+ * with `flow` running, the 64×64 buffer sits at a median of 0.083, a p90 of
+ * 0.24, a p99 of 0.44 and a peak of 0.63–0.73 — so the pointer's halo is the
+ * top percent or so of the frame and everything below p90 is ambient field.
  *
- * The curve above the floor is `1 - (1 - t)^gain`, which is monotonic, hits
- * both endpoints exactly, and lifts the midtones. That last part matters: the
- * pointer's halo falls off smoothly, so a linear map fades the type out well
- * inside the lit region and the letters read as shy rather than as lit.
+ * The first attempt put the floor at 0.06, which is *below* the ambient median,
+ * and the result was a lockup faintly legible everywhere the flow effect
+ * happened to be bright — the reveal gave itself away at frame 0 and never read
+ * as the cursor doing the lighting. `floor` is therefore set above p90 and
+ * `ceil` at the bottom of the halo's peak, so the curve spans the halo and
+ * nothing else.
+ *
+ * `1 - (1 - t)^gain` is monotonic, hits both endpoints exactly, and lifts the
+ * midtones. That last part matters: the halo falls off smoothly, so a linear
+ * map fades the type out well inside the lit region and the letters read as shy
+ * rather than as lit.
  */
-export function maskAlpha(luma, floor = 0.06, gain = 2.4) {
+export function maskAlpha(luma, floor = 0.26, ceil = 0.6, gain = 1.6) {
   if (luma <= floor) return 0
-  const t = Math.min(1, (luma - floor) / (1 - floor))
+  const t = Math.min(1, (luma - floor) / (ceil - floor))
   return 1 - (1 - t) ** gain
 }
 
@@ -76,6 +83,24 @@ export function revealEnvelope(t, openAt, openFor) {
   if (t >= openAt + openFor) return 1
   const u = (t - openAt) / openFor
   return 1 - (1 - u) ** 3
+}
+
+/**
+ * The whole life of the reveal: shut, open, held, shut again.
+ *
+ * The closing half is not decoration. `dissolveLoop` captures `overlap` frames
+ * past the end of the take and crossfades them back over the head, so the last
+ * frames are composited on top of the first ones. If the lockup is still open
+ * when the take ends, the loop paints a fully legible lockup over the opening
+ * beat at up to half opacity — the first 1.2 seconds stop withholding anything,
+ * and the piece gives away its ending in its first frame. The mask therefore
+ * has to be shut at *both* ends of the crossfade window.
+ *
+ * It also happens to be the honest ending. The field is what lights the type,
+ * so when the cursor leaves, the type goes with it.
+ */
+export function revealWindow(t, { openAt, openFor, closeAt, closeFor }) {
+  return revealEnvelope(t, openAt, openFor) * (1 - revealEnvelope(t, closeAt, closeFor))
 }
 
 /** Euclidean distance from a point to a box, zero when the point is inside it. */
