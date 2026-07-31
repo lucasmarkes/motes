@@ -3,7 +3,16 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { maskAlpha, normaliseBrandSvg, revealComplaints, revealEnvelope, revealWindow } from './oss-lib.mjs'
+import {
+  dilateLuma,
+  maskAlpha,
+  MASK_CEIL,
+  MASK_FLOOR,
+  normaliseBrandSvg,
+  revealComplaints,
+  revealEnvelope,
+  revealWindow,
+} from './oss-lib.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const BRAND = readFileSync(join(here, '..', 'assets', 'brand', 'mintlify.svg'), 'utf8')
@@ -37,11 +46,19 @@ test('normaliseBrandSvg rejects an SVG that is not the Mintlify lockup', () => {
 
 /**
  * Measured off the card at `density: 22` with `flow` running — the percentiles
- * of the 64×64 mask buffer, and the numbers the defaults are derived from. They
- * live here rather than in a comment because they are what the curve is *for*:
- * if the field's tuning changes enough to move them, these tests should fail.
+ * of the mask buffer *after* `dilateLuma`, which is the buffer the curve is
+ * applied to, and the numbers the constants are derived from. They live here
+ * rather than in a comment because they are what the curve is *for*: if the
+ * field's tuning changes enough to move them, these tests should fail.
  */
-const FIELD = { p50: 0.083, p90: 0.24, p99: 0.44, peak: 0.63 }
+const FIELD = { p50: 0.153, p90: 0.31, p99: 0.535, peak: 0.706 }
+
+/**
+ * The lowest peak any frame's buffer reaches across 1.2–4.6s, while the halo is
+ * the only thing revealing the type. Printed by `--oss` as `weakest halo across
+ * the reveal`, and the number the ceiling has to clear.
+ */
+const WEAKEST_HALO = 0.466
 
 test('maskAlpha bottoms out at black and tops out at white', () => {
   assert.equal(maskAlpha(0), 0)
@@ -57,11 +74,24 @@ test('maskAlpha hides the ambient field completely', () => {
 
 test('maskAlpha fully lights the pointer core', () => {
   assert.equal(maskAlpha(FIELD.peak), 1, 'the type has to be solid where the cursor is')
+  // p99 is inside the core, not on its shoulder: the halo covers about a tenth
+  // of the frame, so the top percentile is well within it.
+  assert.equal(maskAlpha(FIELD.p99), 1, 'the top percentile of the buffer is halo')
+})
+
+test('maskAlpha saturates on the weakest halo of the whole reveal', () => {
+  // The regression. With the ceiling above this number, the mark that happens
+  // to be crossed over a sparse patch of field lights to about half while the
+  // other goes solid — a reveal that reads as one of the two marks mattering
+  // less, and nothing in a single frame says which decision caused it.
+  assert.equal(maskAlpha(WEAKEST_HALO), 1, 'the weakest halo of the take does not light the type solid')
+  assert.ok(MASK_CEIL < WEAKEST_HALO * 0.95, 'the ceiling has no margin under the weakest halo')
 })
 
 test('maskAlpha puts the halo shoulder in mid-reveal', () => {
-  const v = maskAlpha(FIELD.p99)
-  assert.ok(v > 0.5 && v < 1, `the p99 shoulder should be part-lit, got ${v}`)
+  const shoulder = MASK_FLOOR + (MASK_CEIL - MASK_FLOOR) * 0.3
+  const v = maskAlpha(shoulder)
+  assert.ok(v > 0.2 && v < 0.9, `the shoulder of the halo should be part-lit, got ${v}`)
 })
 
 test('maskAlpha is monotonic', () => {
@@ -76,8 +106,71 @@ test('maskAlpha is monotonic', () => {
 test('maskAlpha lifts the midtones above linear', () => {
   // The pointer halo falls off smoothly; a linear map would make the type fade
   // out long before the halo does, which reads as the letters being shy.
-  const mid = (0.26 + 0.6) / 2
+  const mid = (MASK_FLOOR + MASK_CEIL) / 2
   assert.ok(maskAlpha(mid) > 0.5, 'the middle of the ramp should be past half lit')
+})
+
+const N = 8
+
+/** A lit patch built the way the field builds one: ink cells and paper cells. */
+function checkerPatch(x0, y0, size, ink, paper) {
+  const g = new Float64Array(N * N)
+  for (let y = y0; y < y0 + size; y++) {
+    for (let x = x0; x < x0 + size; x++) {
+      g[y * N + x] = (x + y) % 2 === 0 ? ink : paper
+    }
+  }
+  return g
+}
+
+test('dilateLuma fills the paper between lit glyphs', () => {
+  const g = checkerPatch(2, 2, 4, FIELD.peak, 0.02)
+  const d = dilateLuma(g, N, 1)
+  for (let y = 2; y < 6; y++) {
+    for (let x = 2; x < 6; x++) {
+      assert.equal(d[y * N + x], FIELD.peak, `cell ${x},${y} is still a hole in the lit region`)
+    }
+  }
+})
+
+test('dilateLuma turns a perforated mask solid', () => {
+  // The regression, stated in the terms that matter. Half the cells of a lit
+  // patch are the gaps between glyphs, and against a floor set above the
+  // ambient p90 they mask to nothing — so the letterforms came back with the
+  // field's own `*` and `#` punched through them, which is what a viewer sees
+  // as the wordmarks being covered by the background rather than lit by it.
+  const g = checkerPatch(2, 2, 4, FIELD.peak, 0.02)
+  const patch = []
+  for (let y = 2; y < 6; y++) for (let x = 2; x < 6; x++) patch.push(y * N + x)
+
+  assert.equal(patch.filter((i) => maskAlpha(g[i]) === 0).length, 8, 'the patch was not perforated to begin with')
+  const d = dilateLuma(g, N, 1)
+  assert.ok(patch.every((i) => maskAlpha(d[i]) === 1), 'the lit patch is still not solid')
+})
+
+test('dilateLuma never dims a cell', () => {
+  const g = new Float64Array(N * N)
+  for (let i = 0; i < g.length; i++) g[i] = ((i * 37) % 101) / 100
+  const d = dilateLuma(g, N, 1)
+  for (let i = 0; i < g.length; i++) assert.ok(d[i] >= g[i], `cell ${i} came back darker`)
+})
+
+test('dilateLuma spreads a lone sparkle by exactly its radius', () => {
+  // The cost side of the trade. Ambient cells above the floor exist — p99 is
+  // 0.44 — and each one grows to a 3×3 patch. That is affordable at radius 1
+  // and is why the radius is not larger: the opening beat is supposed to flare
+  // fragments of letterform, not resolve them.
+  const g = new Float64Array(N * N)
+  g[4 * N + 4] = FIELD.p99
+  const d = dilateLuma(g, N, 1)
+  assert.equal([...d].filter((v) => v > 0).length, 9)
+})
+
+test('dilateLuma clamps at the edges rather than wrapping', () => {
+  const g = new Float64Array(N * N)
+  g[3 * N] = FIELD.peak
+  const d = dilateLuma(g, N, 1)
+  assert.equal(d[3 * N + (N - 1)], 0, 'brightness wrapped around the frame')
 })
 
 test('revealEnvelope is shut before it opens and full after', () => {

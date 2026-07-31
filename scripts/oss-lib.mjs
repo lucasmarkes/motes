@@ -45,29 +45,110 @@ export function normaliseBrandSvg(source, ink = '#EEF2F0') {
 }
 
 /**
+ * Where the ramp starts, measured on the buffer the mask actually reads —
+ * `dilateLuma`'s output, not the raw downsample. Sampled off the card at
+ * `density: 22` with `flow` running, that buffer sits at a median of 0.153, a
+ * p90 of 0.310, a p99 of 0.43 and a peak of 0.706.
+ *
+ * The first attempt put the floor at 0.06, which is *below* even the raw
+ * median, and the result was a lockup faintly legible everywhere the flow
+ * effect happened to be bright — the reveal gave itself away at frame 0 and
+ * never read as the cursor doing the lighting. The floor belongs above p90, so
+ * that ambient field contributes nothing and only the pointer's halo lights.
+ */
+export const MASK_FLOOR = 0.33
+
+/**
+ * And where it saturates.
+ *
+ * This one has to sit under the *weakest* halo of the reveal, not under the
+ * average one. The flow effect has bright and dark stretches of its own and the
+ * pointer adds onto them, so the halo peaks higher over a dense patch of field
+ * than over a sparse one. At 0.6 it only cleared the dense ones: `mintlify`,
+ * crossed at 4.4s over a bank of `@`, resolved to solid white, while `motes`,
+ * crossed at 2.3s over `*` and `+`, never got past about half opacity and read
+ * as the dimmer of the two marks — in a video whose subject is motes.
+ *
+ * `--oss` prints `weakest halo across the reveal` for exactly this reason, and
+ * measures it at 0.466. The ceiling is set under that with margin rather than
+ * just under it, because the number is a property of where the flow effect
+ * happens to be at 2.3s and the cursor path is free to move. Lowering it costs
+ * nothing: above the ceiling the curve is already flat, so this widens the
+ * solid core of the halo and leaves its edge, and the wake, where they were.
+ */
+export const MASK_CEIL = 0.42
+
+/**
  * Field luminance to mask opacity.
- *
- * The defaults are measured, not chosen. Sampled off the card at `density: 22`
- * with `flow` running, the 64×64 buffer sits at a median of 0.083, a p90 of
- * 0.24, a p99 of 0.44 and a peak of 0.63–0.73 — so the pointer's halo is the
- * top percent or so of the frame and everything below p90 is ambient field.
- *
- * The first attempt put the floor at 0.06, which is *below* the ambient median,
- * and the result was a lockup faintly legible everywhere the flow effect
- * happened to be bright — the reveal gave itself away at frame 0 and never read
- * as the cursor doing the lighting. `floor` is therefore set above p90 and
- * `ceil` at the bottom of the halo's peak, so the curve spans the halo and
- * nothing else.
  *
  * `1 - (1 - t)^gain` is monotonic, hits both endpoints exactly, and lifts the
  * midtones. That last part matters: the halo falls off smoothly, so a linear
  * map fades the type out well inside the lit region and the letters read as shy
  * rather than as lit.
  */
-export function maskAlpha(luma, floor = 0.26, ceil = 0.6, gain = 1.6) {
+export function maskAlpha(luma, floor = MASK_FLOOR, ceil = MASK_CEIL, gain = 1.6) {
   if (luma <= floor) return 0
   const t = Math.min(1, (luma - floor) / (ceil - floor))
   return 1 - (1 - t) ** gain
+}
+
+/**
+ * The lit *region*, not the lit glyphs.
+ *
+ * The mask is a 64×64 downsample of a 1080px canvas, so each cell averages a
+ * 17px square — finer than the field's own 22px cell at `density: 22`. Sampling
+ * finer than the thing being sampled means the buffer carries the glyph pattern
+ * rather than the light, and the mask arrives as a stencil: inside the halo the
+ * gaps between glyphs are as dark as unlit field, so the letterforms come back
+ * perforated by `*` and `#` shapes instead of solid. That is what shipped in the
+ * first cut, and it is what "the logos are covered by the background" describes.
+ * A dark bloom under the type raises the contrast around the strokes but cannot
+ * touch this, because the holes are punched *through* the strokes.
+ *
+ * A max filter asks the question correctly. The gap between two lit glyphs is
+ * lit territory — nothing is casting a shadow there, the field simply has no ink
+ * at that spot — so a cell's brightness is the brightest thing near it, not the
+ * average of ink and paper. One cell of radius spans 51px of source, a little
+ * over two glyph cells: enough to bridge a gap, not enough to grow an isolated
+ * ambient sparkle into a patch.
+ *
+ * Taking the maximum rather than blurring wider is what lets `maskAlpha` keep
+ * the floor and ceiling it was measured with. Both were read off glyph peaks and
+ * a max filter is made of those same peaks, whereas a blur broad enough to fill
+ * the gaps pulls the halo's own maximum below the ceiling — and then the lockup
+ * never fully resolves, which is the failure `held` exists to catch.
+ */
+export function dilateLuma(lumas, n, radius = 1) {
+  const rows = new Float64Array(n * n)
+  const out = new Float64Array(n * n)
+  // Separable: the max over a square window is the max of the row maxima, so
+  // this is 2·(2r+1) reads per cell rather than (2r+1)². At 64² and 60fps that
+  // difference is the mask painter staying inside the frame's own task.
+  for (let y = 0; y < n; y++) {
+    for (let x = 0; x < n; x++) {
+      let m = 0
+      for (let d = -radius; d <= radius; d++) {
+        const s = x + d
+        if (s < 0 || s >= n) continue
+        const v = lumas[y * n + s]
+        if (v > m) m = v
+      }
+      rows[y * n + x] = m
+    }
+  }
+  for (let y = 0; y < n; y++) {
+    for (let x = 0; x < n; x++) {
+      let m = 0
+      for (let d = -radius; d <= radius; d++) {
+        const s = y + d
+        if (s < 0 || s >= n) continue
+        const v = rows[s * n + x]
+        if (v > m) m = v
+      }
+      out[y * n + x] = m
+    }
+  }
+  return out
 }
 
 /**

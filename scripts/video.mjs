@@ -113,7 +113,10 @@ import { chromium } from 'playwright'
 import { PNG } from 'pngjs'
 import ffmpeg from 'ffmpeg-static'
 import { mulberry32, expand, placementComplaints, makeKnotPath } from './tune-lib.mjs'
-import { normaliseBrandSvg, maskAlpha, revealEnvelope, revealWindow, revealComplaints } from './oss-lib.mjs'
+import {
+  normaliseBrandSvg, dilateLuma, maskAlpha, MASK_FLOOR, MASK_CEIL,
+  revealEnvelope, revealWindow, revealComplaints,
+} from './oss-lib.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(here, '..')
@@ -977,6 +980,20 @@ const OSS_CARD_HTML = (mintSvg) => `<!doctype html>
     mask-size: 100% 100%;
     -webkit-mask-repeat: no-repeat;
     mask-repeat: no-repeat;
+    /* No filter here, and that is a finding rather than an omission.
+       The wordmarks going illegible inside the halo looked like a contrast
+       problem — white type on white glyphs — so the first fix was three stacked
+       black drop-shadows on this element, which works in principle: filter is
+       applied before mask, so the bloom is generated from the whole lockup and
+       then cut by the same buffer the type is. It also made --oss --probe fail,
+       twice, reproducibly, and passed again the moment the filter came off:
+       Chromium does not rasterise a stacked blur to the same bytes every time,
+       and every choreography claim this file makes rests on it doing so.
+       The real cause was never contrast anyway. The mask was sampling the glyph
+       pattern rather than the light and punching holes *through* the strokes,
+       which no amount of shadow behind them can fix — see dilateLuma. With that
+       corrected the type resolves solid on its own and the bloom is not needed,
+       so the deterministic version of this scene is also the simpler one. */
   }
 
   /* Optical centre rather than true centre: a lockup on the geometric middle of
@@ -1075,9 +1092,15 @@ const OSS_CARD_HTML = (mintSvg) => `<!doctype html>
     // pointer is what makes the field bright, so the type exists only where the
     // cursor is touching, and the wake drags through the letters as it leaves.
     //
-    // 64×64 is deliberately coarser than the ~49×49 glyph grid. Sampling near
-    // the grid's own frequency would beat against it and crawl; below it, the
-    // mask reads as the shape of the lit region rather than as its cells.
+    // 64×64 against the field's ~49×49 glyph grid is a finer sample than the
+    // thing being sampled, so the raw buffer is a picture of the glyphs and not
+    // of the light — see \`dilateLuma\`, which is what turns one into the other.
+    // Going coarser instead was the other option and is worse: at 32×32 a cell
+    // is 34px and the halo, at 190px, is barely five cells across, so the mask
+    // reads as a staircase rather than as a wake.
+    const dilateLuma = ${dilateLuma.toString()}
+    const MASK_FLOOR = ${MASK_FLOOR}
+    const MASK_CEIL = ${MASK_CEIL}
     const maskAlpha = ${maskAlpha.toString()}
     const revealEnvelope = ${revealEnvelope.toString()}
     const revealWindow = ${revealWindow.toString()}
@@ -1114,21 +1137,27 @@ const OSS_CARD_HTML = (mintSvg) => `<!doctype html>
       g.filter = 'none'
 
       const img = g.getImageData(0, 0, N, N)
-      const d = img.data
+      const px = img.data
+      const lumas = new Float64Array(N * N)
+      for (let i = 0, c = 0; i < px.length; i += 4, c++) {
+        lumas[c] = (0.2126 * px[i] + 0.7152 * px[i + 1] + 0.0722 * px[i + 2]) / 255
+      }
+
+      // Ink to light. Without this the mask is a stencil of the glyph pattern
+      // and the letterforms come back with the field punched through them.
+      const lit = dilateLuma(lumas, N, 1)
+
       let sum = 0
-      const lumas = []
-      for (let i = 0; i < d.length; i += 4) {
-        const luma = (0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]) / 255
-        lumas.push(luma)
+      for (let i = 0, c = 0; i < px.length; i += 4, c++) {
         // \`open\` is a floor, not a multiplier: once the mask has opened, the
         // lockup is fully lit everywhere and the field's own brightness stops
         // mattering. Before then it contributes nothing.
-        const a = Math.max(maskAlpha(luma), open)
+        const a = Math.max(maskAlpha(lit[c]), open)
         sum += a
-        d[i] = 255
-        d[i + 1] = 255
-        d[i + 2] = 255
-        d[i + 3] = Math.round(a * 255)
+        px[i] = 255
+        px[i + 1] = 255
+        px[i + 2] = 255
+        px[i + 3] = Math.round(a * 255)
       }
       g.putImageData(img, 0, 0)
 
@@ -1143,9 +1172,12 @@ const OSS_CARD_HTML = (mintSvg) => `<!doctype html>
       // the marks have gone dark, which reads as something left behind.
       caption.style.opacity = String(revealWindow(t, { ...TAKE, openAt: ${OSS_CAPTION_AT}, openFor: 0.5 }))
 
-      window.__maskMean = sum / (d.length / 4)
-      lumas.sort((a, b) => a - b)
-      const q = (p) => lumas[Math.min(lumas.length - 1, Math.round(p * (lumas.length - 1)))]
+      window.__maskMean = sum / (N * N)
+      // Measured on the dilated buffer, because that is the one the floor is
+      // actually compared against. Quoting the raw percentiles would flatter
+      // the numbers: dilation is exactly the step that raises them.
+      const sorted = [...lit].sort((a, b) => a - b)
+      const q = (p) => sorted[Math.min(sorted.length - 1, Math.round(p * (sorted.length - 1)))]
       window.__lumaStats = { p50: q(0.5), p90: q(0.9), p99: q(0.99), max: q(1) }
     }
   </script>
@@ -1929,8 +1961,19 @@ try {
         `baseline y ${Math.round(r.lockup.motes.cy)}`)
       console.log(`  closest approach: motes ${Math.round(r.reveal.nearest.motes)}px, ` +
         `mintlify ${Math.round(r.reveal.nearest.mintlify)}px`)
-      console.log(`  field luma p50 ${ambient.p50.toFixed(3)}, p90 ${ambient.p90.toFixed(3)}, ` +
-        `peak ${ambient.max.toFixed(3)} — the mask floor sits above p90`)
+      // The weakest the halo ever gets while it is the only thing revealing the
+      // type. The field's own flow has bright and dark stretches and the pointer
+      // adds onto them, so the halo's peak is not constant across the take —
+      // `maskAlpha`'s ceiling has to sit under this number or the marks light
+      // unevenly, and "unevenly" here means `mintlify` crisp on a dense patch
+      // while `motes` stays grey on a sparse one, which reads as the wrong one
+      // of the two being what the video is about.
+      const weakest = Math.min(...r.lumaStats.slice(Math.round(1.2 * FPS), Math.round(OSS_OPEN_AT * FPS))
+        .map((s) => s.max))
+      console.log(`  field luma as the mask reads it: p50 ${ambient.p50.toFixed(3)}, ` +
+        `p90 ${ambient.p90.toFixed(3)}, p99 ${ambient.p99.toFixed(3)}, peak ${ambient.max.toFixed(3)}`)
+      console.log(`  weakest halo across the reveal ${weakest.toFixed(3)} ` +
+        `(floor ${MASK_FLOOR}, ceiling ${MASK_CEIL})`)
       console.log(`  mask peak ${peak.toFixed(3)}, held beat ${held.toFixed(3)}`)
       console.log(`  crossfade ends: head ${head.toFixed(3)}, seam ${seam.toFixed(3)} — both halo only`)
       console.log(`  field looped with a ${(r.dissolve / FPS).toFixed(1)}s dissolve into frame 0`)
@@ -1953,6 +1996,16 @@ try {
       // legible lockup over the first 0.6s and the withheld opening stopped
       // withholding. No frame of the *take* shows it — it only exists after the
       // loop is folded — which is exactly why it is measured here.
+      // And the uneven-reveal failure. `held` only covers the moment the mask is
+      // forced open, and `peak` is a maximum over the whole take, so between
+      // them they miss a reveal in which one mark resolves and the other stays
+      // grey — which is what happens when the ceiling sits above the halo's
+      // weakest peak, and is not visible as a fault in any frame taken alone.
+      if (weakest < MASK_CEIL) {
+        console.error(`\n✗ the halo only reaches ${weakest.toFixed(3)} at its weakest against a ` +
+          `ceiling of ${MASK_CEIL} — a mark crossed there lights at partial opacity.\n`)
+        process.exit(1)
+      }
       if (seam > 0.25) {
         console.error(`\n✗ the mask is ${(seam * 100).toFixed(1)}% open across the dissolve overlap — ` +
           'the loop would ghost the lockup over the opening beat.\n')
