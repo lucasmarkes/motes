@@ -8,6 +8,7 @@ import { SiteHeader, SiteFooter } from './Chrome'
 import { InstallRow } from './Install'
 import { useReveal } from './reveal'
 import { useEntrance } from './enter'
+import { OssChip } from './Oss'
 
 export function Index() {
   // The hint has one job and it is done the moment you move. Any move over
@@ -24,7 +25,10 @@ export function Index() {
     <main className={`index ${entering ? "is-entering" : ""}`}>
       <SiteHeader />
 
-      <header className="hero" onPointerMove={() => setTouched(true)}>
+      <header
+        className="hero has-oss-above"
+        onPointerMove={() => setTouched(true)}
+      >
         <Motes
           className="hero-field"
           effect="flow"
@@ -42,6 +46,8 @@ export function Index() {
               `<p className="wordmark">motes</p>` back as the first child to
               restore it. */}
           <div className="hero-copy">
+            <OssChip />
+
             <h1>The cursor is an input.</h1>
 
             {/* The thesis, stated as the thing that differs: a second argument. */}

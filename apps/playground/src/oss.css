@@ -1,0 +1,232 @@
+/* ---------------------------------------------------------------------------
+   PROTOTYPE — the OSS chip. See Oss.tsx.
+
+   Everything but the light is borrowed rather than invented: the fill, the
+   blur, the inset top highlight and the hairline are the install row's, at
+   two-thirds the height. The light is the one new thing here, and it is drawn
+   in the bright green off the Mintlify leaf itself, at one opacity — the taper
+   is built out of alpha, so the deep green the leaf also carries would only
+   mean two things fading at once.
+
+   The light goes round the chip's outline, and it is stroked onto an SVG copy
+   of that outline rather than painted into the border as a conic gradient.
+   The conic is the cheap version and the one every border-beam snippet uses —
+   four lines, no extra element — and it is wrong twice over, both times for
+   the same reason: angle is not distance.
+
+   A 999px pill is a stadium. Sweeping a ray at a constant angular rate moves
+   the lit point about 2.6× faster round each cap than along the top, so it
+   hitches at both ends of every lap. And a sector of fixed angular width
+   covers about 69px of flat edge but 134px worth of cap, so the lit part
+   stretches and shrinks as it goes. Reparameterising the angle fixes the
+   first and not the second, and the correction is a function of the chip's
+   rendered pixel width — which is whatever the browser makes of the label —
+   so it would go quietly wrong the first time the text or the font metrics
+   changed.
+
+   `stroke-dashoffset` is measured along the path. A dash advancing at a
+   constant rate covers equal distance in equal time everywhere on the
+   perimeter, flat edge and cap alike, and `pathLength` restates that
+   perimeter as 100 units whatever the chip's real width — so none of it
+   depends on the label. The price is one SVG over the chip.
+
+   A lap is 6s. That is slow enough that this can sit over a field which is
+   already moving: styles.css:634 killed a 2.8s pulse on the `pointer` token
+   for competing with the field, and a light that spends most of a lap
+   somewhere else is not a second permanent source, it is something passing.
+--------------------------------------------------------------------------- */
+
+:root {
+  /* Mintlify's own green, taken from the leaf's paths in
+     assets/brand/mintlify.svg — not sampled, not approximated. Only the bright
+     one is needed here: the taper is built out of opacity, so the deep green
+     the leaf also carries would only mean two things fading at once. */
+  --mint: #18e299;
+  /* The hairline the install chips already carry. The light rides over this
+     rather than replacing it, so the unlit part of the border is the same
+     edge every other chip on the page has. */
+  --oss-hairline: rgba(255, 255, 255, 0.09);
+  --oss-fill: oklch(0.108 0.005 71.346 / 0.88);
+  /* Two-thirds the install row's 42px, rounded to an even number so the
+     stadium's radius lands on a half-pixel rather than a quarter. Changing it
+     means changing `r` in Oss.tsx to (this − 1) ÷ 2 — an SVG radius cannot be
+     written in terms of a custom property from a presentation attribute. */
+  --oss-h: 28px;
+}
+
+/* The band the hero gains for the chip.
+
+   The copy column grows by the chip plus one stack gap, so the hero's
+   min-height grows by exactly the same amount — otherwise the chip would eat
+   the air around the copy instead of being given room of its own, and the
+   headline would sit closer to the bar than it does today. The cost is that
+   the fold rule loosens by this much: the first row of tile art now ends
+   ~54px past 100svh rather than exactly on it. */
+.hero.has-oss-above {
+  --oss-band: calc(var(--oss-h) + var(--s3));
+  min-height: calc(100svh - var(--tile-art) - var(--hero-out) + var(--oss-band));
+}
+
+/* Content-sized and centred, like every other child of the copy column. */
+.oss-slot {
+  display: flex;
+  justify-content: center;
+}
+
+/* The chip ---------------------------------------------------------------- */
+.oss-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: var(--oss-h);
+  padding-inline: 12px;
+  border: 1px solid var(--oss-hairline);
+  border-radius: 999px;
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.04em;
+  color: var(--text-2);
+  white-space: nowrap;
+
+  /* Clipped to the padding box so the fill does not sit under the hairline and
+     darken it — the border is translucent and would otherwise be painted
+     twice. */
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.055))
+      padding-box,
+    var(--oss-fill) padding-box;
+
+  backdrop-filter: blur(9px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  transition: color 150ms var(--ease);
+}
+
+.oss-chip:hover {
+  color: var(--text);
+}
+
+.oss-chip .oss-leaf {
+  flex: none;
+  display: block;
+  width: 12px;
+  height: 13px;
+}
+
+@supports (text-box: trim-both cap alphabetic) {
+  .oss-chip span {
+    text-box: trim-both cap alphabetic;
+  }
+}
+
+/* The outline ---------------------------------------------------------------
+   Laid over the chip's own border and stroked once per rung of the taper.
+
+   Sized explicitly rather than by `inset` alone. An `<svg>` is a replaced
+   element: with `width: auto` it takes its own intrinsic 300×150 instead of
+   resolving from the insets, and the rect's `width="100%"` then means 100% of
+   that — a light lapping a shape five times the size of the chip, well
+   outside it.
+
+   The containing block of an absolute child is the chip's *padding* box, which
+   is 1px inside the border box. A stroke straddles its path, so landing a 1px
+   stroke down the middle of the 1px border means putting the rect's edge half
+   a pixel outside the padding box: hence −0.5px on every side and 1px added to
+   both dimensions.
+
+   `overflow: visible` because the halo is 4px wide and blurred — everything
+   soft about this light lives outside the box that carries it. */
+.oss-rim {
+  position: absolute;
+  inset: -0.5px;
+  width: calc(100% + 1px);
+  height: calc(100% + 1px);
+  overflow: visible;
+  pointer-events: none;
+  /* Mirrored, purely to reverse the direction of travel. A rect's implicit
+     path runs clockwise from the top-left, and the dash below advances
+     against it; without this the light would run right-to-left along the top,
+     against the way the label beneath it is read. The pill is symmetrical, so
+     the mirror costs nothing else. */
+  scale: -1 1;
+}
+
+.oss-rim rect {
+  fill: none;
+  stroke-linecap: round;
+  /* One keyframe for all ten, which only works because they share a leading
+     edge: every dash starts at the same offset and they differ only in length.
+     A positive offset walks the pattern backwards along the path, so the head
+     of the light is the dash's start — the end they all have in common, and
+     therefore the brightest.
+
+     `linear` and `infinite`, with the keyframe landing on exactly one full
+     perimeter: offset 100 against a `pathLength` of 100 is the same picture as
+     offset 0, so the lap closes on itself and there is no seam or hold between
+     cycles. */
+  animation: oss-rim-run 6s linear infinite;
+}
+
+@keyframes oss-rim-run {
+  to {
+    stroke-dashoffset: 100;
+  }
+}
+
+/* The soft field the light throws onto the page behind it. Blurred past its
+   own width so it has no edge of its own — this is the only part that touches
+   the page rather than the chip, and it is what keeps the hairline core below
+   from reading as a scratch on the border. */
+.oss-halo {
+  stroke: var(--mint);
+  stroke-width: 3;
+  opacity: 0.26;
+  filter: blur(2.5px);
+}
+
+/* One rung of the ramp. A hairline, exactly the width of the border it rides,
+   so the lit part of the outline is the outline rather than something drawn on
+   top of it.
+
+   Brightness is deliberately not set here — each rung carries its own
+   `stroke-opacity`, solved in Oss.tsx so the nine of them composite to a
+   stated curve. An `opacity` in this rule would multiply against that and
+   quietly undo it. */
+.oss-step {
+  stroke: var(--mint);
+  stroke-width: 1;
+}
+
+/* Entrance ------------------------------------------------------------------
+   `.is-entering .hero-copy > *` names the animation for every child, so an
+   unranked slot would take the 0s default duration and simply be there before
+   the headline moved. It leads, at 4px and 60ms — the same small travel the
+   bar gets, and for the same reason: it is establishing context, not competing
+   to be the thing you read first. The headline keeps its solo beat, because
+   60ms + 250ms lands before the headline is halfway through its own.
+
+   This addresses the slot rather than the chip on purpose. `animation-name`
+   holds one value, and these two numbers are not gated the way the name is:
+   `.is-entering` comes off and the name reverts, but a 250ms duration
+   declared here would outlive it and apply to whatever that element animates
+   next. Nothing on the chip animates today — the light is on the rects — but
+   the slot keeps that from ever being a question. */
+.hero-copy > .oss-slot {
+  --enter-y: 4px;
+  animation-duration: 250ms;
+  animation-delay: 60ms;
+}
+
+/* Reduced motion ------------------------------------------------------------
+   The global rule at styles.css:245 collapses every animation to a single
+   0.01ms frame, which is the wrong resting state here: it parks the light
+   wherever frame one puts it and leaves a green smear stuck to one side of
+   the border. Stopping is not the same as not starting, so the outline is
+   removed outright. What is left is the plain hairline pill — which is the
+   whole reason the chip carries a real border of its own instead of letting
+   the light be the border. */
+@media (prefers-reduced-motion: reduce) {
+  .oss-rim {
+    display: none;
+  }
+}
