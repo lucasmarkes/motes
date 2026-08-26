@@ -1,6 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import type { MotesOptions } from '@lucasmarkes/motes'
 import { CATALOG } from './effects'
+
+/** Effects lay out in a grid this many across; the pill rides cell to cell. */
+const SEG_COLS = 3
 import { highlight, snippetFor, type Tab } from './snippet'
 import { navigate } from './router'
 import { CheckIcon, CopyIcon, DiceIcon, LinkIcon, ResetIcon } from './icons'
@@ -188,7 +191,11 @@ export function Panel({ config, onChange, onReplace, arrivals }: PanelProps) {
             role="group"
             aria-label="Effect"
             style={
-              { '--seg-n': CATALOG.length, '--seg-i': activeEffect } as CSSProperties
+              {
+                '--seg-cols': SEG_COLS,
+                '--seg-col': activeEffect % SEG_COLS,
+                '--seg-row': Math.floor(activeEffect / SEG_COLS),
+              } as CSSProperties
             }
           >
             {/* One pill that rides between the cells, behind the labels. */}

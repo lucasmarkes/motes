@@ -1735,12 +1735,17 @@ input {
 }
 
 /* A recessed track with the active choice as a filled pill riding inside it,
-   rather than three bordered cells. The 2px of padding is the inset that makes
-   the track read as carved into the paper; the track rounds to 5px and the
-   pill inside it to 4px, on the panel's shared radius scale. */
+   rather than a dozen bordered cells. Too many effects for one row now, so the
+   track is a grid — three across, as many rows as it takes — and every cell
+   gets the same width, so a name never has to squeeze. The 2px of padding is
+   the inset that makes the track read as carved into the paper; the track
+   rounds to 5px and the pill inside it to 4px, on the panel's shared scale. */
 .seg {
+  --seg-h: 30px;
   position: relative;
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(var(--seg-cols, 3), minmax(0, 1fr));
+  grid-auto-rows: var(--seg-h);
   gap: 2px;
   padding: 2px;
   background: var(--sunk-1);
@@ -1750,27 +1755,34 @@ input {
 /* The active choice is one object that moves, not a fill that fades in under
    the new cell while fading out under the old. The eye follows a single pill
    from where it was to where it's going; a crossfade only ever shows two.
-   Cells are equal-width flex, so the geometry is pure arithmetic: the pill is
-   one cell wide, and each step is a cell plus the 2px gap — expressed as a
-   percentage of the pill's own width so it needs no measuring. */
+   Cells are equal-width grid tracks, so the geometry is pure arithmetic: the
+   pill is one cell wide and one row tall, and each step is a cell plus the
+   2px gap — horizontally as a percentage of its own width, vertically in the
+   fixed row height — so it needs no measuring, in either direction. */
 .seg-pill {
   position: absolute;
   top: 2px;
-  bottom: 2px;
   left: 2px;
-  width: calc((100% - 4px - (var(--seg-n) - 1) * 2px) / var(--seg-n));
+  width: calc((100% - 4px - (var(--seg-cols, 3) - 1) * 2px) / var(--seg-cols, 3));
+  height: var(--seg-h);
   background: var(--ink);
   border-radius: 4px;
-  transform: translateX(calc(var(--seg-i) * (100% + 2px)));
+  transform: translate(
+    calc(var(--seg-col, 0) * (100% + 2px)),
+    calc(var(--seg-row, 0) * (var(--seg-h) + 2px))
+  );
   transition: transform 180ms var(--ease);
 }
 
 .seg button {
   position: relative;
   z-index: 1;
-  flex: 1;
-  min-height: 30px;
-  padding: 0;
+  min-width: 0;
+  min-height: var(--seg-h);
+  padding: 0 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-family: var(--mono);
   font-size: var(--fs-fine);
   background: transparent;
