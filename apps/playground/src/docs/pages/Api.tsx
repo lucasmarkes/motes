@@ -54,7 +54,7 @@ export function ApiPage() {
       <CodeBlock
         lang="ts"
         code={`interface MotesOptions {
-  effect: EffectName       // 'flow' | 'waves' | 'pulse' | custom
+  effect: EffectName       // 'flow' | 'waves' | 'pulse' | 'embers' | … | custom
   pointer: boolean
   radius: number         // CSS px
   force: number

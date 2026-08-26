@@ -22,7 +22,7 @@ export function ExamplesPage() {
       <LiveExample config={{ effect: 'flow', density: 12, trail: 0.35 }} height={180} />
 
       <DocHeading id="effects">Built-in effects</DocHeading>
-      <p>Three effects ship with the library. Try each on the playground:</p>
+      <p>Eleven effects ship with the library. Try each on the playground:</p>
       <ul>
         <li>
           <a href="/flow">flow</a> — domain-warped noise
@@ -32,6 +32,30 @@ export function ExamplesPage() {
         </li>
         <li>
           <a href="/pulse">pulse</a> — radial rings
+        </li>
+        <li>
+          <a href="/embers">embers</a> — heat rising from the floor
+        </li>
+        <li>
+          <a href="/dust">dust</a> — a sparse, twinkling nebula
+        </li>
+        <li>
+          <a href="/contour">contour</a> — drifting level curves
+        </li>
+        <li>
+          <a href="/moire">moire</a> — two ring sources interfering
+        </li>
+        <li>
+          <a href="/aurora">aurora</a> — swaying curtains of light
+        </li>
+        <li>
+          <a href="/ripples">ripples</a> — drops landing at random
+        </li>
+        <li>
+          <a href="/smoke">smoke</a> — a curling plume
+        </li>
+        <li>
+          <a href="/corona">corona</a> — a dark disc with a plasma crown
         </li>
       </ul>
 

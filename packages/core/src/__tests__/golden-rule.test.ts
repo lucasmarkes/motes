@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest'
 import { assembleFragmentShader } from '../renderer/gl'
 import { defineEffect, getEffect, listEffects } from '../effects/registry'
 
-const BUILTINS = ['flow', 'waves', 'pulse'] as const
+const BUILTINS = [
+  'flow', 'waves', 'pulse',
+  'embers', 'dust', 'contour', 'moire', 'aurora', 'ripples', 'smoke', 'corona',
+] as const
 
 /** Uniforms that only the shared pointer layer is allowed to touch. */
 const POINTER_UNIFORMS = [
@@ -15,7 +18,7 @@ const POINTER_UNIFORMS = [
 ]
 
 describe('effect registry', () => {
-  it('registers the three built-ins', () => {
+  it('registers every built-in', () => {
     expect(listEffects()).toEqual(expect.arrayContaining([...BUILTINS]))
   })
 

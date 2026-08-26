@@ -1,5 +1,16 @@
 /** Names of the effects that ship with motes. */
-export type BuiltinEffect = 'flow' | 'waves' | 'pulse'
+export type BuiltinEffect =
+  | 'flow'
+  | 'waves'
+  | 'pulse'
+  | 'embers'
+  | 'dust'
+  | 'contour'
+  | 'moire'
+  | 'aurora'
+  | 'ripples'
+  | 'smoke'
+  | 'corona'
 
 /**
  * A registered effect name. Built-ins are suggested by autocomplete; any

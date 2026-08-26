@@ -17,7 +17,7 @@ defineEffect('rain', { glsl: RAIN_GLSL })
 export interface CatalogEntry {
   id: string
   /**
-   * The code you would write to get this field. These four are peers, not a
+   * The code you would write to get this field. These are peers, not a
    * sequence, so an ordinal encoded nothing — the identifier does, and it
    * teaches the API on the index page.
    */
@@ -54,6 +54,70 @@ export const CATALOG: CatalogEntry[] = [
     blurb: 'Radial rings breathing out from the centre of the grid.',
     detail:
       'Rings decaying with distance. The pointer adds energy locally without touching the ring math.',
+  },
+  {
+    id: 'embers',
+    tag: 'effect="embers"',
+    title: 'embers',
+    blurb: 'Heat rising from the bottom edge, dissolving toward the top.',
+    detail:
+      'Warped fbm dragged upward, hot at the floor. The cursor lights a Gaussian core through the same shared pass — the flame never sees it.',
+  },
+  {
+    id: 'dust',
+    tag: 'effect="dust"',
+    title: 'dust',
+    blurb: 'A sparse nebula of grains, each twinkling on its own clock.',
+    detail:
+      'An fbm cloud decides where dust exists; a per-cell hash decides which grain. Quiet by design — raise trail to give it weight.',
+  },
+  {
+    id: 'contour',
+    tag: 'effect="contour"',
+    title: 'contour',
+    blurb: 'A drifting relief sliced into level curves.',
+    detail:
+      'Topographic lines from an fbm height map. Lower density for finer lines; strong on the Paper preset.',
+  },
+  {
+    id: 'moire',
+    tag: 'effect="moire"',
+    title: 'moire',
+    blurb: 'Two ring sources wandering, interfering where they cross.',
+    detail:
+      'A cousin of pulse with moving centres. The interference pattern never repeats.',
+  },
+  {
+    id: 'aurora',
+    tag: 'effect="aurora"',
+    title: 'aurora',
+    blurb: 'Curtains of light swaying across the upper half.',
+    detail:
+      'An fbm stretched along y gives the curtains; fine filaments give the texture. Leaves the floor empty on purpose.',
+  },
+  {
+    id: 'ripples',
+    tag: 'effect="ripples"',
+    title: 'ripples',
+    blurb: 'Drops landing at random points, each ring expanding and fading.',
+    detail:
+      'Four independent drop clocks. Transient by nature: there are seconds when nothing happens, and that is the point.',
+  },
+  {
+    id: 'smoke',
+    tag: 'effect="smoke"',
+    title: 'smoke',
+    blurb: 'A plume rising from the centre, curling and widening as it goes.',
+    detail:
+      'Domain-warped fbm inside a Gaussian source that widens with height. The cold, slow sibling of embers.',
+  },
+  {
+    id: 'corona',
+    tag: 'effect="corona"',
+    title: 'corona',
+    blurb: 'A dark disc with a turning plasma crown around it.',
+    detail:
+      'An eclipse. The rim is a sharp exponential line, the crown an fbm in polar coordinates. Built for a centred title.',
   },
   {
     id: 'rain',

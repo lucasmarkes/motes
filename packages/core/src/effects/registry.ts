@@ -2,6 +2,14 @@ import type { EffectDef, EffectName } from '../types'
 import flowGlsl from './flow.glsl'
 import wavesGlsl from './waves.glsl'
 import pulseGlsl from './pulse.glsl'
+import embersGlsl from './embers.glsl'
+import dustGlsl from './dust.glsl'
+import contourGlsl from './contour.glsl'
+import moireGlsl from './moire.glsl'
+import auroraGlsl from './aurora.glsl'
+import ripplesGlsl from './ripples.glsl'
+import smokeGlsl from './smoke.glsl'
+import coronaGlsl from './corona.glsl'
 
 const effects = new Map<string, EffectDef>()
 
@@ -36,3 +44,11 @@ export function listEffects(): string[] {
 defineEffect('flow', { glsl: flowGlsl })
 defineEffect('waves', { glsl: wavesGlsl })
 defineEffect('pulse', { glsl: pulseGlsl })
+defineEffect('embers', { glsl: embersGlsl })
+defineEffect('dust', { glsl: dustGlsl })
+defineEffect('contour', { glsl: contourGlsl })
+defineEffect('moire', { glsl: moireGlsl })
+defineEffect('aurora', { glsl: auroraGlsl })
+defineEffect('ripples', { glsl: ripplesGlsl })
+defineEffect('smoke', { glsl: smokeGlsl })
+defineEffect('corona', { glsl: coronaGlsl })

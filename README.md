@@ -81,7 +81,7 @@ not a convention, and there are tests that fail if it ever stops being true.
 
 | Option | Default | What it does |
 | --- | --- | --- |
-| `effect` | `'flow'` | `'flow'`, `'waves'`, `'pulse'`, or your own. |
+| `effect` | `'flow'` | `'flow'`, `'waves'`, `'pulse'`, `'embers'`, `'dust'`, `'contour'`, `'moire'`, `'aurora'`, `'ripples'`, `'smoke'`, `'corona'`, or your own. |
 | `pointer` | `true` | Whether the field reacts to the cursor. |
 | `radius` | `150` | Pointer influence radius, in CSS pixels. |
 | `force` | `1.4` | Pointer force strength. |
